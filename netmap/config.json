@@ -1,0 +1,28 @@
+{
+	"server":
+    {
+        "hostname": "www.netgraph.net",
+        "port": 3000,
+        "cert": "/etc/mycerts/netgraph.net.crt",
+        "key": "/etc/mycerts/netgraph.net.key"
+    },
+    "staticserver": 
+    {
+        "hostname": "static.netgraph.net",
+        "port": 443
+    },
+    "db":
+    {
+	    "users":
+	    {
+	    	"database": "users",
+	    	"host": "localhost",
+	    	"user": "root",
+	    	"password": "qzmuecbt"
+	    }
+	},
+	"diagrams":
+	{
+		"path": "/diagrams/"
+	}
+}

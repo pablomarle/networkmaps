@@ -1,0 +1,225 @@
+/*
+4484CE Blue
+D9D9D9 Grey
+F1F1F1 Light Grey
+F9CF00 Yellow
+F19F4D Orange
+*/
+
+body {
+	color: #2f4b46;
+	background: #D9D9D9;
+	font-size: 16px;
+	font-family: Verdana;
+	/*font-family: 'Kalam', cursive;*/
+	margin:0px; padding:0px;
+}
+
+.head {
+	display: flex;
+
+	justify-content: space-between;
+	width: 100%;
+	color: #F1F1F1;
+	background: #4484CE;
+}
+.headleft {
+	display: flex;
+	flex-direction: row;
+}
+.headright {
+	display: flex;
+	flex-direction: row-reverse;
+}
+
+.headtext {
+	display: inline;
+	font-size: 24px;
+	margin:8px;
+}
+.headbutton {
+	margin:0px;
+}
+
+.content {
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+
+	width:100%;
+}
+
+.newdiagram {
+	display: flex;
+	flex-direction: column;
+	align-items:center;
+	margin:10px;
+}
+.iconbutton {
+	width:32px;
+	height:32px;
+	margin: 0px;
+}
+.iconbuttontext {
+	margin:0px;
+}
+
+.diagramlist {
+	display: flex;
+	flex-direction: column;
+	align-items:center;
+	margin:auto;
+	width:80%;
+	border-top: 2px solid #4484CE;
+	padding-top: 5px
+}
+.diagram {
+	display: flex;
+	flex-direction: row;
+	width:100%;
+	text-align: left;
+	background: #F1F1F1;
+	border-radius: 2px;
+	margin:2px;
+	box-shadow: 3px 3px 5px #5d948a;
+	cursor: pointer;
+}
+.diagram:hover {
+	background: #E8E8EF;
+}
+.diagram_name {
+	width:90%;
+	padding:2px 10px;
+}
+.diagram_actions {
+	display: flex;
+	flex-direction: row-reverse;	
+}
+
+.diagram_button {
+	opacity:.7;
+	cursor: pointer;
+	width:20px; height:20px;
+	margin:3px;
+	border-radius: 5px;
+}
+.diagram_button:hover {
+	opacity:1;
+}
+
+.diagram_button_img {
+	margin:auto;
+	width:100%;
+	height:100%;
+}
+
+.error {
+	position: absolute;
+	top: 0; left: 50%;
+	transform: translate(-50%, -100%);
+
+	padding: 0px;
+
+	border: 2px groove #D8BD87;
+	border-radius: 5px;
+
+	box-shadow: 10px 10px 5px #5d948a;
+	background: #cfe0e8;
+}
+
+.errortitle {
+	background: #e8d7b7;
+	border-radius: 5px 5px 0 0;
+	padding:5px;
+	margin-bottom: 10px;
+
+	text-align: center;
+	font-weight: bold;
+}
+
+.errortext {
+	margin: 5px;
+}
+
+.box {
+	position: absolute;
+	top: 50%; left: 50%;
+	transform: translate(-50%, -50%);
+
+	padding: 0px;
+
+	border: 1px solid #4484CE;
+	border-radius: 5px;
+
+	box-shadow: 10px 10px 5px #5d948a;
+	background: #D9D9D9;
+}
+
+.boxtitle {
+	color: #F1F1F1;
+	background: #4484CE;
+	border-radius: 5px 5px 0 0;
+	padding:5px;
+	margin-bottom: 10px;
+
+	text-align: center;
+	font-weight: bold;
+}
+
+.t_center {
+	margin: auto;
+	text-align: center;
+}
+
+.paragraph {
+	margin: 5px 10px;
+}
+
+.input {
+	background: #F1F1F1;
+
+	color: #2f4b46;
+	font-size: 14px;
+	font-family: 'Verdana', cursive;
+
+	border: none;
+	border-bottom: 1px solid #87BDD8;
+
+	margin: 4px;
+	padding:4px;
+	outline: none;
+}
+
+.button {
+	background: #F1F1F1;	
+	box-shadow: 3px 3px 5px #5d948a;
+
+	color: #2f4b46;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Verdana', cursive;
+	border-radius: 5px;
+	cursor: pointer;
+
+	margin: 8px;
+	padding: 4px 16px;
+	outline: none;
+}
+
+.button:hover {
+	background: #E8E8EF;
+}
+.button:active {
+	box-shadow: 1px 1px 2px #5d948a;
+}
+
+.infobox {
+	font-size: 10px;
+	position: fixed;
+	border: 1px solid #000;
+	border-radius: 10px;
+	background: rgba(255,255,255, .6);
+	padding: 5px;
+	margin:0px;
+	transform: translate(0%, -100%);
+}

@@ -1,0 +1,90 @@
+.win {
+	position: fixed;
+	border: 1px solid #000;
+	border-radius: 5px;
+	background: rgba(255,255,255,.8);
+	font-size: 12px;
+}
+
+.win_h {
+	background: #4484CE;
+	color: #FFF;
+	cursor: pointer;
+	text-align: center;
+	height: 15px;
+}
+
+.win_c {
+	color: #FFF;
+}
+
+.win_imgselect {
+	width: 32px;
+	height: 32px;
+}
+
+.win_label {
+	font-weight: bold;
+}
+
+.win_help {
+	font-size: 10px;
+	font-style: italic;
+}
+.color_bar {
+	border: 1px solid #000;
+	border-radius: 3px;
+	width: 128px;
+	height: 10px;
+	box-shadow: 2px 2px 8px #888;
+}
+
+.color_grab {
+	cursor: pointer;
+	border: 1px solid #444;
+	border-radius: 3px;
+	width: 5px;
+	height: 14px;
+	background: rgba(128, 128, 128, .8);
+	box-shadow: 2px 2px 8px #888;
+}
+
+.colorbox {
+	width: 50px;
+	height: 50px;
+	border: 1px solid #ddd;
+	box-shadow: 2px 2px 8px #888;
+}
+
+.slider_bar {
+	border: 1px solid #888;
+	border-radius: 3px;
+	width: 128px;
+	height: 5px;
+	background: linear-gradient(#888, #CCC);
+	box-shadow: 2px 2px 8px #888;
+}
+
+.slider_grab {
+	cursor: pointer;
+	border: 1px solid #444;
+	border-radius: 3px;
+	width: 5px;
+	height: 14px;
+	background: rgba(128, 128, 128, .8);
+	box-shadow: 2px 2px 8px #888;
+}
+
+.slider_value {
+	width: 30px;
+}
+
+.win_button {
+	background: #4484CE;
+	color: #FFF;
+	border: 1px solid #3374BE;
+	border-radius: 5px;
+	box-shadow: 2px 2px 8px #888;
+	cursor: pointer;
+	font-weight: bold;
+}

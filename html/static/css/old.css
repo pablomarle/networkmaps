@@ -1,0 +1,108 @@
+/*
+4484CE Blue
+D9D9D9 Grey
+F1F1F1 Light Grey
+F9CF00 Yellow
+F19F4D Orange
+*/
+
+body {
+	color: #2f4b46;
+	background: #4484CE;
+	font-size: 16px;
+	font-family: Verdana;
+	/*font-family: 'Kalam', cursive;*/
+	margin:0px; padding:0px;
+}
+
+.head {
+	display: flex;
+	justify-content: space-between;
+	width: 100%;
+	color: #F1F1F1;
+	background: #4484CE;
+}
+.headleft {
+	display: flex;
+	flex-direction: row;
+}
+
+.headtext {
+	display: inline;
+	font-size: 24px;
+	margin:8px;
+}
+
+.headright {
+	display: flex;
+	flex-direction: row-reverse;
+}
+.headbutton {
+	margin:0px;
+}
+
+.button {
+	background: #F1F1F1;	
+	box-shadow: 3px 3px 5px #5d948a;
+
+	color: #2f4b46;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Verdana', cursive;
+	border-radius: 5px;
+	cursor: pointer;
+
+	margin: 8px;
+	padding: 4px 16px;
+	outline: none;
+}
+
+.button:hover {
+	background: #E8E8EF;
+}
+.button:active {
+	box-shadow: 1px 1px 2px #5d948a;
+}
+
+.content {
+	color:000;
+	display: flex;
+	justify-content: center;
+	flex-direction: column;
+	background-image: url("/static/mimg/masshandra3.jpg");
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 100%;
+	width:100%;
+}
+.content2 {
+	color:000;
+	display: flex;
+	justify-content: center;
+	flex-direction: row;
+}
+
+img {
+	float: left;
+	width: 320;
+	height: 200;
+}
+
+.box {
+	margin: 40px 20%;
+}
+.box-header {
+	text-align: center;
+	margin: 20px 0 0 0;
+	font-size: 2em;
+}
+.box-content {
+	text-align: center;
+}
+
+.box-foot {
+	text-align: center;
+	margin: 80px;
+}
+
+
