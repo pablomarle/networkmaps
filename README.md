@@ -15,8 +15,8 @@ Although the project can be run and it would allow for diagrams to be created, I
 
 ## Prerequisites
 
-MySQL
-Web server
+MySQL database.[br]
+Web server.
 
 ## Installation
 
