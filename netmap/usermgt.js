@@ -106,7 +106,7 @@ class UserMGT {
 
     getSessionNoCreate(sessionid, callback) {
         if (!validator.isAlphanumeric(sessionid)) {
-            callback("Error on get session (3): " + sessionid)
+            callback("Error on get session (3): '" + sessionid + "'")
             return
         }
 

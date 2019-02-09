@@ -366,9 +366,7 @@ function screen_init_notlogged() {
 			div = DOM.cdiv(index_data.head, null, "headleft");
 				DOM.cdiv(div, null, "headtext", index_data.name);
 			div = DOM.cdiv(index_data.head, null, "headright");
-				DOM.cbutton(div, null, "button headbutton", "About Us", null, () => {
-					window.location.href = staticurl + "/aboutus.html";
-				});
+				DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
 				DOM.cbutton(div, null, "button headbutton", "Login", null, () => { set_state("L") });
 				DOM.cbutton(div, null, "button headbutton", "Register", null, () => { set_state("R") });
 
@@ -388,10 +386,17 @@ function screen_present(old_state) {
 
 }
 
+function screen_about_us() {
+    let div, body, t, tr, td, i, form;
+    body = document.getElementsByTagName("body")[0];
+    
+    div = add_message_box("About Us");
+    DOM.cdiv(div, null, "aboutus", "Developed by Pablo Martin Leon (2018-2019)."); 
+}
+
 function screen_login(old_state) {
 	let div, body, t, tr, td, i, form;
-	body = document. getElementsByTagName("body")[0];
-
+	body = document.getElementsByTagName("body")[0];
 
 	div = add_message_box("Login");
 	t = DOM.ctable(div, null, "t_center");
@@ -855,6 +860,9 @@ function set_state(new_state, data) {
 		else
 			screen_present(old_state);
 	}
+    else if(new_state == "AU") { // About Us
+        screen_about_us();
+    }
 	else if(new_state == "L") { // Log in
 		screen_login(old_state);
 	}
@@ -916,7 +924,6 @@ function set_state(new_state, data) {
 		screen_unknown(old_state);
 	}
 }
-
 
 function main() {
 	setup_usersocket();

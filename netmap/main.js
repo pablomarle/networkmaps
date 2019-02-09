@@ -109,9 +109,10 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 
 
 function main() {
-	ws.initialize(config, usermgt);
+    html.set_use_ssl(config.use_ssl);
+	ws.initialize(config, usermgt, html);
 
-	const server = new httpServer(config.server.hostname, config.server.port, config.server.cert, config.server.key, HTTP_callback, ws.WS_callback);
+	const server = new httpServer(config.use_ssl, config.server.hostname, config.server.port, config.server.cert, config.server.key, HTTP_callback, ws.WS_callback);
 }
 
 main()

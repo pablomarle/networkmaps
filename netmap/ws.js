@@ -4,11 +4,13 @@ const ETMap = require('./etmap')
 let usermgt = null;
 let config = null;
 let etmaps = {};
+let html = null;
 
-function initialize(newconfig, newusermgt) {
+function initialize(newconfig, newusermgt, newhtml) {
 	usermgt = newusermgt;
 	diagramchanels = {};
 	config = newconfig;
+	html = newhtml;
 }
 
 function sendMail(email, subject, content, callback) {
@@ -137,7 +139,7 @@ function WS_USER_RESETPASSWORD(ws, sessionid, data) {
 		    sendMail(data.email, "NetMap account password reset requested.", 
 		        `Hello.\n\nWe have received a request for your account password to be reset.\n\n
 		        Please, follow this link for your account to be changed:\n` +
-		        "https://" + config.server.hostname + ":" + config.server.port + "/passwordreset/" + validation_code + "?" + data.email + 
+		        html.get_http_proto() + config.server.hostname + ":" + config.server.port + "/passwordreset/" + validation_code + "?" + data.email + 
 		        "\n\nThis link will be valid for the next 24 hours.\n\nThanks,\nPablo.");
 			
 			ws.send(JSON.stringify({
@@ -158,7 +160,7 @@ function WS_USER_CREATEUSER(ws, sessionid, data) {
 		}
 		else {
             sendMail(data.email, "NetMap account confirmation needed.", 
-                "Welcome to NetMap.\n\n We need you to confirm your account. To do this, please follow this link:\n\nhttps://" + config.server.hostname + ":" +
+                "Welcome to NetMap.\n\n We need you to confirm your account. To do this, please follow this link:\n\n" + html.get_http_proto() + config.server.hostname + ":" +
                     config.server.port + "/validate/" + activationcode + "?" + data.email + "\n\nThis will be valid for the next 24 hours.\n\nThanks,\nPablo.")
 
 			ws.send(JSON.stringify({
@@ -289,7 +291,7 @@ function WS_DIAGRAM_SHARE(ws, sessionid, data) {
 			if (newuser) {
 				sendMail(data.e, newuser.req_name + " " + newuser.req_lastname + " has shared a Diagram with you on NetMap.",
 					"Hello.\n\n" + newuser.req_name + " " + newuser.req_lastname + " has shared a Network Diagram with you on NetMap: '" + newuser.diag_name + "'.\n\n" +
-					"We have created a temporary account for you. We need you to confirm this account. To do this, please follow this link:\n\nhttps://" + config.server.hostname + ":" +
+					"We have created a temporary account for you. We need you to confirm this account. To do this, please follow this link:\n\n" + html.get_http_proto() + config.server.hostname + ":" +
                     config.server.port + "/validate/" + newuser.activationcode + "?" + data.e + "\n\n" + 
                     "This will be valid for the next 24 hours. After that, this account will be removed from our system.\n\nThanks,\nPablo.")
 			}

@@ -1,6 +1,6 @@
 {
-    "use_ssl": false,
-	"server":
+	"use_ssl": true,
+    "server":
     {
         "hostname": "www.netgraph.net",
         "port": 3000,
@@ -10,7 +10,7 @@
     "staticserver": 
     {
         "hostname": "static.netgraph.net",
-        "port": 80
+        "port": 443
     },
     "db":
     {

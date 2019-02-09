@@ -1,4 +1,5 @@
 const https = require('https');
+const http = require('http');
 const WebSocket = require('ws');
 const crypto = require("crypto");
 const fs = require('fs');
@@ -6,39 +7,67 @@ const fs = require('fs');
 const SESSION_COOKIE_MAXAGE = 30* (24*3600);
 
 class HTTPServer {
-	constructor(hostname, port, certpath, keypath, requestcallback, wsconnectcallback) {
+	constructor(use_ssl, hostname, port, certpath, keypath, requestcallback, wsconnectcallback) {
+        this.use_ssl = use_ssl;
 		this.hostname = hostname;
 		this.port = port;
 		this.requestcallback = requestcallback;
 		this.wsconnectcallback = wsconnectcallback;
 
 		let httpserver = this;
-		this.server = https.createServer({
-				key: fs.readFileSync(keypath),
-				cert: fs.readFileSync(certpath),
-			}, 
-			(request, response) => {
-				const { method, url, headers } = request;
+        if(use_ssl) {
+		    this.server = https.createServer({
+			    	key: fs.readFileSync(keypath),
+				    cert: fs.readFileSync(certpath),
+			    },
+			    (request, response) => {
+				    const { method, url, headers } = request;
 				
-				console.log(method + " " + url + " " + JSON.stringify(headers));
+				    console.log(method + " " + url + " " + JSON.stringify(headers));
 
-				let sessionid = httpserver.HTTP_ReadSession(headers);
+				    let sessionid = httpserver.HTTP_ReadSession(headers);
 
-				httpserver.requestcallback(method, url, sessionid, (statusCode, contentType, content, newsessionid, redirectLocation) => {
-				 	response.statusCode = statusCode;
-				 	if(contentType)
-				 		response.setHeader('Content-Type', contentType);
-				 	if(newsessionid)
-				 		response.setHeader('Set-Cookie', 'NetSession=' + newsessionid + "; Max-Age=" + SESSION_COOKIE_MAXAGE + "; path=/; secure");
-				 	if(redirectLocation)
-				 		response.setHeader('Location', redirectLocation);
-				 	response.end(content);							
-				});
+				    httpserver.requestcallback(method, url, sessionid, (statusCode, contentType, content, newsessionid, redirectLocation) => {
+				 	    response.statusCode = statusCode;
+				 	    if(contentType)
+				 		    response.setHeader('Content-Type', contentType);
+				 	    if(newsessionid)
+				 		    response.setHeader('Set-Cookie', 'NetSession=' + newsessionid + "; Max-Age=" + SESSION_COOKIE_MAXAGE + "; path=/; secure");
+				 	    if(redirectLocation)
+				 		    response.setHeader('Location', redirectLocation);
+				 	    response.end(content);							
+				    });
 
-			});
+			    });
+        }
+        else {
+		    this.server = http.createServer(
+			    (request, response) => {
+				    const { method, url, headers } = request;
+				
+				    console.log(method + " " + url + " " + JSON.stringify(headers));
+
+				    let sessionid = httpserver.HTTP_ReadSession(headers);
+
+				    httpserver.requestcallback(method, url, sessionid, (statusCode, contentType, content, newsessionid, redirectLocation) => {
+				 	    response.statusCode = statusCode;
+				 	    if(contentType)
+				 		    response.setHeader('Content-Type', contentType);
+				 	    if(newsessionid)
+				 		    response.setHeader('Set-Cookie', 'NetSession=' + newsessionid + "; Max-Age=" + SESSION_COOKIE_MAXAGE + "; path=/");
+				 	    if(redirectLocation)
+				 		    response.setHeader('Location', redirectLocation);
+				 	    response.end(content);							
+				    });
+
+			    });
+        }
 
 		this.server.listen(this.port, this.hostname, () => {
-		  console.log(`Server running at https://${this.hostname}:${this.port}/`)
+            if(use_ssl)
+		        console.log(`Server running at https://${this.hostname}:${this.port}/`)
+		    else
+                console.log(`Server running at http://${this.hostname}:${this.port}/`)
 		});
 
 		this.wss = new WebSocket.Server({"server":this.server});
