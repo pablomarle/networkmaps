@@ -2,14 +2,14 @@
     "use_ssl": false,
 	"server":
     {
-        "hostname": "www.netgraph.net",
+        "hostname": "www.masshandra.com",
         "port": 3000,
         "cert": "/etc/mycerts/netgraph.net.crt",
         "key": "/etc/mycerts/netgraph.net.key"
     },
     "staticserver": 
     {
-        "hostname": "static.netgraph.net",
+        "hostname": "static.masshandra.com",
         "port": 80
     },
     "db":

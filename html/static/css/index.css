@@ -225,5 +225,26 @@ body {
 }
 
 .aboutus {
-    margin: 30px;
+    margin: 20px;
+}
+.introimg {
+    width: 240px;
+    height: 200px;
+}
+.titleicon {
+    width: 45px;
+    height: 45px;
+}
+.shadow {
+    display:block;
+    position:relative;
+}
+.shadow:before
+{
+    display:block;
+    content:'';
+    position:absolute;
+    width:100%;
+    height:100%;
+    box-shadow:inset 0px 0px 10px 10px rgba(218,218,218,1);
 }

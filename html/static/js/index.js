@@ -4,7 +4,7 @@ let index_data = {
 	session: null,
 	state: "",
 	current_diagram: {},
-	name: "NetGraph"
+	name: "MaSSHandra"
 };
 
 function process_message(message) {
@@ -364,11 +364,13 @@ function screen_init_notlogged() {
 	setTimeout(() => {
 		index_data.head = DOM.cdiv_fade(body, null, "head");
 			div = DOM.cdiv(index_data.head, null, "headleft");
+				DOM.cimg(div, staticurl + "/static/img/icon.png", null, "titleicon");
 				DOM.cdiv(div, null, "headtext", index_data.name);
 			div = DOM.cdiv(index_data.head, null, "headright");
-				DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
 				DOM.cbutton(div, null, "button headbutton", "Login", null, () => { set_state("L") });
 				DOM.cbutton(div, null, "button headbutton", "Register", null, () => { set_state("R") });
+				DOM.donate(div);
+				DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
 
 		index_data.content = DOM.cdiv_fade(body, null, "content");
 
@@ -377,21 +379,42 @@ function screen_init_notlogged() {
 }
 
 function screen_present(old_state) {
-	let div, body, t, tr, td, i, form;
-	body = document. getElementsByTagName("body")[0];
-	if(old_state == "I")
-		screen_init_notlogged();
+    let div, body, t, tr, td, i, div2;
+    body = document. getElementsByTagName("body")[0];
+    if(old_state == "I")
+        screen_init_notlogged();
 
-	delete_message_box();
+    delete_message_box();
 
+    div = add_message_box("Network Diagrams");
+    t = DOM.ctable(div, null, "t_center");
+        tr = DOM.ctr(t);
+            td = DOM.ctd(tr);
+                div2 = DOM.cdiv(td, null, "shadow");
+		DOM.cimg(div2, staticurl + "/static/img/sample1.png", null, "introimg");
+            td = DOM.ctd(tr);
+                DOM.cdiv(td, null, "aboutus", "Create and edit your 3D network diagrams wherever you are for free.");
+                DOM.cdiv(td, null, "aboutus", "Share them and work together creating the most amazing network.");
+                DOM.cdiv(td, null, "aboutus", "This is currently a beta version. If you are interested in our project, contact us (on About Us).");
 }
 
 function screen_about_us() {
-    let div, body, t, tr, td, i, form;
-    body = document.getElementsByTagName("body")[0];
+    let div, div2, ul, a;
+    let body = document.getElementsByTagName("body")[0];
     
     div = add_message_box("About Us");
-    DOM.cdiv(div, null, "aboutus", "Developed by Pablo Martin Leon (2018-2019)."); 
+    DOM.cdiv(div, null, "aboutus", "This is an open source project developed by Pablo Martin Leon."); 
+    div2 = DOM.cdiv(div, null, "aboutus", "Find the source code at: ");
+    a = DOM.c(div2, "a", null, null, "https://github.com/pablomarle/networkmaps");
+    a.href = "https://github.com/pablomarle/networkmaps";
+    a.target = "_blank";
+    div2 = DOM.cdiv(div, null, "aboutus", "If you are interested in the project, let me know: ");
+    a = DOM.c(div2, "a", null, null, "pablo@masshandra.com");
+    a.href = "mailto:pablo@masshandra.com";
+    DOM.cdiv(div, null, "aboutus", "Do you want to help in the development?");
+    ul = DOM.c(div, "ul");
+    DOM.c(ul, "li", null, null, "Make a donation.");
+    DOM.c(ul, "li", null, null, "Help me developing it.");
 }
 
 function screen_login(old_state) {
@@ -507,10 +530,12 @@ function screen_init_logged() {
 	setTimeout(() => {
 		index_data.head = DOM.cdiv_fade(body, null, "head");
 			div = DOM.cdiv(index_data.head, null, "headleft");
+				DOM.cimg(div, staticurl + "/static/img/icon.png", null, "titleicon");
 				DOM.cdiv(div, null, "headtext", index_data.name);
 			div = DOM.cdiv(index_data.head, null, "headright");
 			i = DOM.cbutton(div, null, "button", "Account", null, () => {set_state("A")});
 			i = DOM.donate(div);
+			DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
 		index_data.content = DOM.cdiv_fade(body, null, "content");
 			div = DOM.cdiv(index_data.content, null, "newdiagram");
 				i = DOM.cimg(div, staticurl + "/static/img/newdiagram.png", "newdiagram", "iconbutton button", null, () => {set_state("N")});
