@@ -1,6 +1,11 @@
 {
+    "comment": "This file is expected to be in /etc/networkmaps",
     "use_ssl": false,
-	"server":
+    "socket": {
+        "address": "172.31.95.91",
+        "port": 3000
+    },
+    "server":
     {
         "hostname": "www.masshandra.com",
         "port": 3000,
@@ -18,12 +23,23 @@
 	    {
 	    	"database": "users",
 	    	"host": "localhost",
-	    	"user": "root",
-	    	"password": "abc123"
+	    	"user": "db_user",
+	    	"password": "db_password"
 	    }
 	},
 	"diagrams":
 	{
 		"path": "/diagrams/"
-	}
+	},
+    "sendmail":
+    {
+        "queue": "/sendmail/queue",
+        "sent": "/sendmail/sent",
+        "server": "smtp.masshandra.com",
+        "port": 465,
+        "is_secured": true,
+        "user": "smtp_user",
+        "password": "smtp_password",
+        "from": "MaSSHandra.com <noreply@admin.masshandra.com>"
+    }
 }

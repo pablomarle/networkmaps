@@ -294,8 +294,8 @@ class UserMGT {
                     return
                 }
                 if(results.length != 1) {
-                    callback("Error on resetPassword")
-                    console.log("Error on resetPassword (2): " + error)
+                    callback("Error on resetPassword");
+                    console.log("Error on resetPassword (2): user " + email + " not found");
                     return
                 }
                 let userid = results[0].id;

@@ -5,21 +5,22 @@ let usermgt = null;
 let config = null;
 let etmaps = {};
 let html = null;
+let sendmail = null;
 
-function initialize(newconfig, newusermgt, newhtml) {
+function initialize(newconfig, newusermgt, newhtml, newsendmail) {
 	usermgt = newusermgt;
 	diagramchanels = {};
 	config = newconfig;
 	html = newhtml;
+    sendmail = newsendmail;
 }
 
-function sendMail(email, subject, content, callback) {
-    console.log("Email sending to " + email + ":")
-    console.log("   "+subject)
-    console.log("   "+content)
-    if(callback) {
-        callback(null);
-    }
+function sendMail(to, subject, content) {
+    console.log(`Sending email to queue: ${to} : ${subject}`)
+    sendmail.queue_email(to, subject, content)
+        .catch(err => {
+            console.log(`Error sending email: ${to} : ${subject}`)
+        });
 }
 
 function WS_DIAGRAM(ws, uuid, sessionid) {

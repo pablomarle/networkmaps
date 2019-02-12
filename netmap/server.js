@@ -1,18 +1,18 @@
-const config = require('./config');
-const httpServer = require('./httpserver')
-const html = require('./html')
-const UserMGT = require('./usermgt')
-const ws = require('./ws')
+#!/usr/bin/node
 
+const config = require('./config');
+const httpServer = require('./httpserver');
+const html = require('./html');
+const UserMGT = require('./usermgt');
+const ws = require('./ws');
+const sendmail = require("./sendmail");
 const usermgt = new UserMGT(config.db.users);
 
-function sendMail(email, subject, content, callback) {
-    console.log("Email sending to " + email + ":")
-    console.log("   "+subject)
-    console.log("   "+content)
-    if(callback) {
-        callback(null);
-    }
+function sendMail(to, subject, content) {
+    sendmail.queue_email(to, subject, content)
+        .catch(err => {
+            console.log(`Error sending email: ${to} : ${subject}`)
+        });
 }
 
 function HTTP_callback(method, url, sessionid, sendresponse) {
@@ -109,10 +109,11 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 
 
 function main() {
+    sendmail.initialize(config.sendmail);
     html.set_use_ssl(config.use_ssl);
-	ws.initialize(config, usermgt, html);
+	ws.initialize(config, usermgt, html, sendmail);
 
-	const server = new httpServer(config.use_ssl, config.server.hostname, config.server.port, config.server.cert, config.server.key, HTTP_callback, ws.WS_callback);
+	const server = new httpServer(config.use_ssl, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);
 }
 
 main()
