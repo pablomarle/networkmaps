@@ -1,5 +1,6 @@
 {
     "comment": "This file is expected to be in /etc/networkmaps",
+    "use_ssl_socket": false,
     "use_ssl": false,
     "socket": {
         "address": "172.31.95.91",

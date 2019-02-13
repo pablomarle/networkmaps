@@ -113,7 +113,7 @@ function main() {
     html.set_use_ssl(config.use_ssl);
 	ws.initialize(config, usermgt, html, sendmail);
 
-	const server = new httpServer(config.use_ssl, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);
+	const server = new httpServer(config.use_ssl_socket, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);
 }
 
 main()
