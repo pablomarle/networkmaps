@@ -23,7 +23,7 @@ class HTTPServer {
 			    (request, response) => {
 				    const { method, url, headers } = request;
 				
-				    console.log(method + " " + url + " " + JSON.stringify(headers));
+				    console.log(`${method} ${url} HOST:${headers.host} USER AGENT:${headers["user-agent"]} COOKIE:${headers.cookie} REMOTEIP:${request.connection.remoteAddress} XFORWARDED:${headers["x-forwarded-for"]}` );
 
 				    let sessionid = httpserver.HTTP_ReadSession(headers);
 
@@ -45,7 +45,7 @@ class HTTPServer {
 			    (request, response) => {
 				    const { method, url, headers } = request;
 				
-				    console.log(method + " " + url + " " + JSON.stringify(headers));
+				    console.log(`${method} ${url} HOST:${headers.host} USER AGENT:${headers["user-agent"]} COOKIE:${headers.cookie} REMOTEIP:${request.connection.remoteAddress} XFORWARDED:${headers["x-forwarded-for"]}` );
 
 				    let sessionid = httpserver.HTTP_ReadSession(headers);
 
@@ -75,7 +75,7 @@ class HTTPServer {
 		this.wss.on('connection', 
 			(ws, request) => {
 				const { method, url, headers } = request;
-				console.log("WS " + url + " " + JSON.stringify(headers));
+			    console.log(`WS ${url} HOST:${headers.host} USER AGENT:${headers["user-agent"]} COOKIE:${headers.cookie} REMOTEIP:${request.connection.remoteAddress} XFORWARDED:${headers["x-forwarded-for"]}` );
 
 				let session = httpserver.HTTP_ReadSession(headers);
 				httpserver.wsconnectcallback(ws, url, session);

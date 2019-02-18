@@ -99,7 +99,7 @@ function WS_USER_CHANGEPASSWORD(ws, sessionid, data) {
 			}))
 		}
 		else {
-			sendMail(data.e, "NetMap account has been changed.", 
+			sendMail(data.e, "MaSSHandra account has been changed.", 
                                 `Hello.\n\nYour password has been changed.\n\n`);
 
 			ws.send(JSON.stringify({
@@ -137,9 +137,8 @@ function WS_USER_RESETPASSWORD(ws, sessionid, data) {
 			}))
 		}
 		else {
-		    sendMail(data.email, "NetMap account password reset requested.", 
-		        `Hello.\n\nWe have received a request for your account password to be reset.\n\n
-		        Please, follow this link for your account to be changed:\n` +
+		    sendMail(data.email, "MaSSHandra account password reset requested.", 
+		        "Hello.\n\nWe have received a request for your account password to be reset.\n\nPlease, follow this link for your account to be changed:\n" +
 		        html.get_http_proto() + config.server.hostname + ":" + config.server.port + "/passwordreset/" + validation_code + "?" + data.email + 
 		        "\n\nThis link will be valid for the next 24 hours.\n\nThanks,\nPablo.");
 			
@@ -160,8 +159,8 @@ function WS_USER_CREATEUSER(ws, sessionid, data) {
 			}))
 		}
 		else {
-            sendMail(data.email, "NetMap account confirmation needed.", 
-                "Welcome to NetMap.\n\n We need you to confirm your account. To do this, please follow this link:\n\n" + html.get_http_proto() + config.server.hostname + ":" +
+            sendMail(data.email, "MaSSHandra account confirmation needed.", 
+                "Welcome to MaSSHandra.\n\n We need you to confirm your account. To do this, please follow this link:\n\n" + html.get_http_proto() + config.server.hostname + ":" +
                     config.server.port + "/validate/" + activationcode + "?" + data.email + "\n\nThis will be valid for the next 24 hours.\n\nThanks,\nPablo.")
 
 			ws.send(JSON.stringify({
@@ -290,8 +289,8 @@ function WS_DIAGRAM_SHARE(ws, sessionid, data) {
 			}))
 
 			if (newuser) {
-				sendMail(data.e, newuser.req_name + " " + newuser.req_lastname + " has shared a Diagram with you on NetMap.",
-					"Hello.\n\n" + newuser.req_name + " " + newuser.req_lastname + " has shared a Network Diagram with you on NetMap: '" + newuser.diag_name + "'.\n\n" +
+				sendMail(data.e, newuser.req_name + " " + newuser.req_lastname + " has shared a Diagram with you on MaSSHandra.",
+					"Hello.\n\n" + newuser.req_name + " " + newuser.req_lastname + " has shared a Network Diagram with you on MaSSHandra: '" + newuser.diag_name + "'.\n\n" +
 					"We have created a temporary account for you. We need you to confirm this account. To do this, please follow this link:\n\n" + html.get_http_proto() + config.server.hostname + ":" +
                     config.server.port + "/validate/" + newuser.activationcode + "?" + data.e + "\n\n" + 
                     "This will be valid for the next 24 hours. After that, this account will be removed from our system.\n\nThanks,\nPablo.")

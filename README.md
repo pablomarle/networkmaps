@@ -31,3 +31,13 @@ For now, only instructions for testing:
     e. url of the static content
     f. The path where the diagram files will be stored
 4. Run the websocket server on netmap directory: node main.js
+
+## Credits
+
+We are using some 3rd party software:
+    - three.js: we use this javascript library on the web client to render 2D and 3D models on web browser.:
+      https://threejs.org/
+
+    - node.js: javascript runtime used to run the server:
+      https://threejs.org/
+

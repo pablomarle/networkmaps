@@ -1588,10 +1588,14 @@ class WGL {
 		let name = group.userData.e.name;
 
 		let m = null;
+		let height = 0;
 		for(let x = 0; x < group.children.length; x++) {
 			if (group.children[x].userData.submesh === "name") {
 				m = group.children[x];
-				break;
+			}
+			else {
+				if(group.children[x].geometry.boundingBox.max.y > height)
+					height = group.children[x].geometry.boundingBox.max.y;
 			}
 		}
 		if(m != null) {
@@ -1611,7 +1615,7 @@ class WGL {
 		mesh.userData.submesh = "name";
 
 		mesh.position.x = 0;
-		mesh.position.y = 1;
+		mesh.position.y = height+.5;
 		mesh.position.z = 0;
 		mesh.rotation.order = "YXZ";
 		mesh.rotation.x = -Math.PI/4;
@@ -1882,6 +1886,7 @@ class WGL {
 		return mesh;
 	}
 
+
 	updateSymbolGeometryFlag(meshgroup) {
 		let e = meshgroup.userData.e;
 
@@ -1955,12 +1960,105 @@ class WGL {
 		this.draw_needed = true;
 	}
 
+	getDummyFVUVs(faces) {
+		let fvuvs = []
+		for(let x = 0; x < faces.length; x++)
+			fvuvs.push([[0,0],[0,0],[0,0]]);
+
+		return fvuvs;
+	}
+
+	getDataSymbolFlag(meshgroup) {
+		let data = [{color: meshgroup.userData.e.color}, {color: meshgroup.userData.e.cd.flagcolor}]
+
+		let WB = .2, WT = .07, HM = .1, H = 1, HP = 1.2, WF = 1, DF = .05, HF = .5;
+
+		data[0].vertices = [
+			[0,0,WB], [WB,0,0], [0,0,-WB], [-WB,0,0],
+			[0,HM,WT], [WT,HM,0], [0,HM,-WT], [-WT,HM,0],
+			[0,H,WT], [WT,H,0], [0,H,-WT], [-WT,H,0],
+			[0,HP,0]
+		];
+
+		data[0].faces = [
+			[0,2,1], [0,3,2],
+			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
+			[4,5,9], [4,9,8], [5,6,10],[5,10,9], [6,7,11],[6,11,10], [7,4,8],[7,8,11],
+			[8,9,12], [9,10,12],[10,11,12], [11,8,12],
+		];
+
+		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
+
+		data[1].vertices = [
+			[WT,H,DF], [WF, H, DF], [WF, HF, DF], [WT, HF, DF],
+			[WT,H,-DF], [WF, H, -DF], [WF, HF, -DF], [WT, HF, -DF],
+			]
+		
+		data[1].faces = [
+			[0,2,1], [0,3,2],
+			[4,5,6], [4,6,7],
+			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
+		];
+
+		data[1].fvuvs = this.getDummyFVUVs(data[1].faces);
+
+		return data;
+	}
+
+	getDataSymbolX(meshgroup) {
+		let data = [{color: meshgroup.userData.e.color}];
+		data[0].vertices = [ 
+			[-.5,.9,.1],  [-.4,1,.1],  [.4,1,.1],  [.5,.9,.1],  [.5,.1,.1],  [.4,0,.1],  [-.4,0,.1],  [-.5,.1,.1],
+			[-.5,.9,-.1], [-.4,1,-.1], [.4,1,-.1], [.5,.9,-.1], [.5,.1,-.1], [.4,0,-.1], [-.4,0,-.1], [-.5,.1,-.1],
+		]
+		data[0].faces = [
+			[0,4,1], [0,5,4], [2,6,3], [2,7,6],
+			[8,9,12], [8,12,13], [10,11,14], [10,14,15],
+			[0,9,8], [0,1,9], [1,4,12], [1,12,9], [4,5,13], [4,13,12], [5,0,8], [5,8,13],
+			[2,11,10], [2,3,11], [3,6,14], [3,14,11], [6,7,15], [6,15,14], [7,2,10], [7,10,15]
+		];
+		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
+
+		return data;
+	}
+
 	updateSymbolGeometry(meshgroup) {
 		meshgroup.children = [];
+		let data = null;
 
-		if (meshgroup.userData.e.type === "F") {
-			this.updateSymbolGeometryFlag(meshgroup);
+		if (meshgroup.userData.e.type === "F")
+			data = this.getDataSymbolFlag(meshgroup);
+		else if (meshgroup.userData.e.type === "X")
+			data = this.getDataSymbolX(meshgroup);
+		else
+			data = this.getDataSymbolX(meshgroup);
+
+		for(let x = 0; x < data.length; x++) {
+			let geometry = new THREE.Geometry();
+			let material = new THREE.MeshPhongMaterial({color: data[x].color});
+			this.addListVertex(geometry.vertices, data[x].vertices);
+			this.addListFaces(geometry.faces, geometry.faceVertexUvs[0], data[x].faces, data[x].fvuvs);
+
+			geometry.verticesNeedUpdate = true;
+			geometry.elementsNeedUpdate = true;
+			geometry.uvsNeedUpdate = true;
+
+			geometry.computeBoundingBox();
+			geometry.computeBoundingSphere();
+			geometry.computeVertexNormals();
+			geometry.computeFlatVertexNormals();
+
+			let mesh = new THREE.Mesh(geometry, material);
+			meshgroup.add(mesh);
+
+			mesh.userData.id = meshgroup.userData.id;
+			mesh.userData.type = meshgroup.userData.type;
+			mesh.userData.e = meshgroup.userData.e
+
+			mesh.castShadow = true;
 		}
+
+		this.draw_needed = true;
 	}
 
 	addSymbol(id, sceneid, e) {

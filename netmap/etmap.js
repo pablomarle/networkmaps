@@ -651,9 +651,7 @@ class ETMap {
 				(! (typeof d.ry === "number")) ||
 				(! (typeof d.rz === "number")) ||
 				(! (typeof d.color === "number")) ||
-				(! (typeof d.cd === "object")) ||
 				(! (typeof d.st === "string")) ||
-				(["F", "X", "V"].indexOf(d.st) === -1) ||
 				(! (typeof d.base === "string")) ||
 				(! (d.base in this.diagram.L2.base))
 			) {
@@ -663,13 +661,20 @@ class ETMap {
 			}))
 			return;
 		}
+		if (! ["F", "X", "V"].includes(d.st)) {
+			ws.send(JSON.stringify({
+				m: "E",
+				d: "Symbol type invalid.",
+			}))
+			return;
+		}
 
 		let cd = {};
 		if (d.st === "F") {
-			if(d.cd.flagcolor === undefined) {
+			if((d.cd === undefined) || (d.cd.flagcolor === undefined)) {
 				ws.send(JSON.stringify({
 					m: "E",
-					d: "Invalid format.",
+					d: "Invalid format (2).",
 				}))
 				return;				
 			}

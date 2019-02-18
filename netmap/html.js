@@ -1,4 +1,4 @@
-const PAGE_HEAD = '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0">';
+const PAGE_HEAD = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">';
 const PAGE_BODY = '</head><body onload="main()">';
 const PAGE_END = '</body></html>';
 

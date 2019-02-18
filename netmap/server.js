@@ -9,6 +9,7 @@ const sendmail = require("./sendmail");
 const usermgt = new UserMGT(config.db.users);
 
 function sendMail(to, subject, content) {
+    console.log(`Sending email to queue: ${to} : ${subject}`)
     sendmail.queue_email(to, subject, content)
         .catch(err => {
             console.log(`Error sending email: ${to} : ${subject}`)

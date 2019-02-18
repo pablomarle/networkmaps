@@ -85,6 +85,17 @@ function createDefaultSymbolFlag(x, y, z, base) {
     }
 }
 
+function createDefaultSymbol(type, x, y, z, base) {
+    return {
+        type: type,
+        base: base,
+        px: x, py: y, pz: z,
+        rx: 0, ry: 0, rz: 0,
+        sx: 1, sy: 1, sz: 1,
+        color: 0xffAA88,
+    }
+}
+
 function check_ifnaming(value) {
     // Function to check if a string is a valud ifnaming representation (eg Ethernet{1-32}/{1-4} )
     if(resolve_ifnaming(value) == null)
@@ -872,15 +883,26 @@ function mousedown(x, y, dx, dy, dom_element) {
         }
     }    
     else if (d.dom.tools.active_t.startsWith("AS")) {
-        // Add a device
+        // Add a symbol
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "base") {
                 let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
                     objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
-                if(d.dom.tools.active_t.substring(2) == "F") {
+                let symboltype = d.dom.tools.active_t.substring(2);
+                if(symboltype == "F") {
                     d.mouseaction = {
                         m: d.dom.tools.active_t,
                         mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbolFlag(
+                            newcoords.x, newcoords.y, newcoords.z, 
+                            objlist[x].mesh.userData.id
+                        ))
+                    }
+                }
+                else {
+                    d.mouseaction = {
+                        m: d.dom.tools.active_t,
+                        mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbol(
+                            symboltype,
                             newcoords.x, newcoords.y, newcoords.z, 
                             objlist[x].mesh.userData.id
                         ))
@@ -1470,10 +1492,10 @@ function init_window() {
                 name: "Add New Elements",
                 components: [
                     {n: "Device",   s: null,    i: "device_router.png",      f: "new_device" },
-                    {n: "Link",     s: null,    i: "connector.png",      f: "new_link" },
+                    {n: "Link",     s: null,    i: "link.png",      f: "new_link" },
                     {n: "Base",     s: null,    i: "base.png",    f: "new_base" },
                     {n: "Text",     s: null,    i: "text.png",    f: "new_text" },
-                    {n: "Symbol",   s: null,    i: "unknown.png",    f: "new_symbol" },
+                    {n: "Symbol",   s: null,    i: "symbol.png",    f: "new_symbol" },
                 ]},
             new_device: {
                 init_left: -190, left: -190, width: 170,
@@ -1491,9 +1513,9 @@ function init_window() {
                 init_left: -190, left: -190, width: 170,
                 name: "Add Link",
                 components: [
-                    {n: "Line",     s: "ALL",    i: "unknown.png",      f: null},
-                    {n: "Squared",  s: "ALS",    i: "unknown.png",      f: null},
-                    {n: "Joint",    s: "AJ",     i: "unknown.png",      f: null},
+                    {n: "Line",     s: "ALL",    i: "link_line.png",      f: null},
+                    {n: "Squared",  s: "ALS",    i: "link_squared.png",      f: null},
+                    {n: "Joint",    s: "AJ",     i: "link_joint.png",      f: null},
                 ]},
             new_base: {
                 init_left: -190, left: -190, width: 170,
@@ -1511,7 +1533,7 @@ function init_window() {
                 init_left: -190, left: -190, width: 170,
                 name: "Add Symbol",
                 components: [
-                    {n: "Flag",     s: "ASF",    i: "unknown.png",      f: null},
+                    {n: "Flag",     s: "ASF",    i: "symbol_flag.png",      f: null},
                     {n: "X",        s: "ASX",    i: "unknown.png",      f: null},
                     {n: "V",        s: "ASV",    i: "unknown.png",      f: null},
                 ]},

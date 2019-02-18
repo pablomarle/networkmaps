@@ -66,9 +66,6 @@ class UserMGT {
         let sessionid = crypto.randomBytes(32).toString('hex');
         let sessiondata = "{}";
 
-	console.log(sessionid);
-	console.log(sessiondata);
-	
         this.mysqlpool.query("INSERT INTO session (sessionid, data, last_used) VALUES (?, ?, NOW())", 
             [sessionid, sessiondata],
             (error, results, fields) => {
@@ -517,7 +514,6 @@ class UserMGT {
                         'FROM diagram d ' +
                             'INNER JOIN user u ON u.id = d.owner ' +
                         'WHERE u.email = ? AND d.mark_delete = FALSE '
-		console.log(sessiondata.data.user);
             this.mysqlpool.query(query, [sessiondata.data.user, sessiondata.data.user],
                 (error, results, fields) => {
                     if(error) {
@@ -823,7 +819,6 @@ class UserMGT {
 
                     if(results.length != 1) {
                         callback(null, result)
-                        console.log(results);
                         return;
                     }
 
