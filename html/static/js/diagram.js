@@ -86,13 +86,18 @@ function createDefaultSymbolFlag(x, y, z, base) {
 }
 
 function createDefaultSymbol(type, x, y, z, base) {
+    let color = 0xffAA88;
+    if(type === "X")
+        color = 0xff4444;
+    else if(type === "V")
+        color = 0x44ff44;
     return {
         type: type,
         base: base,
         px: x, py: y, pz: z,
         rx: 0, ry: 0, rz: 0,
         sx: 1, sy: 1, sz: 1,
-        color: 0xffAA88,
+        color: color,
     }
 }
 

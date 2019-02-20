@@ -2022,6 +2022,23 @@ class WGL {
 		return data;
 	}
 
+	getDataSymbolV(meshgroup) {
+		let data = [{color: meshgroup.userData.e.color}];
+		data[0].vertices = [ 
+			[-.5,.6,.1],  [-.3,.6,.1],  [.3,1,.1],  [.5,1,.1],  [.1,0,.1],  [-.1,0,.1],  [.1,0,.1],  [-.1,0,.1],
+			[-.5,.6,-.1], [-.3,.6,-.1], [.3,1,-.1], [.5,1,-.1], [.1,0,-.1], [-.1,0,-.1], [.1,0,-.1], [-.1,0,-.1],
+		]
+		data[0].faces = [
+			[0,4,1], [0,5,4], [2,6,3], [2,7,6],
+			[8,9,12], [8,12,13], [10,11,14], [10,14,15],
+			[0,9,8], [0,1,9], [1,4,12], [1,12,9], [4,5,13], [4,13,12], [5,0,8], [5,8,13],
+			[2,11,10], [2,3,11], [3,6,14], [3,14,11], [6,7,15], [6,15,14], [7,2,10], [7,10,15]
+		];
+		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
+
+		return data;
+	}
+
 	updateSymbolGeometry(meshgroup) {
 		meshgroup.children = [];
 		let data = null;
@@ -2030,6 +2047,8 @@ class WGL {
 			data = this.getDataSymbolFlag(meshgroup);
 		else if (meshgroup.userData.e.type === "X")
 			data = this.getDataSymbolX(meshgroup);
+		else if (meshgroup.userData.e.type === "V")
+			data = this.getDataSymbolV(meshgroup);
 		else
 			data = this.getDataSymbolX(meshgroup);
 
