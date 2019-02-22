@@ -15,29 +15,25 @@ Although the project can be run and it would allow for diagrams to be created, I
 
 ## Prerequisites
 
-MySQL database.[br]
-Web server.
+***MySQL database.
+***Web server.
 
 ## Installation
 
 For now, only instructions for testing:
 1. Create Users database using database_schema/users.sql
 2. Configure your web server to publish the html directory on https
-3. Configure the netmap/config.json file:
-    a. The hostname of the web server
-    b. The port to listen to
-    c. As everything runs on https, the certificate
-    d. Database details
-    e. url of the static content
-    f. The path where the diagram files will be stored
-4. Run the websocket server on netmap directory: node main.js
+3. Create a config.json file on directory /etc/networkmaps. There is a sample file on "netmap/sample_config.json
+4. Run the websocket server on netmap directory: node server.js
+5. Run the mail server: node 
 
 ## Credits
 
 We are using some 3rd party software:
+
     - three.js: we use this javascript library on the web client to render 2D and 3D models on web browser.:
       https://threejs.org/
 
     - node.js: javascript runtime used to run the server:
-      https://threejs.org/
+      https://nodejs.org/
 
