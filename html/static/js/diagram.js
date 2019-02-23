@@ -1539,8 +1539,8 @@ function init_window() {
                 name: "Add Symbol",
                 components: [
                     {n: "Flag",     s: "ASF",    i: "symbol_flag.png",      f: null},
-                    {n: "X",        s: "ASX",    i: "unknown.png",      f: null},
-                    {n: "V",        s: "ASV",    i: "unknown.png",      f: null},
+                    {n: "X",        s: "ASX",    i: "symbol_x.png",      f: null},
+                    {n: "V",        s: "ASV",    i: "symbol_v.png",      f: null},
                 ]},
             base_change: {
                 init_left: -142, left: -142, width: 128,
