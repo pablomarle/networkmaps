@@ -164,6 +164,13 @@ class ETMap {
 			this.removeWS(ws);
 		})
 
+        ws.on("error", (error) => {
+            console.log("WS ERROR on diagram:")
+            console.log(error)
+			clearInterval(ws.interval);
+			this.removeWS(ws); 
+        })
+
 		// PING PONG to detect broken connections
 		ws.isAlive = true;
 		ws.interval = setInterval(() => {

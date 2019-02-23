@@ -351,6 +351,13 @@ function WS_USER(ws, sessionid) {
 		clearInterval(ws.interval);
 	})
 
+    ws.on("error", (error) => {
+        console.log("ERROR");
+        console.log(error);
+        clearInterval(ws.interval);
+        ws.close();
+    })
+
 	// Send initial info about the session to client
 	usermgt.getSessionNoCreate(sessionid, (error, sessiondata) => {
 		if(error) {
