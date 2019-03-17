@@ -118,7 +118,7 @@ class WGL {
 				ortho: new THREE.OrthographicCamera( -initial_ortho_size * cam_ratio, initial_ortho_size * cam_ratio, initial_ortho_size, -initial_ortho_size, 1, 200),
 				ortho_size: initial_ortho_size,
 			},
-			current: "ortho",
+			current: "persp",
 		}
 
 		this.camera.L2.persp.position.y = 30;
@@ -294,6 +294,8 @@ class WGL {
 	toggleCamera() {
 		this.camera.current = this.camera.current == "ortho" ? "persp" : "ortho"
 		this.draw_needed = true;
+		
+		return this.camera.current;
 	}
 
 

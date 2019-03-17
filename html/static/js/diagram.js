@@ -348,7 +348,7 @@ function sendAdd_Link(type, dev1_id, dev2_id) {
             dev1_id: dev1_id, 
             dev2_id: dev2_id, 
             color: 0xaaaaaa,
-            weight: 0.05,
+            weight: 0.025,
             height: .25,
         }
     }
@@ -685,9 +685,9 @@ function toolbox_click() {
 }
 
 function toggle_cam_type() {
-    d.wgl.toggleCamera();
+    let current_cam = d.wgl.toggleCamera();
     let camdiv = document.getElementById("camtype");
-    if(camdiv.getAttribute("data-camtype") == "2D") {
+    if(current_cam === "persp") {
         camdiv.setAttribute("data-camtype", "3D");
         camdiv.src = staticurl + "/static/img/cam3d.png"
     }
@@ -1191,6 +1191,24 @@ function mouseup(x, y, dx, dy, dom_element) {
             }
         }
     }
+    else if(d.dom.tools.active_t === "EI") {
+        if ((x == a.x) && (y == a.y)) {
+            if (a.obj.mesh.userData.type == "device") {
+                WIN_showL2DeviceConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        alert(windata.d.vlans.value);
+                        alert(windata.d.vrfs.value);
+                    },
+                    check_ifnaming);
+            }
+            else if (a.obj.mesh.userData.type == "link") {
+                WIN_showL2LinkConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        alert("Not implemented");
+                    });
+            }
+        }
+    }
     else if(d.dom.tools.active_t === "BD") {
         if ((x == a.x) && (y == a.y))
             sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
@@ -1439,9 +1457,9 @@ function init_window() {
     d.dom.home.title = "Back to Home Page";
 
     // Button to change camera type
-    d.dom.cam_type = DOM.cimg(b, staticurl + "/static/img/cam2d.png", "camtype", "box toolbutton", null, toggle_cam_type);
+    d.dom.cam_type = DOM.cimg(b, staticurl + "/static/img/cam3d.png", "camtype", "box toolbutton", null, toggle_cam_type);
     d.dom.cam_type.title = "Change between 2D and 3D views (1)";
-    d.dom.cam_type.setAttribute("data-camtype", "2D");
+    d.dom.cam_type.setAttribute("data-camtype", "3D");
 
     // Button to change general settings
     d.dom.global_settings = DOM.cimg(b, staticurl + "/static/img/settings_w.png", "global_settings", "box toolbutton", null, () => {
@@ -1488,7 +1506,7 @@ function init_window() {
                     {n: "Rotate",   s: "ER",    i: "rotate.png",    f: null, d: "Rotate diagram elements (s)", q: "KeyS"},
                     {n: "Resize",   s: "EX",    i: "resize.png",    f: null, d: "Resize diagram elements (d)", q: "KeyD"},
                     {n: "Settings", s: "EC",    i: "settings.png",  f: null, d: "View the settings of an element (z)", q: "KeyZ"},
-                    {n: "Data",     s: "EI",    i: "edit.png",      f: null, d: "View information related to a diagram element (x)", q: "KeyX"},
+                    {n: "Config",   s: "EI",    i: "edit.png",      f: null, d: "View config related to a diagram element (x)", q: "KeyX"},
                     {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram (c)", q: "KeyC"},
                     {n: "Base",     s: null,    i: "base.png",      f: "base_change"},
                 ]},

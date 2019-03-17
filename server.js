@@ -1,12 +1,12 @@
 #!/usr/bin/node
 
-const config = require('./config');
-const httpServer = require('./httpserver');
-const html = require('./html');
-const UserMGT = require('./usermgt');
-const ws = require('./ws');
-const sendmail = require("./sendmail");
-const usermgt = new UserMGT(config.db.users);
+const config = require('./lib/config');
+const httpServer = require('./lib/httpserver');
+const html = require('./lib/html');
+const UserMGT = require('./lib/usermgt');
+const ws = require('./lib/ws');
+const sendmail = require("./lib/sendmail");
+const usermgt = new UserMGT(config.db.users, config.timers.usertimeout);
 
 function sendMail(to, subject, content) {
     console.log(`Sending email to queue: ${to} : ${subject}`)
@@ -45,8 +45,8 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 					return;
 				}
 				else {
-                    sendMail(email, "NetMap account has been confirmed.", 
-                                `Welcome to NetMap.\n\nYour account has been activated.\n\n
+                    sendMail(email, "MaSSHandra account has been confirmed.", 
+                                `Welcome to MaSSHandra.\n\nYour account has been activated.\n\n
                                 A temporary password has been assigned to you:\n
                                 Username: ` + email + `\n
                                 Password: ` + newpassword + `\n\nRegards,\nPablo.`)
@@ -73,7 +73,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 				}
 
 				else {
-                    sendMail(email, "NetMap password has been reset.", 
+                    sendMail(email, "MaSSHandra password has been reset.", 
                         `Your password has been reset.\n\n
                         Username: ` + email + `\n
                         Password: ` + password + `\n`);
@@ -112,6 +112,9 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 function main() {
     sendmail.initialize(config.sendmail);
     html.set_use_ssl(config.use_ssl);
+    if(config.google_analytics_tag) {
+    	html.set_google_analytics(config.google_analytics_tag);
+    }
 	ws.initialize(config, usermgt, html, sendmail);
 
 	const server = new httpServer(config.use_ssl_socket, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);

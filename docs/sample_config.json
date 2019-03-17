@@ -1,5 +1,9 @@
 {
     "comment": "This file is expected to be in /etc/networkmaps",
+    "timers": {
+        "usertimeout": 3600,
+        "savediagram": 300
+    },
     "use_ssl_socket": false,
     "use_ssl": false,
     "socket": {

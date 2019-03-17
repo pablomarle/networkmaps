@@ -237,6 +237,7 @@ function WIN_stringListRecalcValue(container) {
 
 	value_element.value = newvalue.join(",");
 }
+
 function WIN_stringListDraw(container, checkstring) {
 	let mclist = DOM.findChildrenWithClass(container, "stringlist_minic");
 	for(let x = 0; x < mclist.length; x++) {
@@ -244,8 +245,8 @@ function WIN_stringListDraw(container, checkstring) {
 	}
 
 	let value_element = DOM.findChildrenWithClass(container, "stringlist_value")[0];
-
 	let value = value_element.value.split(",");
+	let default_value = DOM.findChildrenWithClass(container, "stringlist_default")[0].value;
 
 	for(let x = 0; x < value.length; x++) {
 		let mc = DOM.cdiv(container, null, "stringlist_minic");
@@ -274,11 +275,11 @@ function WIN_stringListDraw(container, checkstring) {
 		add.setAttribute("data-index", x);
 		add.addEventListener("click", () => {
 			WIN_stringListRecalcValue(container);
-			let index = parseInt(rem.getAttribute("data-index")) + 1;
+			let index = parseInt(add.getAttribute("data-index")) + 1;
 			let newvalue = value_element.value.split(",");
 			if (newvalue.length == 8)
 				return
-			newvalue.splice(index, 0, "Lo");
+			newvalue.splice(index, 0, default_value);
 			value_element.value = newvalue.join(",");
 			WIN_stringListDraw(container, checkstring);
 		})
@@ -293,7 +294,7 @@ function WIN_stringListDraw(container, checkstring) {
 	}
 }
 
-function WIN_addStringList(win, px, py, label, value, help, checkstring) {
+function WIN_addStringList(win, px, py, label, value, default_value, help, checkstring) {
 	let i, l;
 	
 	let container = DOM.cdiv(win);
@@ -304,6 +305,10 @@ function WIN_addStringList(win, px, py, label, value, help, checkstring) {
 	value_element.value = value.join();
 	value_element.style.display = "none";
 
+	let default_element = DOM.ci_text(container, null, "stringlist_default");
+	DOM.setElementPos(default_element, 0, 0);
+	default_element.value = default_value;
+	default_element.style.display = "none";
 
 	l = DOM.cdiv(win, null, "win_label", label);
 	DOM.setElementPos(l, px, py);
@@ -312,6 +317,123 @@ function WIN_addStringList(win, px, py, label, value, help, checkstring) {
 	DOM.setElementPos(l, px+200, py+16);
 
 	WIN_stringListDraw(container, checkstring);
+
+	return value_element;
+}
+
+function WIN_dictListRecalcValue(container) {
+	let mclist = DOM.findChildrenWithClass(container, "dictlist_minic");
+	let value_element = DOM.findChildrenWithClass(container, "dictlist_value")[0];
+
+	let newvalue = []
+	for(let x = 0; x < mclist.length; x++) {
+		let new_entry = {}
+		newvalue.push(new_entry);
+		let dom_elements = DOM.findChildrenWithClass(mclist[x], "dictlist_value");
+		for(let x = 0; x < dom_elements.length; x++) {
+			let field = dom_elements[x].getAttribute("data-field");
+			new_entry[field] = dom_elements[x].value;
+		}
+	}
+
+	value_element.value = JSON.stringify(newvalue);
+}
+
+function WIN_dictListDraw(container) {
+	let mclist = DOM.findChildrenWithClass(container, "dictlist_minic");
+	for(let x = 0; x < mclist.length; x++) {
+		DOM.removeElement(mclist[x]);
+	}
+
+	let value_element = DOM.findChildrenWithClass(container, "dictlist_value")[0];
+	let value = JSON.parse(value_element.value);
+	let fields_element = DOM.findChildrenWithClass(container, "dictlist_fields")[0];
+	let fields = JSON.parse(fields_element.value);
+	let listfields = Object.keys(fields);
+
+	if (value.length == 0) {
+		let new_value = {};
+		for(let field in fields)
+			new_value[field] = "";
+		value.push(new_value);
+	}
+
+	for(let x = 0; x < value.length; x++) {
+		let mc = DOM.cdiv(container, null, "dictlist_minic");
+		DOM.setElementPos(mc, 0, x * 16);
+
+		let current_x = 0;
+		
+		for(y = 0; y < listfields.length; y++) {
+			let inp = DOM.ci_text(mc, null, "dictlist_value");
+			DOM.setElementPos(inp, current_x, 0);
+			inp.value = value[x][listfields[y]];
+			inp.setAttribute("data-field", listfields[y])
+			inp.addEventListener("input", () => {
+				WIN_dictListRecalcValue(container);
+			})
+			inp.style.width = "" + fields[listfields[y]].width + "px";
+
+			current_x += fields[listfields[y]].width + 10;
+		}
+
+		let add = DOM.cbutton(mc, null, "win_button dictlist_add_" + x, "+", null, () => {});
+		DOM.setElementPos(add, current_x + 15, 0);
+		add.setAttribute("data-index", x);
+		add.addEventListener("click", () => {
+			WIN_dictListRecalcValue(container);
+			let index = parseInt(add.getAttribute("data-index")) + 1;
+			let newvalue = JSON.parse(value_element.value);
+			if (newvalue.length >= 128)
+				return
+			let newdata = {};
+			for(let field in fields) newdata[field] = "";
+			newvalue.splice(index, 0, newdata);
+			value_element.value = JSON.stringify(newvalue);
+			WIN_dictListDraw(container);
+		})
+		let rem = DOM.cbutton(mc, null, "win_button dictlist_del_" + x, "-", null, () => {});
+		DOM.setElementPos(rem, current_x + 40, 0);
+		rem.setAttribute("data-index", x);
+		rem.addEventListener("click", () => {
+			let index = parseInt(add.getAttribute("data-index"));
+			let newvalue = JSON.parse(value_element.value);
+			newvalue.splice(index, 1);
+			value_element.value = JSON.stringify(newvalue);
+			WIN_dictListDraw(container);
+		})
+	}
+}
+
+function WIN_addDictList(win, px, py, sx, sy, value, fields) {
+	let container = DOM.cdiv(win);
+	DOM.setElementPos(container, px, py+16);
+	container.style.width = "" + sx + "px";
+	container.style.height = "" + sy + "px";
+	container.style.overflow = "hidden auto";
+	container.style.border = "1px soldid #aaa";
+
+	let value_element = DOM.ci_text(container, null, "dictlist_value");
+	DOM.setElementPos(value_element, 0, 0);
+	value_element.value = JSON.stringify(value);
+	value_element.style.display = "none";
+
+	let fields_element = DOM.ci_text(container, null, "dictlist_fields");
+	DOM.setElementPos(fields_element, 0, 0);
+	fields_element.value = JSON.stringify(fields);
+	fields_element.style.display = "none";
+
+	//l = DOM.cdiv(win, null, "win_label", label);
+	//DOM.setElementPos(l, px, py);
+
+	let current_x = 0;
+	for(key in fields) {
+		l = DOM.cdiv(win, null, "win_label", fields[key].name);
+		DOM.setElementPos(l, px + current_x, py);
+		current_x += fields[key].width + 10
+	}
+
+	WIN_dictListDraw(container);
 
 	return value_element;
 }
@@ -397,11 +519,45 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 	wdata.d.color2 = WIN_addColorInput(w, 230, 70, "Color 2", e.color2);	
 
 	// List of interface naming
-	wdata.d.ifnaming = WIN_addStringList(w, 20, 150, "Interface Naming", e.ifnaming, 
+	wdata.d.ifnaming = WIN_addStringList(w, 20, 150, "Interface Naming", e.ifnaming, "Lo0",
 		"Sample: Ethernet{1-32}/{1-4} will generate Ethernet1/1 to Ethernet 32/4", check_ifnaming);
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 310, "Apply", () => {
+		callback(wdata);
+	});	
+}
+
+function WIN_showL2DeviceConfigWindow(view, type, id, e, callback, check_ifnaming) {
+	let winid = view + "_" + type + "_" + id + "_config";
+	
+	let wdata = WIN_create(winid, e.name, 660, 180);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	let list_vlans = [];
+	for(let vlan_tag in e.vlans) {
+		list_vlans.push({tag: vlan_tag, name: e.vlans[vlan_tag].name})
+	}
+
+	let list_vrfs = [];
+	for(let vrf_rd in e.vrfs) {
+		list_vrfs.push({rd: vrf_rd, name: e.vrfs[vrf_rd].name})
+	}
+
+	wdata.d.vlans = WIN_addDictList(w, 20, 20, 300, 100, list_vlans, {
+		"tag": { name: "Vlan Tag", width: 60 },
+		"name": { name: "Vlan Name", width: 120 }
+	});
+
+	wdata.d.vrfs = WIN_addDictList(w, 340, 20, 300, 100, list_vrfs, {
+		"rd":   { name: "RD", width: 60 },
+		"name": { name: "VRF Name", width: 120 },
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 280, 150, "Apply", () => {
 		callback(wdata);
 	});	
 }
@@ -433,6 +589,20 @@ function WIN_showL2LinkWindow(view, type, id, e, callback) {
 
 	// Height
 	wdata.d.height = WIN_addSlider(w, 20, 130, 100, "Height", e.linedata.height, 0, .5, .05);
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
+		callback(wdata);
+	});	
+}
+
+function WIN_showL2LinkConfigWindow(view, type, id, e, callback) {
+	let winid = view + "_" + type + "_" + id + "_config";
+	
+	let wdata = WIN_create(winid, e.name, 440, 200);
+	if(!wdata)
+		return;
+	let w = wdata.w;
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
