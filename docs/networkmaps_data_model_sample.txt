@@ -78,7 +78,21 @@ this.diagram = {
 					"65000:2" : {
 							name: "aditional_vrf",
 					}
-				}
+				},
+				svis: {
+					5: {
+						name: "vlan5",
+						ipv4: [],
+						ipv6: []
+					}
+				},
+				los: {												-> Loopbacks
+					5: {
+						name: "lo5",
+						ipv4: [],
+						ipv6: []
+					}
+				},
 				data: [
 				],
 			}
@@ -231,7 +245,7 @@ this.diagram = {
 
 
 PHYSICAL INTERFACES DATA OPTIONS
-	SWICHING INTERFACE
+	SWITCHING INTERFACE
 					0: {
 						type: "phy"
 						name: "Ethernet1/4",
@@ -241,7 +255,7 @@ PHYSICAL INTERFACES DATA OPTIONS
 						function: "switching"
 						function_data: {
 							vlans: [1,2,3, ...]
-							native_vlan: 3
+							native_vlan: 3					-> -1 if no native vlan
 						}
 					},
 	ROUTING INTERFACE
@@ -285,17 +299,5 @@ PHYSICAL INTERFACES DATA OPTIONS
 						function: "switching" or "routing",
 						function_data: { ... }							-> SAME AS SWITCHING OR ROUTING INTERFACES
 					},
-					2: {
-						type "svi",
-						name: "vlan100",
-						tyoe_data: {
-							vlan: 1						
-						}
-						function: "routing"
-						function_data: {
-									ipv4: []
-									ipv6: []							
-						}
-					}
 
 

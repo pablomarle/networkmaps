@@ -25,15 +25,6 @@ function createDefaultDevice(x, y, z, type, base) {
         color1: 0xffffff, color2: 0xffffff,
 
         base: base,
-        ifnaming: [
-            [
-                {t: "S", c: "Ethernet"},
-                {t: "N", c: "1-48"},
-            ],
-        ],
-        vlannames: {},
-        ifconfig: {},               
-        data: [],           
     }
 
     if ((type === "R") || (type === "S") || (type === "LB")) {
@@ -212,6 +203,9 @@ function process_message(message) {
         case "P":
             process_message_settings(message.d)
             break;
+        case "C":
+            process_message_config(message.d)
+            break;
         case "D":
             process_message_delete(message.d)
             break;
@@ -290,6 +284,12 @@ function process_message_settings(data) {
     }
 }
 
+function process_message_config(data) {
+    if((data.v == "L2") && (data.t == "device")) {
+        d.wgl.configMesh_L2Device(data.i, data.name, data.vlans, data.vrfs, data.svis, data.los);
+    }
+}
+
 function process_message_delete(data) {
     if(
         (data.v == "L2") && (data.t == "base") ||
@@ -317,7 +317,8 @@ function sendAdd_BaseFloor(subtype, x, y, z, sx, sy, sz, rx, ry, rz) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendAdd_Device(subtype, x, y, z, sx, sy, sz, rx, ry, rz, color1, color2, base) {
@@ -335,7 +336,8 @@ function sendAdd_Device(subtype, x, y, z, sx, sy, sz, rx, ry, rz, color1, color2
         }
     }
 
-    d.ws.send(message);    
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendAdd_Link(type, dev1_id, dev2_id) {
@@ -353,7 +355,8 @@ function sendAdd_Link(type, dev1_id, dev2_id) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendAdd_Joint(link_id, joint_index, px, py, pz) {
@@ -368,7 +371,8 @@ function sendAdd_Joint(link_id, joint_index, px, py, pz) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendAdd_Text(text, type, px, py, pz, rx, ry, height, depth, color, base) {
@@ -387,7 +391,8 @@ function sendAdd_Text(text, type, px, py, pz, rx, ry, height, depth, color, base
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendAdd_Symbol(subtype, x, y, z, sx, sy, sz, rx, ry, rz, color, cd, base) {
@@ -405,7 +410,8 @@ function sendAdd_Symbol(subtype, x, y, z, sx, sy, sz, rx, ry, rz, color, cd, bas
         }
     }
 
-    d.ws.send(message);    
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendMove(view, type, id) {
@@ -424,7 +430,8 @@ function sendMove(view, type, id) {
     }
 
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendMoveJoint(view, id, joint_index, coords) {
@@ -439,7 +446,8 @@ function sendMoveJoint(view, id, joint_index, coords) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendRotate(view, type, id) {
@@ -453,7 +461,8 @@ function sendRotate(view, type, id) {
             x: r.x, y: r.y, z: r.z,
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendResize(view, type, id) {
@@ -467,7 +476,8 @@ function sendResize(view, type, id) {
             x: s.x, y: s.y, z: s.z,
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_BaseFloor(view, type, id, windata) {
@@ -488,7 +498,8 @@ function sendSettings_BaseFloor(view, type, id, windata) {
             tsy: 1/parseFloat(windata.d.tsy_i.value),
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_L2Device(view, type, id, windata) {
@@ -505,7 +516,40 @@ function sendSettings_L2Device(view, type, id, windata) {
             ifnaming: windata.d.ifnaming.value.split(","),
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_L2Device(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L2",
+            t: "device",
+            i: id,
+
+            vlans: {},
+            vrfs: {},
+            svis: {},
+            los: {},
+        }
+    }
+    let vlans = JSON.parse(windata.d.vlans.value);
+    let vrfs = JSON.parse(windata.d.vrfs.value);
+    let svis = JSON.parse(windata.d.svis.value);
+    let los = JSON.parse(windata.d.los.value);
+
+    for(let x = 0; x < vlans.length; x++)
+        message.d.vlans[vlans[x].tag] = { name: vlans[x].name };
+    for(let x = 0; x < vrfs.length; x++)
+        message.d.vrfs[vrfs[x].rd] = { name: vrfs[x].name };
+    for(let x = 0; x < svis.length; x++)
+        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: [svis[x].ipv4], ipv6: [svis[x].ipv6] };
+    for(let x = 0; x < los.length; x++)
+        message.d.los[los[x].id] = { name: los[x].name, ipv4: [los[x].ipv4], ipv6: [los[x].ipv6] };
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_L2Link(view, type, id, windata) {
@@ -523,7 +567,8 @@ function sendSettings_L2Link(view, type, id, windata) {
             height: parseFloat(windata.d.height.value),
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_L2Text(view, type, id, windata) {
@@ -545,7 +590,8 @@ function sendSettings_L2Text(view, type, id, windata) {
             depth: parseFloat(windata.d.height.value)/10,
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_L2SymbolFlag(view, type, id, windata) {
@@ -560,7 +606,8 @@ function sendSettings_L2SymbolFlag(view, type, id, windata) {
             flagcolor: parseInt(windata.d.flagcolor.value),
         }
     }
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendDelete(type, id) {
@@ -573,7 +620,8 @@ function sendDelete(type, id) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendDeleteJoint(view, link_id, point_index) {
@@ -587,7 +635,8 @@ function sendDeleteJoint(view, link_id, point_index) {
         }
     }
 
-    d.ws.send(message);
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function animate() {
@@ -1196,10 +1245,8 @@ function mouseup(x, y, dx, dy, dom_element) {
             if (a.obj.mesh.userData.type == "device") {
                 WIN_showL2DeviceConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
-                        alert(windata.d.vlans.value);
-                        alert(windata.d.vrfs.value);
-                    },
-                    check_ifnaming);
+                        sendConfig_L2Device(a.obj.mesh.userData.id, windata);
+                    });
             }
             else if (a.obj.mesh.userData.type == "link") {
                 WIN_showL2LinkConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
@@ -1604,6 +1651,6 @@ function init_window() {
 
 function main() {
     d.ws = new WS(process_message, () => {
-        DOM.showError("Socket Error", "Socket disconnected unexpectedly.")
+        DOM.showError("Socket Error", "Socket disconnected unexpectedly.", true);
     });
 }

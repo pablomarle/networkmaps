@@ -160,7 +160,7 @@ DOM = {
 		}, 50);
 	},
 
-	showError: (errortitle, errortext) => {
+	showError: (errortitle, errortext, is_critical) => {
 		let body = document. getElementsByTagName("body")[0];
 		let div= DOM.cdiv(body, null, "error");
 		div.style.zIndex = "10000";
@@ -173,7 +173,8 @@ DOM = {
 			if(x > 11)
 				clearInterval(interval);
 		}, 20);
-		setTimeout(() => { DOM.fadeOutElement(div) }, 3000);
+		if(!is_critical)
+			setTimeout(() => { DOM.fadeOutElement(div) }, 3000);
 	},
 
 	setElementPos: (node, px, py)  => {

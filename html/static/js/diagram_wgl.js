@@ -577,6 +577,16 @@ class WGL {
 		}
 	}
 
+	configMesh_L2Device(id, name, vlans, vrfs, svis, los) {
+		let mesh = this.findMesh("device", id, this.scene["L2"]);
+		if(mesh) {
+			mesh.userData.e.vlans = vlans;
+			mesh.userData.e.vrfs = vrfs;
+			mesh.userData.e.svis = svis;
+			mesh.userData.e.los = los;
+		}
+	}
+
 	deleteMesh(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {

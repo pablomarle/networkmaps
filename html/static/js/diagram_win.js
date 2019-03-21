@@ -360,7 +360,7 @@ function WIN_dictListDraw(container) {
 
 	for(let x = 0; x < value.length; x++) {
 		let mc = DOM.cdiv(container, null, "dictlist_minic");
-		DOM.setElementPos(mc, 0, x * 16);
+		DOM.setElementPos(mc, 0, x * 20);
 
 		let current_x = 0;
 		
@@ -378,7 +378,7 @@ function WIN_dictListDraw(container) {
 		}
 
 		let add = DOM.cbutton(mc, null, "win_button dictlist_add_" + x, "+", null, () => {});
-		DOM.setElementPos(add, current_x + 15, 0);
+		DOM.setElementPos(add, current_x + 5, 0);
 		add.setAttribute("data-index", x);
 		add.addEventListener("click", () => {
 			WIN_dictListRecalcValue(container);
@@ -393,7 +393,7 @@ function WIN_dictListDraw(container) {
 			WIN_dictListDraw(container);
 		})
 		let rem = DOM.cbutton(mc, null, "win_button dictlist_del_" + x, "-", null, () => {});
-		DOM.setElementPos(rem, current_x + 40, 0);
+		DOM.setElementPos(rem, current_x + 30, 0);
 		rem.setAttribute("data-index", x);
 		rem.addEventListener("click", () => {
 			let index = parseInt(add.getAttribute("data-index"));
@@ -405,11 +405,11 @@ function WIN_dictListDraw(container) {
 	}
 }
 
-function WIN_addDictList(win, px, py, sx, sy, value, fields) {
+function WIN_addDictList(win, px, py, sx, sy, label, value, fields) {
 	let container = DOM.cdiv(win);
-	DOM.setElementPos(container, px, py+16);
-	container.style.width = "" + sx + "px";
-	container.style.height = "" + sy + "px";
+	DOM.setElementPos(container, px+10, py+32);
+	container.style.width = "" + (sx-10) + "px";
+	container.style.height = "" + (sy-32) + "px";
 	container.style.overflow = "hidden auto";
 	container.style.border = "1px soldid #aaa";
 
@@ -423,13 +423,14 @@ function WIN_addDictList(win, px, py, sx, sy, value, fields) {
 	fields_element.value = JSON.stringify(fields);
 	fields_element.style.display = "none";
 
-	//l = DOM.cdiv(win, null, "win_label", label);
-	//DOM.setElementPos(l, px, py);
+	// Add Labels
+	let l = DOM.cdiv(win, null, "win_label", label);
+	DOM.setElementPos(l, px, py);
 
-	let current_x = 0;
+	let current_x = 10;
 	for(key in fields) {
-		l = DOM.cdiv(win, null, "win_label", fields[key].name);
-		DOM.setElementPos(l, px + current_x, py);
+		let l = DOM.cdiv(win, null, null, fields[key].name);
+		DOM.setElementPos(l, px + current_x, py + 16);
 		current_x += fields[key].width + 10
 	}
 
@@ -528,10 +529,10 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 	});	
 }
 
-function WIN_showL2DeviceConfigWindow(view, type, id, e, callback, check_ifnaming) {
+function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 	let winid = view + "_" + type + "_" + id + "_config";
 	
-	let wdata = WIN_create(winid, e.name, 660, 180);
+	let wdata = WIN_create(winid, e.name, 660, 430);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -546,18 +547,42 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback, check_ifnamin
 		list_vrfs.push({rd: vrf_rd, name: e.vrfs[vrf_rd].name})
 	}
 
-	wdata.d.vlans = WIN_addDictList(w, 20, 20, 300, 100, list_vlans, {
+	let list_svis = [];
+	for(let svi_tag in e.svis) {
+		list_svis.push({tag: svi_tag, name: e.svis[svi_tag].name, ipv4: e.svis[svi_tag].ipv4[0], ipv6: e.svis[svi_tag].ipv6[0]})
+	}
+
+	let list_los = [];
+	for(let lo_id in e.los) {
+		list_los.push({id: lo_id, name: e.los[lo_id].name, ipv4: e.los[lo_id].ipv4[0], ipv6: e.los[lo_id].ipv6[0]})
+	}
+
+	wdata.d.vlans = WIN_addDictList(w, 20, 20, 300, 120, "VLAN List", list_vlans, {
 		"tag": { name: "Vlan Tag", width: 60 },
 		"name": { name: "Vlan Name", width: 120 }
 	});
 
-	wdata.d.vrfs = WIN_addDictList(w, 340, 20, 300, 100, list_vrfs, {
+	wdata.d.vrfs = WIN_addDictList(w, 340, 20, 300, 120, "VRF List", list_vrfs, {
 		"rd":   { name: "RD", width: 60 },
 		"name": { name: "VRF Name", width: 120 },
 	});
 
+	wdata.d.svis = WIN_addDictList(w, 20, 150, 540, 120, "SVI List", list_svis, {
+		"tag":   { name: "Vlan Tag", width: 60 },
+		"name": { name: "If Name", width: 120 },
+		"ipv4": { name: "IPv4", width: 120 },
+		"ipv6": { name: "IPv6", width: 120 },
+	});
+
+	wdata.d.los = WIN_addDictList(w, 20, 280, 540, 120, "Loopback List", list_los, {
+		"id":   { name: "Lo ID", width: 60 },
+		"name": { name: "If Name", width: 120 },
+		"ipv4": { name: "IPv4", width: 120 },
+		"ipv6": { name: "IPv6", width: 120 },
+	});
+
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 280, 150, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 280, 410, "Apply", () => {
 		callback(wdata);
 	});	
 }
