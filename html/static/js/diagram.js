@@ -93,7 +93,7 @@ function createDefaultSymbol(type, x, y, z, base) {
 }
 
 function check_ifnaming(value) {
-    // Function to check if a string is a valud ifnaming representation (eg Ethernet{1-32}/{1-4} )
+    // Function to check if a string is a valid ifnaming representation (eg Ethernet{1-32}/{1-4} )
     if(resolve_ifnaming(value) == null)
         return false
     return true;
@@ -285,8 +285,16 @@ function process_message_settings(data) {
 }
 
 function process_message_config(data) {
-    if((data.v == "L2") && (data.t == "device")) {
-        d.wgl.configMesh_L2Device(data.i, data.name, data.vlans, data.vrfs, data.svis, data.los);
+    if(data.v == "L2") {
+        if(data.t == "device") {
+            d.wgl.configMesh_L2Device(data.i, data.name, data.vlans, data.vrfs, data.svis, data.los);
+        }
+        else if(data.t == "link") {
+            d.wgl.configMesh_L2Link(data.i, data.ifbindings, data.lag_name, data.lacp, data.transceiver);   
+        }
+        else if(data.t == "linkdevice") {
+            d.wgl.configMesh_L2LinkDevice(data.i, data.dev_index, data.function, data.vlans, data.native_vlan, data.subinterfaces);
+        }
     }
 }
 
@@ -547,6 +555,92 @@ function sendConfig_L2Device(id, windata) {
         message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: [svis[x].ipv4], ipv6: [svis[x].ipv6] };
     for(let x = 0; x < los.length; x++)
         message.d.los[los[x].id] = { name: los[x].name, ipv4: [los[x].ipv4], ipv6: [los[x].ipv6] };
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_L2Link(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L2",
+            t: "link",
+            i: id,
+
+            ifbindings: [],
+            lag_name: [windata.d.lag_name1.value,windata.d.lag_name2.value]
+            lacp: (windata.d.lacp.value == "yes" ? true : false),
+            transceiver: windata.d.transceiver.value,
+        }
+    }
+    let ifbindings = JSON.parse(windata.d.ifbindings.value);
+    for(let x = 0; x < ifbindings.length; x++) {
+        if((ifbindings[x].dev1 !== "") && (ifbindings[x].dev2 !== ""))
+        message.d.ifbindings.push([ifbindings[x].dev1, ifbindings[x].dev2])
+    }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_L2LinkDevice(id, dev_index, windata) {
+    console.log("Link " + id + " dev index " + dev_index);
+    console.log(windata);
+
+    let message = {
+        m: "C",
+        d: {
+            v: "L2",
+            t: "linkdev",
+            i: id,
+            dev_index: dev_index,
+
+            function: windata.d.function.value,
+        }
+    }
+
+    if(windata.d.function.value == "routing") {
+        message.d.subinterfaces = [];
+
+        let subifs = JSON.parse(windata.d.subinterfaces.value);
+        for(let x = 0; x < subifs.length; x++) {
+            if((subifs[x].vlan_tag != "") && (subifs[x].vrf != "")) {
+                let subif = {
+                    vlan_tag: subifs[x].vlan_tag,
+                    ipv4: [],
+                    ipv6: [],
+                    vrf: subifs[x].vrf,
+                }
+                if(subifs[x].ipv4 != "")
+                    subif.ipv4.push(subifs[x].ipv4);
+                if(subifs[x].ipv6 != "")
+                    subif.ipv6.push(subifs[x].ipv6);
+
+                message.d.subinterfaces.push(subif);
+            }
+        }
+    }
+
+    if(windata.d.function.value == "switching") {
+        message.d.vlans = [];
+        message.d.native_vlan = -1;
+        let vlans = JSON.parse(windata.d.vlans.value);
+
+        for(let x = 0; x < vlans.length; x++) {
+            if(vlans[x].vlan_id != "") {
+                message.d.vlans.push(vlans[x].vlan_id);
+                if(vlans[x].tagged == "no") {
+                    if(message.d.native_vlan != -1) {
+                        DOM.showError("ERROR", "There is more than one native vlan.");
+                        return;
+                    }
+                    message.d.native_vlan = vlans[x].vlan_id;
+                }
+
+            }
+        }
+    }
 
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
@@ -1249,9 +1343,17 @@ function mouseup(x, y, dx, dy, dom_element) {
                     });
             }
             else if (a.obj.mesh.userData.type == "link") {
-                WIN_showL2LinkConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                let dev1 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[0].id);
+                let dev2 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[1].id);
+                WIN_showL2LinkConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, dev1.userData.e, dev2.userData.e, resolve_ifnaming,
                     (windata) => {
-                        alert("Not implemented");
+                        sendConfig_L2Link(a.obj.mesh.userData.id, windata);
+                    },
+                    (index) => {
+                        WIN_showL2LinkConfigDeviceWindow(index, a.obj.mesh.userData.id, a.obj.mesh.userData.e, [dev1, dev2][index].userData.e, 
+                            (windata) => {
+                                sendConfig_L2LinkDevice(a.obj.mesh.userData.id, index, windata);
+                            });
                     });
             }
         }

@@ -587,6 +587,30 @@ class WGL {
 		}
 	}
 
+	configMesh_L2Link(id, ifbindings, lag_name, lacp, transceiver) {
+		let mesh = this.findMesh("device", id, this.scene["L2"]);
+		if(mesh) {
+			mesh.userData.e.phy.ifbindings = ifbindings;
+			mesh.userData.e.phy.lag_name = lag_name;
+			mesh.userData.e.phy.lacp = lacp;
+			mesh.userData.e.phy.transceiver = transceiver;
+		}
+	}
+
+	configMesh_L2LinkDevice(id, dev_index, if_function, vlans, native_vlan, subinterfaces) {
+		let mesh = this.findMesh("device", id, this.scene["L2"]);
+		if(mesh) {
+			mesh.userData.e.dev[dev_index].function = if_function;
+			if(if_function == "switching") {
+				mesh.userData.e.dev[dev_index].function_data.vlans = vlans;
+				mesh.userData.e.dev[dev_index].function_data.native_vlan = native_vlan;
+			}
+			if(if_function == "routing") {
+				mesh.userData.e.dev[dev_index].function_data.subinterfaces = subinterfaces;
+			}
+		}		
+	}
+
 	deleteMesh(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {

@@ -118,6 +118,15 @@ DOM = {
 		return select;
 	},
 
+	cradio : (parent, eid=null, eclass=null, ename=null, checked=false) => {
+		let radio = DOM.c(parent, "input", eid, eclass);
+		radio.setAttribute('type', 'radio');
+		radio.setAttribute('name', ename);
+		if(checked)
+			radio.setAttribute('checked', 'checked');
+		return radio;
+	},
+
 	removeElement: (node) => {
 		node.parentNode.removeChild(node);
 	},
@@ -179,8 +188,14 @@ DOM = {
 
 	setElementPos: (node, px, py)  => {
 		node.style.position = "absolute";
-		node.style.left = "" + px + "px";
-		node.style.top = "" + py + "px";
+		if(px >= 0)
+			node.style.left = "" + px + "px";
+		else
+			node.style.right = "" + -px + "px";
+		if(py >= 0)
+			node.style.top = "" + py + "px";
+		else
+			node.style.bottom = "" + -py + "px";
 	},
 
 	findChildrenWithClass: (node, classname) => {

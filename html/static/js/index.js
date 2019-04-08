@@ -4,7 +4,7 @@ let index_data = {
 	session: null,
 	state: "",
 	current_diagram: {},
-	name: "MaSSHandra"
+	name: "ND"
 };
 
 function process_message(message) {
@@ -394,8 +394,6 @@ function screen_present(old_state) {
 		DOM.cimg(div2, staticurl + "/static/img/sample1.png", null, "introimg");
             td = DOM.ctd(tr);
                 DOM.cdiv(td, null, "aboutus", "Create and edit your 3D network diagrams wherever you are for free.");
-                DOM.cdiv(td, null, "aboutus", "Share them and work together creating the most amazing network.");
-                DOM.cdiv(td, null, "aboutus", "This is currently a beta version. If you are interested in our project, contact us (on About Us).");
 }
 
 function screen_about_us() {

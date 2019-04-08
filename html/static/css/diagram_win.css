@@ -2,8 +2,10 @@
 	position: fixed;
 	border: 1px solid #000;
 	border-radius: 5px;
-	background: rgba(255,255,255,.8);
+	background: #ffb72e;
+	background-image: linear-gradient(160deg, #fff3dc 0%, #ffd586 50%, #ffa0bf 100%);
 	font-size: 12px;
+    box-shadow: 4px 4px 32px #888;
 }
 
 .win_h {
@@ -12,10 +14,13 @@
 	cursor: pointer;
 	text-align: center;
 	height: 15px;
+	border-radius: 5px 5px 0 0;
+	background-image: linear-gradient(160deg, #e1efff 0%, #4484CE 50%, #9ac9ff 100%);
 }
 
 .win_c {
 	color: #FFF;
+	margin: 0 2px 0 0;
 }
 
 .win_imgselect {
@@ -25,6 +30,7 @@
 
 .win_label {
 	font-weight: bold;
+	width: 200px;
 }
 
 .win_help {
@@ -87,4 +93,36 @@
 	box-shadow: 2px 2px 8px #888;
 	cursor: pointer;
 	font-weight: bold;
+}
+
+.win_imgradio {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 4px 4px 4px #888;
+    transform: translate(-2px,-2px);
+}
+
+.win_imgradio_selected {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ff8585;
+    border-radius: 8px;
+    background: linear-gradient(160deg, #ffbe41 0%, #e49500 50%, #ff4b86 100%);
+}
+
+.win_description {
+	z-index: 1000;
+    background: linear-gradient(to right, #fff, #eee);
+    font-size: 10px;
+    padding: 2px;
+    border-radius: 2px;
+    border: 1px solid #888;
+}
+
+.dictlist_value {
+	font-size: 10px;
+	font-family: monospace;
 }

@@ -30,6 +30,8 @@ body {
 .headright {
 	display: flex;
 	flex-direction: row-reverse;
+	flex-wrap: wrap;
+	justify-content: space-between;
 }
 
 .headtext {
@@ -228,8 +230,8 @@ body {
     margin: 20px;
 }
 .introimg {
-    width: 240px;
-    height: 200px;
+    width: 200px;
+    height: 160px;
 }
 .titleicon {
     width: 45px;

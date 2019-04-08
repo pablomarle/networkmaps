@@ -59,7 +59,7 @@ this.diagram = {
 				name: "a dev name",
 				type: "R",		                                 	-> R: router, X: switch, F: firewall, S: server, M: multilayer 
 				ifnaming: [
-					"Ethernet{1-40}/{1-4}"
+					"Ethernet{1-40}/{1-4}",
 					"Ethernet{41-44}"
 				],
 				base: 0,											-> Base element used to calculate position
@@ -101,6 +101,15 @@ this.diagram = {
 			0: {
 				type: 0,											-> 0: line, 1: square, 2: curve
 				order: "XY",										-> order in which square interfaces are drawn (XY, YX, XZ, ZX, YZ, ZY)
+				phy: {
+					"ifbindings": [									-> if more than one, then it's considered a lag
+						["Ethernet1", "Ethernet2"],
+						["Ethernet3", "Ethernet8/1"]
+					],
+					"lag_name": ["Po0", "Po0"],
+					"lacp": true,
+					"transceiver": "10BASET"
+				}
 				devs: [
 					{
 						id: 0,
@@ -246,58 +255,32 @@ this.diagram = {
 
 PHYSICAL INTERFACES DATA OPTIONS
 	SWITCHING INTERFACE
-					0: {
-						type: "phy"
-						name: "Ethernet1/4",
-						type_data: {
-							transceiver: "10G-BASET"
-						}
 						function: "switching"
 						function_data: {
 							vlans: [1,2,3, ...]
 							native_vlan: 3					-> -1 if no native vlan
 						}
-					},
 	ROUTING INTERFACE
-					1: {
-						type: "phy"
-						name: "Ethernet1/4",
-						type_data: {
-							transceiver: "10G-BASET"
-						}
 						function: "routing"
 						function_data: {
-							subinterfaces: {
+							subinterfaces: [
 								0: {
-									name: ""
 									vlan_tag: -1, (native)
 									ipv4: ["100.0.0.1/24", ...]
 									ipv6: [],
-									vrf: 0
+									vrf: "65001:1"					-> this is the rd
 								}
 								1: {
-									name: ""
 									vlan_tag: 2,
 									ipv4: [],
 									ipv6: [],
-									vrf: 1
+									vrf: "1"
 								}
-							}
+							]
 						}
-					},
-	LAG INTERFACE
-					1: {
-						type: "lag",
-						name: "PortChannel1",
-						type_data: {
-							lacp: true,
-							ifs: [
-								"Ethernet1/4",
-								"Ethernet2/4",
-							],
-						},
-						function: "switching" or "routing",
-						function_data: { ... }							-> SAME AS SWITCHING OR ROUTING INTERFACES
-					},
-
-
+	UNCONFIGURED INTERFACE
+						type: "none",
+						name: "",
+						type_data: {},
+						function: "none",
+						function_data: {}
