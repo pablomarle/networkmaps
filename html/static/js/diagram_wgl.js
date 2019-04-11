@@ -588,8 +588,11 @@ class WGL {
 	}
 
 	configMesh_L2Link(id, ifbindings, lag_name, lacp, transceiver) {
-		let mesh = this.findMesh("device", id, this.scene["L2"]);
+		let mesh = this.findMesh("link", id, this.scene["L2"]);
 		if(mesh) {
+			if(!("phy" in mesh.userData.e)) {
+				mesh.userData.e.phy = {};
+			}
 			mesh.userData.e.phy.ifbindings = ifbindings;
 			mesh.userData.e.phy.lag_name = lag_name;
 			mesh.userData.e.phy.lacp = lacp;
@@ -598,16 +601,28 @@ class WGL {
 	}
 
 	configMesh_L2LinkDevice(id, dev_index, if_function, vlans, native_vlan, subinterfaces) {
-		let mesh = this.findMesh("device", id, this.scene["L2"]);
+		let mesh = this.findMesh("link", id, this.scene["L2"]);
 		if(mesh) {
-			mesh.userData.e.dev[dev_index].function = if_function;
+			if(!("data" in mesh.userData.e.devs[dev_index])) {
+				mesh.userData.e.devs[dev_index].data = {
+					function: "none", function_data: {}
+				};
+			}
+			
+			mesh.userData.e.devs[dev_index].data.function = if_function;
 			if(if_function == "switching") {
-				mesh.userData.e.dev[dev_index].function_data.vlans = vlans;
-				mesh.userData.e.dev[dev_index].function_data.native_vlan = native_vlan;
+				mesh.userData.e.devs[dev_index].data.function_data = {
+					vlans: vlans,
+					native_vlan: native_vlan,
+				}
 			}
-			if(if_function == "routing") {
-				mesh.userData.e.dev[dev_index].function_data.subinterfaces = subinterfaces;
+			else if(if_function == "routing") {
+				mesh.userData.e.devs[dev_index].data.function_data = {
+					subinterfaces: subinterfaces
+				}
 			}
+			else
+				mesh.userData.e.devs[dev_index].data.function_data = {};	
 		}		
 	}
 

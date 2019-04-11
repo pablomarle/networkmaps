@@ -69,8 +69,8 @@ this.diagram = {
 				color1: 0xffffff,
 				color2: 0xffffff,
 				vlans: {
-					5: {name: "VLAN5"},
-					6: {name: "DMZ"},
+					"5": {name: "VLAN5"},
+					"6": {name: "DMZ"},
 				},
 				vrfs: {
 					"65000:1" : {
@@ -279,8 +279,5 @@ PHYSICAL INTERFACES DATA OPTIONS
 							]
 						}
 	UNCONFIGURED INTERFACE
-						type: "none",
-						name: "",
-						type_data: {},
 						function: "none",
 						function_data: {}

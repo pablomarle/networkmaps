@@ -177,7 +177,6 @@ function resolve_ifnaming(value) {
     stringsplit = resolve_ifnaming_addstring(stringsplit, tempstring);
 
     return stringsplit;
-
 }
 
 function process_message(message) {
@@ -292,7 +291,7 @@ function process_message_config(data) {
         else if(data.t == "link") {
             d.wgl.configMesh_L2Link(data.i, data.ifbindings, data.lag_name, data.lacp, data.transceiver);   
         }
-        else if(data.t == "linkdevice") {
+        else if(data.t == "linkdev") {
             d.wgl.configMesh_L2LinkDevice(data.i, data.dev_index, data.function, data.vlans, data.native_vlan, data.subinterfaces);
         }
     }
@@ -551,10 +550,16 @@ function sendConfig_L2Device(id, windata) {
         message.d.vlans[vlans[x].tag] = { name: vlans[x].name };
     for(let x = 0; x < vrfs.length; x++)
         message.d.vrfs[vrfs[x].rd] = { name: vrfs[x].name };
-    for(let x = 0; x < svis.length; x++)
-        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: [svis[x].ipv4], ipv6: [svis[x].ipv6] };
-    for(let x = 0; x < los.length; x++)
-        message.d.los[los[x].id] = { name: los[x].name, ipv4: [los[x].ipv4], ipv6: [los[x].ipv6] };
+    for(let x = 0; x < svis.length; x++) {
+        let ipv4 = (svis[x].ipv4 === "") ? [] : [svis[x].ipv4];
+        let ipv6 = (svis[x].ipv6 === "") ? [] : [svis[x].ipv6];
+        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: ipv4, ipv6: ipv6 };
+    }
+    for(let x = 0; x < los.length; x++) {
+        let ipv4 = (los[x].ipv4 === "") ? [] : [los[x].ipv4];
+        let ipv6 = (los[x].ipv6 === "") ? [] : [los[x].ipv6];
+        message.d.los[los[x].id] = { name: los[x].name, ipv4: ipv4, ipv6: ipv6 };
+    }
 
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
@@ -569,7 +574,7 @@ function sendConfig_L2Link(id, windata) {
             i: id,
 
             ifbindings: [],
-            lag_name: [windata.d.lag_name1.value,windata.d.lag_name2.value]
+            lag_name: [windata.d.lag_name1.value, windata.d.lag_name2.value],
             lacp: (windata.d.lacp.value == "yes" ? true : false),
             transceiver: windata.d.transceiver.value,
         }
@@ -624,14 +629,14 @@ function sendConfig_L2LinkDevice(id, dev_index, windata) {
 
     if(windata.d.function.value == "switching") {
         message.d.vlans = [];
-        message.d.native_vlan = -1;
+        message.d.native_vlan = "-1";
         let vlans = JSON.parse(windata.d.vlans.value);
 
         for(let x = 0; x < vlans.length; x++) {
             if(vlans[x].vlan_id != "") {
                 message.d.vlans.push(vlans[x].vlan_id);
                 if(vlans[x].tagged == "no") {
-                    if(message.d.native_vlan != -1) {
+                    if(message.d.native_vlan != "-1") {
                         DOM.showError("ERROR", "There is more than one native vlan.");
                         return;
                     }

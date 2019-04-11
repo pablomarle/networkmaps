@@ -462,6 +462,13 @@ function WIN_dictListDraw(container, changelength_callback) {
 				changelength_callback();
 
 		})
+		add.addEventListener("mouseover", (ev) => {
+			WIN_addMouseDescription(ev.pageX, ev.pageY-40, "Add Line below.");
+		});
+		add.addEventListener("mouseout", (ev) => {
+			WIN_removeMouseDescription();
+		});
+
 		let rem = DOM.cbutton(mc, null, "win_button dictlist_del_" + x, "-", null, () => {});
 		DOM.setElementPos(rem, current_x + 30, 0);
 		rem.setAttribute("data-index", x);
@@ -474,6 +481,12 @@ function WIN_dictListDraw(container, changelength_callback) {
 			if(changelength_callback !== undefined)
 				changelength_callback();
 		})
+		rem.addEventListener("mouseover", (ev) => {
+			WIN_addMouseDescription(ev.pageX, ev.pageY-40, "Remove this line.");
+		});
+		rem.addEventListener("mouseout", (ev) => {
+			WIN_removeMouseDescription();
+		});
 	}
 }
 
@@ -511,9 +524,18 @@ function WIN_addDictList(win, px, py, sx, sy, label, value, fields, changelength
 	return value_element;
 }
 
-function WIN_addButton(win, px, py, label, callback) {
+function WIN_addButton(win, px, py, label, callback, description) {
 	let b = DOM.cbutton(win, null, "win_button", label, null, callback);
 	DOM.setElementPos(b, px, py);
+
+	if(description !== null ) {
+		b.addEventListener("mouseover", (ev) => {
+			WIN_addMouseDescription(ev.pageX, ev.pageY-40, description);
+		});
+		b.addEventListener("mouseout", (ev) => {
+			WIN_removeMouseDescription();
+		});
+	}
 
 	return b;
 }
@@ -630,7 +652,7 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 270, "Apply", () => {
 		callback(wdata);
-	});
+	}, "Apply changes.");
 }
 
 function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
@@ -655,13 +677,13 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 310, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 	let winid = view + "_" + type + "_" + id + "_config";
 	
-	let wdata = WIN_create(winid, e.name, 660, 430);
+	let wdata = WIN_create(winid, e.name, 660, 440);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -678,42 +700,52 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 
 	let list_svis = [];
 	for(let svi_tag in e.svis) {
-		list_svis.push({tag: svi_tag, name: e.svis[svi_tag].name, ipv4: e.svis[svi_tag].ipv4[0], ipv6: e.svis[svi_tag].ipv6[0]})
+		list_svis.push({
+			tag: svi_tag, 
+			name: e.svis[svi_tag].name, 
+			ipv4: (e.svis[svi_tag].ipv4.length > 0) ? e.svis[svi_tag].ipv4[0] : "",
+			ipv6: (e.svis[svi_tag].ipv6.length > 0) ? e.svis[svi_tag].ipv6[0] : "",
+		})
 	}
 
 	let list_los = [];
 	for(let lo_id in e.los) {
-		list_los.push({id: lo_id, name: e.los[lo_id].name, ipv4: e.los[lo_id].ipv4[0], ipv6: e.los[lo_id].ipv6[0]})
+		list_los.push({
+			id: lo_id, 
+			name: e.los[lo_id].name, 
+			ipv4: (e.los[lo_id].ipv4.length > 0) ? e.los[lo_id].ipv4[0] : "",
+			ipv6: (e.los[lo_id].ipv6.length > 0) ? e.los[lo_id].ipv6[0] : "",
+		})
 	}
 
 	wdata.d.vlans = WIN_addDictList(w, 20, 20, 300, 120, "VLAN List", list_vlans, {
-		"tag": { name: "Vlan Tag", width: 60 },
-		"name": { name: "Vlan Name", width: 120 }
+		"tag": { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)."},
+		"name": { name: "Vlan Name", width: 120, "description": "Name of the VLAN."}
 	});
 
 	wdata.d.vrfs = WIN_addDictList(w, 340, 20, 300, 120, "VRF List", list_vrfs, {
-		"rd":   { name: "RD", width: 60 },
-		"name": { name: "VRF Name", width: 120 },
+		"rd":   { name: "RD", width: 60,  "description": "Route Distinguisher. An unique ID for the vrf (e: 0:0)." },
+		"name": { name: "VRF Name", width: 120, "description": "Name of the VRF." },
 	});
 
 	wdata.d.svis = WIN_addDictList(w, 20, 150, 540, 120, "SVI List", list_svis, {
-		"tag":   { name: "Vlan Tag", width: 60 },
-		"name": { name: "If Name", width: 120 },
-		"ipv4": { name: "IPv4", width: 120 },
-		"ipv6": { name: "IPv6", width: 120 },
+		"tag":   { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)." },
+		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Vlan100)." },
+		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
+		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
 	});
 
 	wdata.d.los = WIN_addDictList(w, 20, 280, 540, 120, "Loopback List", list_los, {
-		"id":   { name: "Lo ID", width: 60 },
-		"name": { name: "If Name", width: 120 },
-		"ipv4": { name: "IPv4", width: 120 },
-		"ipv6": { name: "IPv6", width: 120 },
+		"id":   { name: "Lo ID", width: 60, "description": "ID of loopback interface (number 0 - 10)." },
+		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Lo0)." },
+		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
+		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
 	});
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 280, 410, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 function WIN_showL2LinkWindow(view, type, id, e, callback) {
@@ -747,7 +779,7 @@ function WIN_showL2LinkWindow(view, type, id, e, callback) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 function WIN_showL2LinkConfigWindow_lag(wdata) {
@@ -761,13 +793,16 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 	// First a bit of cleanup (if data of interfaces of a link is not defined)
 	if(e.phy === undefined) {
 		e.phy = {
-					"ifbindings": [
-					],
+					"ifbindings": [],
 					"lag_name": ["Po0", "Po0"],
 					"lacp": true,
 					"transceiver": "",			
 		}
 	}
+	if(e.phy.lacp === undefined)
+		e.phy.lacp = true;
+	if(e.phy.lag_name === undefined)
+		e.phy.lag_name = ["Po0", "Po0"];
 
 	for(let x = 0; x < e.devs.length; x++)
 		if(e.devs[x].data === undefined)
@@ -811,9 +846,9 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 	() => {WIN_showL2LinkConfigWindow_lag(wdata)});
 
 	wdata.d.lag_section = WIN_addSection(w, 10, 160);
-	wdata.d.lag_name1 = WIN_addTextInput(wdata.d.lag_section, 60, 0, 40, 15, "Dev1 LAG Name", e.phy.lag_name[0]);
-	wdata.d.lag_name2 = WIN_addTextInput(wdata.d.lag_section, 200, 0, 180, 15, "Dev2 LAG Name", e.phy.lag_name[1]);
-	wdata.d.lacp = WIN_addSelect(wdata.d.lag_section, 140, 40, "LACP", [["Yes", "yes"], ["No", "no"]], (e.phy.lacp ? "yes" : "no"));
+	wdata.d.lag_name1 = WIN_addTextInput(wdata.d.lag_section, 0, 0, 0, 15, dev1name + " LAG Name", e.phy.lag_name[0]);
+	wdata.d.lag_name2 = WIN_addTextInput(wdata.d.lag_section, 0, 40, 0, 55, dev2name + " LAG Name", e.phy.lag_name[1]);
+	wdata.d.lacp = WIN_addSelect(wdata.d.lag_section, 240, 40, "LACP", [["Yes", "yes"], ["No", "no"]], (e.phy.lacp ? "yes" : "no"));
 
 	WIN_showL2LinkConfigWindow_lag(wdata);
 
@@ -828,7 +863,7 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 
 	wdata.d.apply = WIN_addButton(w, 160, 280, "Apply", () => {
 		callback(wdata);
-	});		
+	}, "Apply changes.");		
 }
 
 function WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
@@ -841,20 +876,20 @@ function WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev)
 		}
 
 		let values = [];
-		for(let x = 0; x < e.devs[dev_index].data.function_data.subinterfaces; x++) {
+		if("subinterfaces" in e.devs[dev_index].data.function_data) for(let x = 0; x < e.devs[dev_index].data.function_data.subinterfaces.length; x++) {
 			let subif = e.devs[dev_index].data.function_data.subinterfaces[x];
 			values.push({
 				vlan_tag: subif.vlan_tag,
-				ipv4: (len(subif.ipv4) > 0 ? subif.ipv4[0] : ""),
-				ipv6: (len(subif.ipv6) > 0 ? subif.ipv6[0] : ""),
+				ipv4: (subif.ipv4.length > 0) ? subif.ipv4[0] : "",
+				ipv6: (subif.ipv6.length > 0) ? subif.ipv6[0] : "",
 				vrf: subif.vrf,
 			})
 		}
 		wdata.d.subinterfaces = WIN_addDictList(wdata.d.section, 0, 0, 580, 90, "Sub-Interfaces", values, {
 			vlan_tag: {name: "VTag", width: 35, "description": "Vlan Tag for this subinterface. -1 if no tag."},
-			ipv4: {name: "IPv4", width: 110},
-			ipv6: {name: "IPv6", width: 255},
-			vrf: {name: "VRF", width: 70, options: vrf_options}
+			ipv4: {name: "IPv4", width: 110, "description": "Interface IPv4 (e: 10.196.64.2/24). Leave empty if none."},
+			ipv6: {name: "IPv6", width: 255, "description": "Interface IPv6 (e: 2a01:ffff:a433:4332::1/64. Leave empty if none."},
+			vrf: {name: "VRF", width: 70, options: vrf_options, "description": "VRF of this interface. VRFs are defined on Device Configs."}
 		})
 	}
 
@@ -870,12 +905,12 @@ function WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev)
 			for(let x = 0; x < e.devs[dev_index].data.function_data.vlans.length; x++) {
 				values.push({
 					vlan_id: e.devs[dev_index].data.function_data.vlans[x],
-					tagged: ( e.devs[dev_index].data.function_data.native_vlan == e.devs[dev_index].data.function_data.vlans[x] ? "yes" : "no"),
+					tagged: ( e.devs[dev_index].data.function_data.native_vlan == e.devs[dev_index].data.function_data.vlans[x] ? "no" : "yes"),
 				})
 			}
 		}
 
-		wdata.d.vlans = WIN_addDictList(wdata.d.section, 150, 0, 260, 90, "Vlan Members", [], {
+		wdata.d.vlans = WIN_addDictList(wdata.d.section, 150, 0, 260, 90, "Vlan Members", values, {
 			vlan_id: {name: "Vlan", width: 80, options: vlan_options},
 			tagged: {name: "Tagged", width: 80, options: [["No", "no"], ["Yes", "yes"]]},
 		})
@@ -909,7 +944,7 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 270, 200, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 function WIN_showL2TextWindow(view, type, id, e, callback) {
@@ -935,7 +970,7 @@ function WIN_showL2TextWindow(view, type, id, e, callback) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 function WIN_showL2SymbolFlagWindow(view, type, id, e, callback) {
@@ -953,7 +988,7 @@ function WIN_showL2SymbolFlagWindow(view, type, id, e, callback) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
 		callback(wdata);
-	});	
+	}, "Apply changes.");	
 }
 
 
