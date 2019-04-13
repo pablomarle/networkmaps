@@ -1,7 +1,7 @@
 #!/usr/bin/node
 
-const sendmail = require("./sendmail");
-const config = require('./config');
+const sendmail = require("./lib/sendmail");
+const config = require('./lib/config');
 
 
 function main() {
