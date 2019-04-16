@@ -415,7 +415,7 @@ class WGL {
 					mesh.position.y = basemesh.userData.e.sy + mesh.userData.e.py;
 			}
 
-			this.draw_needed = true;
+			mesh.updateMatrixWorld();
 
 			if(type === "device") {
 				let listlinks = this.findLinksOfDevice(id, this.scene[view]);
@@ -430,7 +430,7 @@ class WGL {
 				}
 			}
 
-			mesh.updateMatrixWorld();
+			this.draw_needed = true;
 		}
 	}
 
@@ -449,8 +449,20 @@ class WGL {
 				mesh.rotation.z = rz;
 				mesh.userData.e.rz = rz;
 			}
+
+			mesh.updateMatrixWorld();
+
+			if(type == "base") {
+				let links = this.findLinksOfBase(mesh, this.scene[view]);
+				for(let link_id in links) {
+					this.updateLinkGeometry(links[link_id], view);
+				}
+
+			}
+
 			this.draw_needed = true;
 		}
+
 	}
 
 	resizeMesh(view, type, id, sx, sy, sz) {

@@ -54,7 +54,7 @@ function createDefaultText(x, z, type, base) {
         height: .3,
         depth:.03,
         color: 0x000000,
-        px: x, py: 1, pz: z,
+        px: x, py: .5, pz: z,
         base: base,
         rx: -Math.PI/4,
         ry: 0,
@@ -1246,7 +1246,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         sendAdd_Text(
             mesh.userData.e.text,
             mesh.userData.e.type,
-            mesh.userData.e.px, mesh.userData.e.py-mesh.parent.userData.e.sy, mesh.userData.e.pz, 
+            mesh.userData.e.px, mesh.userData.e.py, mesh.userData.e.pz, 
             mesh.userData.e.rx, mesh.userData.e.ry,
             mesh.userData.e.height, mesh.userData.e.depth,
             mesh.userData.e.color,
@@ -1432,8 +1432,8 @@ function mousemove(x, y, dx, dy, dom_element) {
 
         for(let x = 0; x < p.length; x++) {
             if (p[x].mesh.userData.type === "base") {
-                let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", p[x].mesh.userData.id, p[x].p.x, mesh.position.y, p[x].p.z);
-                d.wgl.moveMesh(d.current_view, "text", "CURSOR", newcoords.x, newcoords.y, newcoords.z, p[x].mesh.userData.id);
+                let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", p[x].mesh.userData.id, p[x].p.x, p[x].p.y, p[x].p.z);
+                d.wgl.moveMesh(d.current_view, "text", "CURSOR", newcoords.x, undefined, newcoords.z, p[x].mesh.userData.id);
                 break;
             }
         }
