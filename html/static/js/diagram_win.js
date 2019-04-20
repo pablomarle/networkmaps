@@ -19,13 +19,21 @@ WIN_data = {
 			["Access/Trunk", "radio_if_l2.png", "switching"],
 			["Layer 3", "radio_if_l3.png", "routing"],
 		],
+		floor_subtype_choices: [
+			["No Border", "radio_base_st_n.png", "n"],
+			["Ground", "radio_base_st_g.png", "g"],
+			["Platform", "radio_base_st_p.png", "p"],
+			["Floating Platform", "radio_base_st_f.png", "f"],
+		],
 	}
 }
 
 function WIN_initialize() {
 	Input_registerclass("win_h", null, null, WIN_mm);
 	Input_registerclass("color_grab", null, null, WIN_Color_mm);
+	Input_registerclass("color_bar", null, null, WIN_Color_mm);
 	Input_registerclass("slider_grab", null, null, WIN_Slider_mm);
+	Input_registerclass("slider_bar", null, null, WIN_Slider_mm);
 }
 
 function WIN_get_next_autoinc() {
@@ -50,6 +58,18 @@ function WIN_removeMouseDescription() {
 	}
 }
 
+function WIN_addBasicMouseDescriptionActions(element, text) {
+    element.addEventListener("mouseover", (ev) => {
+		let ypos = ev.pageY-40;
+		if(ypos < 0)
+			ypos = ev.pageY+20
+        WIN_addMouseDescription(ev.pageX, ypos, text.replace(/\n/g, "<br>"));
+    })
+    element.addEventListener("mouseout", (ev) => {
+        WIN_removeMouseDescription();
+    })
+}
+
 function WIN_mm(x, y, diffx, diffy, dom_element) {
 	let parent = dom_element.parentNode;
 	let py = parseInt(parent.style.top);
@@ -61,11 +81,33 @@ function WIN_mm(x, y, diffx, diffy, dom_element) {
 }
 
 function WIN_Color_mm(x, y, diffx, diffy, dom_element) {
-	let px = parseInt(dom_element.style.left);
-	px += diffx;
-	if(px < 0) px = 0;
-	if(px > 127) px = 127;
-	dom_element.style.left = "" + px + "px";
+	if(dom_element.className.indexOf("color_bar_r") != -1) {
+		dom_element = DOM.findChildrenWithClass(dom_element.parentNode, "color_r")[0];
+	}
+	if(dom_element.className.indexOf("color_bar_g") != -1) {
+		dom_element = DOM.findChildrenWithClass(dom_element.parentNode, "color_g")[0];
+	}
+	if(dom_element.className.indexOf("color_bar_b") != -1) {
+		dom_element = DOM.findChildrenWithClass(dom_element.parentNode, "color_b")[0];
+	}
+	let bar = null;
+	if(dom_element.className.indexOf("color_r") != -1) {
+		bar = DOM.findChildrenWithClass(dom_element.parentNode, "color_bar_r")[0];
+	}
+	if(dom_element.className.indexOf("color_g") != -1) {
+		bar = DOM.findChildrenWithClass(dom_element.parentNode, "color_bar_g")[0];
+	}
+	if(dom_element.className.indexOf("color_b") != -1) {
+		bar = DOM.findChildrenWithClass(dom_element.parentNode, "color_bar_b")[0];
+	}
+	let bar_rect = bar.getBoundingClientRect();
+	let pos = x - bar_rect.left;
+	if(pos < 0)
+		pos = 0;
+	if(pos > 127)
+		pos = 127;
+	dom_element.style.left = "" + pos + "px";
+
 	let cr = parseInt(DOM.findChildrenWithClass(dom_element.parentNode, "color_r")[0].style.left)*2;
 	let cg = parseInt(DOM.findChildrenWithClass(dom_element.parentNode, "color_g")[0].style.left)*2;
 	let cb = parseInt(DOM.findChildrenWithClass(dom_element.parentNode, "color_b")[0].style.left)*2;
@@ -79,14 +121,15 @@ function WIN_Color_mm(x, y, diffx, diffy, dom_element) {
 }
 
 function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
-	let low = parseFloat(dom_element.getAttribute("data-low"));
-	let high = parseFloat(dom_element.getAttribute("data-high"));
-	let step = parseFloat(dom_element.getAttribute("data-step"));
-	let width = parseInt(dom_element.getAttribute("data-width"));
-
 	let bar = DOM.findChildrenWithClass(dom_element.parentNode, "slider_bar")[0];
+	let grab = DOM.findChildrenWithClass(dom_element.parentNode, "slider_grab")[0];
 	let i = DOM.findChildrenWithClass(dom_element.parentNode, "slider_value")[0];
 	let bar_rect = bar.getBoundingClientRect();
+
+	let low = parseFloat(grab.getAttribute("data-low"));
+	let high = parseFloat(grab.getAttribute("data-high"));
+	let step = parseFloat(grab.getAttribute("data-step"));
+	let width = parseInt(grab.getAttribute("data-width"));
 
 	let pos = x - bar_rect.left;
 	if(pos < 0)
@@ -97,7 +140,7 @@ function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
 	let widthpoints = width/numpoints;
 	let value = low + Math.round(pos/widthpoints) * step;
 
-	dom_element.style.left = "" + (value-low)/(high-low)*width + "px";
+	grab.style.left = "" + (value-low)/(high-low)*width + "px";
 	
 	i.value = value;
 }
@@ -203,19 +246,19 @@ function WIN_addColorInput(win, px, py, label, value) {
 	let container = DOM.cdiv(win);
 	DOM.setElementPos(container, px, py);
 	
-	let rbar = DOM.cdiv(container, null, "color_bar");
+	let rbar = DOM.cdiv(container, null, "color_bar color_bar_r");
 	DOM.setElementPos(rbar, 2, 15);
 	rbar.style.backgroundColor = "#FF8888";
 	let rgrab = DOM.cdiv(container, null, "color_grab color_r");
 	DOM.setElementPos(rgrab, r*.5, 13);
 
-	let gbar = DOM.cdiv(container, null, "color_bar");
+	let gbar = DOM.cdiv(container, null, "color_bar color_bar_g");
 	DOM.setElementPos(gbar, 2, 35);
 	gbar.style.backgroundColor = "#88FF88";
 	let ggrab = DOM.cdiv(container, null, "color_grab color_g");
 	DOM.setElementPos(ggrab, g*.5, 33);
 	
-	let bbar = DOM.cdiv(container, null, "color_bar");
+	let bbar = DOM.cdiv(container, null, "color_bar color_bar_b");
 	DOM.setElementPos(bbar, 2, 55);
 	bbar.style.backgroundColor = "#8888FF";
 	let bgrab = DOM.cdiv(container, null, "color_grab color_b");
@@ -243,7 +286,7 @@ function WIN_addImgSelection(win, px, py, label, value, options) {
 
 	WIN_addLabel(win, px, py, label)
 
-	let i = DOM.cselect(win, null, null, o);
+	let i = DOM.cselect(win, null, null, options);
 	DOM.setElementPos(i, px + 2, py + 15);
 	i.value = value;
 
@@ -433,12 +476,7 @@ function WIN_dictListDraw(container, changelength_callback) {
 			inp.style.width = "" + fields[listfields[y]].width + "px";
 
 			if(fields[listfields[y]].description !== undefined) {
-				inp.addEventListener("mouseover", (ev) => {
-					WIN_addMouseDescription(ev.pageX, ev.pageY-40, fields[listfields[y]].description);
-				});
-				inp.addEventListener("mouseout", (ev) => {
-					WIN_removeMouseDescription();
-				});
+				WIN_addBasicMouseDescriptionActions(inp, fields[listfields[y]].description);
 			}
 
 			current_x += fields[listfields[y]].width + 10;
@@ -462,12 +500,7 @@ function WIN_dictListDraw(container, changelength_callback) {
 				changelength_callback();
 
 		})
-		add.addEventListener("mouseover", (ev) => {
-			WIN_addMouseDescription(ev.pageX, ev.pageY-40, "Add Line below.");
-		});
-		add.addEventListener("mouseout", (ev) => {
-			WIN_removeMouseDescription();
-		});
+		WIN_addBasicMouseDescriptionActions(add,"Add line below.");
 
 		let rem = DOM.cbutton(mc, null, "win_button dictlist_del_" + x, "-", null, () => {});
 		DOM.setElementPos(rem, current_x + 30, 0);
@@ -481,12 +514,7 @@ function WIN_dictListDraw(container, changelength_callback) {
 			if(changelength_callback !== undefined)
 				changelength_callback();
 		})
-		rem.addEventListener("mouseover", (ev) => {
-			WIN_addMouseDescription(ev.pageX, ev.pageY-40, "Remove this line.");
-		});
-		rem.addEventListener("mouseout", (ev) => {
-			WIN_removeMouseDescription();
-		});
+		WIN_addBasicMouseDescriptionActions(rem, "Remove this line.");
 	}
 }
 
@@ -529,12 +557,7 @@ function WIN_addButton(win, px, py, label, callback, description) {
 	DOM.setElementPos(b, px, py);
 
 	if(description !== null ) {
-		b.addEventListener("mouseover", (ev) => {
-			WIN_addMouseDescription(ev.pageX, ev.pageY-40, description);
-		});
-		b.addEventListener("mouseout", (ev) => {
-			WIN_removeMouseDescription();
-		});
+		WIN_addBasicMouseDescriptionActions(b, description);
 	}
 
 	return b;
@@ -594,12 +617,7 @@ function WIN_addRadioImgInput(win, px, py, label, choices, value, onchange_callb
 		});
 		DOM.setElementPos(img, 48*x, 0);
 
-		img.addEventListener("mouseover", (ev) => {
-			WIN_addMouseDescription(ev.pageX-10, ev.pageY-30, choices[x][0]);
-		});
-		img.addEventListener("mouseout", (ev) => {
-			WIN_removeMouseDescription();
-		});
+		WIN_addBasicMouseDescriptionActions(img, choices[x][0]);
 		if(choices[x][2] === value) {
 			img.className = "win_imgradio_selected";
 		}
@@ -624,33 +642,36 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
 function WIN_showBaseElementWindow(view, type, id, e, callback) {
 	let winid = view + "_" + type + "_" + id;
 	
-	let wdata = WIN_create(winid, e.name, 460, 300);
+	let wdata = WIN_create(winid, e.name, 460, 330);
 	if(!wdata)
 		return;
 	let w = wdata.w;
 
 	// Name
-	wdata.d.name = WIN_addTextInput(w, 20, 20, 20, 35, "Name", e.name);
+	wdata.d.name = WIN_addTextInput(w, 200, 20, 160, 35, "Name", e.name);
+
+	// Type
+	wdata.d.subtype = WIN_addRadioImgInput(w, 20, 60, "Floor Subtype", WIN_data.constants.floor_subtype_choices, (e.subtype !== undefined) ? e.subtype : "g", null);
 
 	// Level (sy)
-	wdata.d.sy = WIN_addSlider(w, 250, 20, 100, "Level", e.sy, .5, 5, .5);
+	wdata.d.sy = WIN_addSlider(w, 250, 70, 100, "Level", e.sy, .5, 20, .5);
 
 	// Color1
-	wdata.d.color1 = WIN_addColorInput(w, 20, 70, "Color Floor", e.color1);
+	wdata.d.color1 = WIN_addColorInput(w, 20, 120, "Color Floor", e.color1);
 
 	// Color2
-	wdata.d.color2 = WIN_addColorInput(w, 250, 70, "Color Border", e.color2);
+	wdata.d.color2 = WIN_addColorInput(w, 250, 120, "Color Border", e.color2);
 
 	// Texture option
-	wdata.d.t1name = WIN_addImgSelection(w, 20, 160, "Floor Texture", e.t1name, ['b1_t1', 'b1_t2', 'b1_t3']);
-	wdata.d.t2name = WIN_addImgSelection(w, 20, 195, "Border Texture", e.t2name, ['b2_t1', 'b2_t2']);
+	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, [["Grid", "b1_t1"], ["Plain", "b1_t2"], ["Hexagon", "b1_t3"]]);
+	wdata.d.t2name = WIN_addImgSelection(w, 20, 245, "Border Texture", e.t2name, [["Bricks", "b2_t1"], ["Stones", "b2_t2"]]);
 
 	// Floor Texture size
-	wdata.d.tsx_i = WIN_addSlider(w, 250, 160, 100, "Texture U", 1/e.tsx, .25, 10, .25);
-	wdata.d.tsy_i = WIN_addSlider(w, 250, 195, 100, "Texture V", 1/e.tsy, .25, 10, .25);
+	wdata.d.tsx_i = WIN_addSlider(w, 250, 210, 100, "Texture U", 1/e.tsx, .25, 10, .25);
+	wdata.d.tsy_i = WIN_addSlider(w, 250, 245, 100, "Texture V", 1/e.tsy, .25, 10, .25);
 
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 190, 270, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 190, 300, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");
 }

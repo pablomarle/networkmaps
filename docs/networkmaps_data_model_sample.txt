@@ -12,6 +12,7 @@ this.diagram = {
 		base: {
 			0: {
 						type: "F",
+						subtype: "g"     -> can be g: ground, f: floating, p: platform
 						name: "Floor"
 						px: 0, py: 0, pz: 0, 
 						rx: 0, ry: 0, rz: 0,
@@ -57,7 +58,7 @@ this.diagram = {
 		device: {
 			0: {
 				name: "a dev name",
-				type: "R",		                                 	-> R: router, X: switch, F: firewall, S: server, M: multilayer 
+				type: "R",		                                 	-> Multiple options
 				ifnaming: [
 					"Ethernet{1-40}/{1-4}",
 					"Ethernet{41-44}"

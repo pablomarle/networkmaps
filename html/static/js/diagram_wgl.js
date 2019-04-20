@@ -469,17 +469,22 @@ class WGL {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {
 			if ((sx != null) && (sx > .2)) {
-				mesh.scale.x = sx;
+				//mesh.scale.x = sx;
 				mesh.userData.e.sx = sx;
 			}
 			if ((sy != null) && (sy > .2)) {
-				mesh.scale.y = sy;
+				//mesh.scale.y = sy;
 				mesh.userData.e.sy = sy;
 			}
 			if ((sz != null) && (sz > .2)) {
-				mesh.scale.z = sz;
+				//mesh.scale.z = sz;
 				mesh.userData.e.sz = sz;
 			}
+			if(type == "device")
+				this.updateDeviceGeometry(id, view);
+			else if(type == "symbol")
+				this.updateSymbolGeometry(mesh);
+
 			this.draw_needed = true;
 		}
 	}
@@ -504,11 +509,12 @@ class WGL {
 		}	
 	}
 
-	settingsMesh_Base(view, id, name, color1, color2, t1name, t2name, sy, tsx, tsy) {
+	settingsMesh_Base(view, id, name, subtype, color1, color2, t1name, t2name, sy, tsx, tsy) {
 		let mesh = this.findMesh("base", id, this.scene[view]);
 
 		if (mesh) {
 			mesh.userData.e.name = name;
+			mesh.userData.e.subtype = subtype;
 			mesh.userData.e.color1 = color1;
 			mesh.userData.e.color2 = color2;
 			mesh.userData.e.t1name = t1name;
@@ -765,10 +771,114 @@ class WGL {
 		}
 	}
 
+	addCubeToGeometry(g, x1, x2, y1, y2, z1, z2, tu1, tu2, tv1, tv2) {
+		let v = g.vertices;
+		let f = g.faces;
+		let uv = g.faceVertexUvs[0];
+		let i = v.length;
+
+		this.addListVertex(v, [
+			[x2, y1, z1], [x1,y1,z1], [x1, y1, z2], [x2, y1, z2],
+			[x2, y2, z1], [x1,y2,z1], [x1, y2, z2], [x2, y2, z2],
+			]);
+		this.addListFaces(f, uv,
+			[
+				[i, i+1, i+5], [i, i+5, i+4],
+				[i+1, i+2, i+6], [i+1, i+6, i+5],
+				[i+2, i+3, i+7], [i+2, i+7, i+6],
+				[i+3, i, i+4], [i+3, i+4, i+7],
+				[i, i+2, i+1], [i, i+3, i+2],
+				[i+4, i+5, i+6], [i+4, i+6, i+7],
+			],
+			[ 
+				[[tu1, tv1], [tu2, tv1], [tu2, tv2]], [[tu1, tv1], [tu2, tv2], [tu1, tv2]], 
+				[[tu1, tv1], [tu2, tv1], [tu2, tv2]], [[tu1, tv1], [tu2, tv2], [tu1, tv2]], 
+				[[tu1, tv1], [tu2, tv1], [tu2, tv2]], [[tu1, tv1], [tu2, tv2], [tu1, tv2]], 
+				[[tu1, tv1], [tu2, tv1], [tu2, tv2]], [[tu1, tv1], [tu2, tv2], [tu1, tv2]], 
+				[[tu1, tu1], [tu2, tu2], [tu2, tu1]], [[tu1, tu1], [tu1, tu2], [tu2, tu2]], 
+				[[tu1, tu1], [tu2, tu1], [tu2, tu2]], [[tu1, tu1], [tu2, tu2], [tu1, tu2]], 
+			]);
+	}
+
+	setGeometryUpdated(geometry_list, flat_normals) {
+		for(let x = 0; x < geometry_list.length; x++) {
+			geometry_list[x].verticesNeedUpdate = true;
+			geometry_list[x].elementsNeedUpdate = true;
+			geometry_list[x].uvsNeedUpdate = true;
+
+			geometry_list[x].computeBoundingBox();
+			geometry_list[x].computeBoundingSphere();
+			if(flat_normals) {
+				geometry_list[x].computeFaceNormals();
+				geometry_list[x].computeFlatVertexNormals();
+			}
+			else {
+				geometry_list[x].computeVertexNormals();
+			}
+		}
+
+		this.draw_needed = true;
+	}
+
+	updateCubeFloorGeometry_height_float(g, w2, h, b, d2, tu1, tv1) {
+		let v = g.vertices;
+		let f = g.faces;
+		let uv = g.faceVertexUvs[0];
+
+		v.push($WGL_V3(	-w2, 	h, 		d2));
+		v.push($WGL_V3(	w2, 	h, 		d2));
+		v.push($WGL_V3(	w2, 	h, 		-d2));
+		v.push($WGL_V3(	-w2, 	h, 		-d2));
+
+		v.push($WGL_V3(	-w2-.10, 	h-.05, 	d2+.10));
+		v.push($WGL_V3(	w2+.10, 	h-.05, 	d2+.10));
+		v.push($WGL_V3(	w2+.10, 	h-.05, 	-d2-.10));
+		v.push($WGL_V3(	-w2-.10, 	h-.05, 	-d2-.10));
+
+		v.push($WGL_V3(	-w2-.10, 	b, 	d2+.10));
+		v.push($WGL_V3(	w2+.10, 	b, 	d2+.10));
+		v.push($WGL_V3(	w2+.10, 	b, 	-d2-.10));
+		v.push($WGL_V3(	-w2-.10, 	b, 	-d2-.10));
+
+		for(let i = 0; i < 8; i+=4) {
+			let tv = .1;
+			if(i > 0)
+				tv = h-b;
+			for(let x = 0; x < 4; x++) {
+				let x1 = i + x;
+				let x2 = i + (x+1)%4;
+				let tf=.5;
+				f.push($WGL_F3(x1, 4+x2,   x2));
+				f.push($WGL_F3(x1, 4+x1, 4+x2));
+				uv.push([$WGL_V2(0,tv*tf), $WGL_V2(w2*tf*2,0), $WGL_V2(w2*tf*2,tv*tf)] )
+				uv.push([$WGL_V2(0,tv*tf), $WGL_V2(0,0), $WGL_V2(w2*tf*2,0)] )
+			}
+		}
+		f.push($WGL_F3(8, 10, 9));
+		uv.push([$WGL_V2(0,0), $WGL_V2(tu1, tv1), $WGL_V2(0,tv1)])
+		f.push($WGL_F3(8, 11, 10));
+		uv.push([$WGL_V2(0,0), $WGL_V2(tu1, 0), $WGL_V2(tu1,tv1)])
+	}
+
+	updateCubeFloorGeometry_height_platform(g, w2, h, b, d2, tu1, tv1) {
+		this.updateCubeFloorGeometry_height_float(g, w2, h, b, d2, tu1, tv1);
+
+		// Add 4 columns to the geometry
+		let col_x = w2*.89;
+		let col_w = w2*.1;
+		let col_z = d2*.89;
+		let col_d = d2*.1;
+		this.addCubeToGeometry(g, -col_x-col_w, -col_x+col_w, 0, h-.1, -col_z-col_d, -col_z+col_d, 0, col_w, 0, h*.5);
+		this.addCubeToGeometry(g, -col_x-col_w, -col_x+col_w, 0, h-.1, col_z-col_d, col_z+col_d, 0, col_w, 0, h*.5);
+		this.addCubeToGeometry(g, col_x-col_w, col_x+col_w, 0, h-.1, -col_z-col_d, -col_z+col_d, 0, col_w, 0, h*.5);
+		this.addCubeToGeometry(g, col_x-col_w, col_x+col_w, 0, h-.1, col_z-col_d, col_z+col_d, 0, col_w, 0, h*.5);
+	}
+
 	updateCubeFloorGeometry(id, sceneid) {
 		let meshgroup = this.findMesh("base", id, this.scene[sceneid]);
 		let m = this.findMeshesOfGroup(meshgroup);
 		let g = [m[0].geometry, m[1].geometry]
+		let subtype = meshgroup.userData.e.subtype;
 		let sx = meshgroup.userData.e.sx;
 		let sz = meshgroup.userData.e.sz;
 		let h = meshgroup.userData.e.sy;
@@ -798,55 +908,21 @@ class WGL {
 
 		// The elevation part
 		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
+		g[1].faces = [];
+		g[1].faceVertexUvs[0] = [];
 
-		v2.push($WGL_V3(	-w2, 	h, 		d2));
-		v2.push($WGL_V3(	w2, 	h, 		d2));
-		v2.push($WGL_V3(	w2, 	h, 		-d2));
-		v2.push($WGL_V3(	-w2, 	h, 		-d2));
-
-		v2.push($WGL_V3(	-w2-.10, 	h-.05, 	d2+.10));
-		v2.push($WGL_V3(	w2+.10, 	h-.05, 	d2+.10));
-		v2.push($WGL_V3(	w2+.10, 	h-.05, 	-d2-.10));
-		v2.push($WGL_V3(	-w2-.10, 	h-.05, 	-d2-.10));
-
-		v2.push($WGL_V3(	-w2-.10, 	0, 	d2+.10));
-		v2.push($WGL_V3(	w2+.10, 	0, 	d2+.10));
-		v2.push($WGL_V3(	w2+.10, 	0, 	-d2-.10));
-		v2.push($WGL_V3(	-w2-.10, 	0, 	-d2-.10));
-
-		for(let i = 0; i < 8; i+=4) {
-			let tv = .1;
-			if(i > 0)
-				tv = h;
-			for(let x = 0; x < 4; x++) {
-				let x1 = i + x;
-				let x2 = i + (x+1)%4;
-				let tf=.5;
-				f2.push($WGL_F3(x1, 4+x2,   x2));
-				uv2.push([$WGL_V2(0,tv*tf), $WGL_V2(tu1*tf,0), $WGL_V2(tu1*tf,tv*tf)] )
-				f2.push($WGL_F3(x1, 4+x1, 4+x2));
-				uv2.push([$WGL_V2(0,tv*tf), $WGL_V2(0,0), $WGL_V2(tu1*tf,0)] )
-			}
+		if(subtype == "n") {}
+		else if(subtype == "f") {
+			this.updateCubeFloorGeometry_height_float(g[1], w2, h, h-.1, d2, tu1, tv1);
 		}
+		else if(subtype == "p") {
+			this.updateCubeFloorGeometry_height_platform(g[1], w2, h, h-.1, d2, tu1, tv1);
+		}
+		else
+			this.updateCubeFloorGeometry_height_float(g[1], w2, h, 0, d2, tu1, tv1);
 
 		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeFaceNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
+		this.setGeometryUpdated(g, true);
 	}
 
 	updateCubeFloorTextures(id, sceneid) {
@@ -932,6 +1008,9 @@ class WGL {
 		mesh1.receiveShadow = true;
 		mesh2.receiveShadow = true;
 		group.receiveShadow = true;
+		mesh1.castShadow = true;
+		mesh2.castShadow = true;
+
 		return id;
 	}
 
@@ -1015,114 +1094,9 @@ class WGL {
 			}
 		}
 		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
+		this.setGeometryUpdated(g, true);
 	}
 
-	updateDeviceCylinderGeometry(meshgroup, base_sx, base_sy, base_sz) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[0].faceVertexUvs[1] = g[0].faceVertexUvs[0]
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		g[1].faceVertexUvs[1] = g[1].faceVertexUvs[0]
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		let CIRC_POINTS = 32
-		let h_2P = h/(2*Math.PI); // Var used for the uvs of mesh 2
-		h_2P = 1
-		// Create the vertex and faces of both meshes
-		// Top Mesh 1 and All of Mesh 2
-		v1.push($WGL_V3(0,h,0))
-		for(let x = 0; x < CIRC_POINTS+1; x++) {
-			// Mesh 1
-			v1.push($WGL_V3(	Math.sin(2*x/CIRC_POINTS*Math.PI)* sx*.9/2,	h, Math.cos(2*x/CIRC_POINTS*Math.PI)*sz*.9/2 	));
-
-			// Mesh 2
-			v2.push($WGL_V3(  Math.sin(2*x/CIRC_POINTS*Math.PI)* sx*.9/2,	h, Math.cos(2*x/CIRC_POINTS*Math.PI)*sz*.9/2 	));
-			v2.push($WGL_V3(  Math.sin(2*x/CIRC_POINTS*Math.PI)* sx/2,	h, Math.cos(2*x/CIRC_POINTS*Math.PI)*sz/2 	));
-			v2.push($WGL_V3(  Math.sin(2*x/CIRC_POINTS*Math.PI)* sx/2,	0, Math.cos(2*x/CIRC_POINTS*Math.PI)*sz/2 	));
-			v2.push($WGL_V3(  Math.sin(2*x/CIRC_POINTS*Math.PI)* sx*.9/2,	0, Math.cos(2*x/CIRC_POINTS*Math.PI)*sz*.9/2 	));
-		}
-		for(let x = 0; x < CIRC_POINTS; x++) {
-			// Mesh 1
-			f1.push($WGL_F3(0, x+1, x+2))
-			uv1.push([
-				$WGL_V2(.5,.5),
-				$WGL_V2( Math.sin(2*x/CIRC_POINTS*Math.PI) * .5 + .5, Math.cos(2*x/CIRC_POINTS*Math.PI) * .5 + .5),
-				$WGL_V2( Math.sin(2*(x+1)/CIRC_POINTS*Math.PI) * .5 + .5, Math.cos(2*(x+1)/CIRC_POINTS*Math.PI) * .5 + .5),
-				])
-
-			// Mesh 2
-			for(let y = 0; y < 3; y++) {
-				f2.push($WGL_F3(4*x + y, 4*x + 1 + y, 4*(x+1) + 1 + y));
-				f2.push($WGL_F3(4*x + y, 4*(x+1) + 1 + y, 4*(x+1) + y));
-				uv2.push([
-					$WGL_V2(x/CIRC_POINTS*Math.PI, .5),
-					$WGL_V2(x/CIRC_POINTS*Math.PI, 0),
-					$WGL_V2((x+1)/CIRC_POINTS*Math.PI, 0),
-					]);
-				uv2.push([
-					$WGL_V2(x/CIRC_POINTS*Math.PI, .5),
-					$WGL_V2((x+1)/CIRC_POINTS*Math.PI, 0),
-					$WGL_V2((x+1)/CIRC_POINTS*Math.PI, .5),
-					]);
-			}
-
-		}
-		// Bottom Mesh 1
-		v1.push($WGL_V3(0,0,0))
-		for(let x = 0; x < CIRC_POINTS+1; x++) {
-			v1.push($WGL_V3(	Math.sin(2*x/CIRC_POINTS*Math.PI) * sx*.9/2, 0, Math.cos(2*x/CIRC_POINTS*Math.PI) * sz*.9/2 	))
-		}
-		for(let x = 0; x < CIRC_POINTS; x++) {
-			f1.push($WGL_F3(CIRC_POINTS+2, CIRC_POINTS+2+x+2, CIRC_POINTS+2+x+1));
-			uv1.push([
-				$WGL_V2(.5,.5),
-				$WGL_V2( Math.sin(2*(x+1)/CIRC_POINTS*Math.PI) * .5 + .5, Math.cos(2*(x+1)/CIRC_POINTS*Math.PI) * .5 + .5),
-				$WGL_V2( Math.sin(2*x/CIRC_POINTS*Math.PI) * .5 + .5, Math.cos(2*x/CIRC_POINTS*Math.PI) * .5 + .5),
-				])
-		}
-
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			//g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
-	}
 
 	updateDeviceLBGeometry(meshgroup, base_sx, base_sy, base_sz, back_factor_x, back_factor_y) {
 		let m = this.findMeshesOfGroup(meshgroup);
@@ -1205,366 +1179,64 @@ class WGL {
 			}
 		}
 		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
+		this.setGeometryUpdated(g, true);
 	}
 
-	updateDeviceMLGeometry(meshgroup, base_sx, base_sy, base_sz, per_lower) {
+	updateStandardDeviceGeometry(meshgroup) {
+		let template_geometry = GEOMETRY.DEVICE.UNKNOWN;
+		if(meshgroup.userData.e.type in GEOMETRY.DEVICE)
+			template_geometry = GEOMETRY.DEVICE[meshgroup.userData.e.type];
+
 		let m = this.findMeshesOfGroup(meshgroup);
 		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-		let h1 = h*per_lower;
 
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
 		g[1].vertices = [];
 		g[1].faces = []
 		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
 
-		this.addListVertex(v1, [
-		[-sx*.5, h1, sz*.5], [sx*.5, h1, sz*.5], [sx*.5, h1, -sz*.5], [-sx*.5, h1, -sz*.5], 
-		[-sx*.5, 0, sz*.5], [sx*.5, 0, sz*.5], [sx*.5, 0, -sz*.5], [-sx*.5, 0, -sz*.5]
-		])
+		for(let g_index = 0; g_index < 2; g_index++) {
+			g[g_index].vertices = [];
+			g[g_index].faces = [];
+			g[g_index].faceVertexUvs[0] = [];
+			if(! (g_index in template_geometry.v))
+				continue;
+			let v = g[g_index].vertices
+			let f = g[g_index].faces;
+			let uv = g[g_index].faceVertexUvs[0];
 
-		this.addListFaces(f1, uv1, [
-			[4,6,5], [4,7,6],
-			[0,4,5], [0,5,1],
-			[1,5,6], [1,6,2],
-			[2,6,7], [2,7,3],
-			[3,7,4], [3,4,0],
-			],
-			[
-				[[0,0], [1,1], [1,0]], [[0,0], [0,1], [1,1]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-			])
-	
-		this.addListVertex(v2, [
-			[-sx*.5, h, sz*.5], [sx*.5, h, sz*.5], [sx*.5, h, -sz*.5], [-sx*.5, h, -sz*.5],
-			[-sx*.5, h1, sz*.5], [sx*.5, h1, sz*.5], [sx*.5, h1, -sz*.5], [-sx*.5, h1, -sz*.5]
-			]);
-
-		this.addListFaces(f2, uv2, [
-			[0,1,2], [0,2,3],
-			[0,4,5], [0,5,1],
-			[1,5,6], [1,6,2],
-			[2,6,7], [2,7,3],
-			[3,7,4], [3,4,0],
-			],
-			[
-				[[0,0], [1,0], [1,1]], [[0,0], [1,1], [0,1]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-				[[0,0], [0,1], [1,1]], [[0,0], [1,1], [1,0]],
-			])
-
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
-	}
-
-	updateDeviceSRGeometry(meshgroup, base_sx, base_sy, base_sz) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		let p0 = sx*.5;
-		let p1 = sx*.3;
-		let p2 = sx*.1;
-
-		this.addListVertex(v1, [
-			[-p0, h, sz*.3], [-p0, h, sz*.5], [-p1, h, sz*.6], [-p2, h, sz*.65], [p2, h, sz*.65], [p1, h, sz*.6], [p0, h, sz*.5], [p0, h, sz*.3],
-			[-p0, 0, sz*.3], [-p0, 0, sz*.5], [-p1, 0, sz*.6], [-p2, 0, sz*.65], [p2, 0, sz*.65], [p1, 0, sz*.6], [p0, 0, sz*.5], [p0, 0, sz*.3],
-		])
-
-		this.addListFaces(f1, uv1, [
-			[0,9,1],  [0,8,9],
-			[1,10,2], [1,9,10],
-			[2,11,3], [2,10,11],
-			[3,12,4], [3,11,12],
-			[4,13,5], [4,12,13],
-			[5,14,6], [5,13,14],
-			[6,15,7], [6,14,15],
-
-			[0,1,2], [0,2,3], [0,3,4], [0,4,5], [0,5,6], [0,6,7],
-			[8,10,9], [8,11,10], [8,12,11], [8,13,12], [8,14,13], [8,15,14],
-			],
-			[
-				[[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]],
-				[[0,1], [.2,0], [.2,1]], [[0,1], [0,0], [.2,0]],
-				[[.2,1], [.4,0], [.4,1]], [[.2,1], [.2,0], [.4,0]],
-				[[.4,1], [.6,0], [.6,1]], [[.4,1], [.4,0], [.6,0]],
-				[[.6,1], [.8,0], [.8,1]], [[.6,1], [.6,0], [.8,0]],
-				[[.8,1], [1,0], [1,1]], [[.8,1], [.8,0], [1,0]],
-				[[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]],
-
-				[[0,0], [0,0], [0,0]], [[0,0], [0,0], [0,0]], [[0,0], [0,0], [0,0]],
-				[[0,0], [0,0], [0,0]], [[0,0], [0,0], [0,0]], [[0,0], [0,0], [0,0]],
-				[[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]],
-				[[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]], [[1,1], [1,1], [1,1]],
-			]);
-
-		this.addListVertex(v2, [
-			[-p0, h, sz*.3], [p0, h, sz*.3], [p0, h, -sz*.5], [-p0, h, -sz*.5],  
-			[-p0, 0, sz*.3], [p0, 0, sz*.3], [p0, 0, -sz*.5], [-p0, 0, -sz*.5],  
-		])
-		this.addListFaces(f2, uv2, [
-			[0,1,2], [0,2,3],
-			[4,6,5], [4,7,6],
-			[0,7,4], [0,3,7],
-			[1,5,6], [1,6,2],
-			[2,7,3], [2,6,7],
-			],
-			[
-				[[0,0], [.5,0], [.5,1]], [[0,0], [.5,1], [0,1]],
-				[[0,0], [.5,1], [.5,0]], [[0,0], [0,1], [.5,1]],
-
-				[[0,0], [.5,0], [.5,1]], [[0,0], [.5,1], [0,1]],
-				[[0,0], [.5,1], [.5,0]], [[0,0], [0,1], [.5,1]],
-
-				[[.5,1], [1,0], [1,1]], [[.5,1], [.5,0], [1,0]],
-			]);
-
-	
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			//g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
-	}
-
-	updateDeviceSTRoundGeometry(meshgroup, base_sx, base_sy, base_sz) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		let varray = [];
-		let harray = [0, h*.2, h*.34, h*.54, h*.68, h*.88];
-		for(let y = 0; y < harray.length; y++)
-			for(let x = 0; x < 32; x++)
-				varray.push([Math.cos(x/16*Math.PI)*sx*.5, harray[y], Math.sin(x/16*Math.PI)*sz*.5]);
-		let farray = [];
-		let uvarray = [];
-		for(let y = 0; y < harray.length/2; y++) {
-			let tbx = .25; let tby = .25;
-			if (y == 1) {
-				tby = .75;
+			for(let i = 0; i < template_geometry.v[g_index].length; i++) {
+				let tv = template_geometry.v[g_index][i];
+				v.push($WGL_V3(
+					tv[0] * meshgroup.userData.e.sx * template_geometry.base_scale[0],
+					tv[1] * meshgroup.userData.e.sy * template_geometry.base_scale[1],
+					tv[2] * meshgroup.userData.e.sz * template_geometry.base_scale[2]
+					));
 			}
-			else if (y == 2) {
-				tbx = .75; tby = .75;
+			for(let i = 0; i < template_geometry.f[g_index].length; i++) {
+				let tf = template_geometry.f[g_index][i];
+				let tuv = template_geometry.uv[g_index][i];
+				f.push($WGL_F3(tf[0], tf[1], tf[2]))
+				uv.push([
+					$WGL_V2(tuv[0][0], tuv[0][1]),
+					$WGL_V2(tuv[1][0], tuv[1][1]),
+					$WGL_V2(tuv[2][0], tuv[2][1]),
+					])				
 			}
-			for(let x = 1; x < 31; x++) {
-				farray.push([y*64, y*64+x, y*64+x+1]);
-				uvarray.push([
-					[tbx+.25,tby], 
-					[.25+Math.cos(x/16*Math.PI)*.25,.25+Math.sin(x/16*Math.PI)*.25], 
-					[.25+Math.cos((x+1)/16*Math.PI)*.25,.25+Math.sin((x+1)/16*Math.PI)*.25]]);
-				farray.push([y*64+32, y*64+32+x+1, y*64+32+x]);
-				uvarray.push([
-					[tbx+0.25,tby], 
-					[tbx+Math.cos((x+1)/16*Math.PI)*.25,tby+Math.sin((x+1)/16*Math.PI)*.25], 
-					[tbx+Math.cos(x/16*Math.PI)*.25,tby+Math.sin(x/16*Math.PI)*.25]]);
-			}
-			for(let x = 0; x < 32; x++) {
-				let x2 = (x+1) % 32;
-				farray.push([y*64+x, y*64+32+x2, y*64+x2]);
-				farray.push([y*64+x, y*64+32+x, y*64+32+x2]);
-				uvarray.push([[tbx,tby], [tbx,tby], [tbx,tby]]);
-				uvarray.push([[tbx,tby], [tbx,tby], [tbx,tby]]);
-			}			
 		}
-
-		this.addListVertex(v1, varray);
-		this.addListFaces(f1, uv1, farray, uvarray);
-
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
-	}
-
-	updateDeviceSTGeometry(meshgroup, base_sx, base_sy, base_sz) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx2 = meshgroup.userData.e.sx * base_sx * .5;
-		let sz2 = meshgroup.userData.e.sz * base_sz * .5;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		this.addListVertex(v1, [
-			[-sx2,0,sz2], [sx2,0,sz2], [sx2,0,-sz2], [-sx2,0,-sz2], 
-			[-sx2,.25,sz2], [sx2,.25,sz2], [sx2,.25,-sz2], [-sx2,.25,-sz2], 
-			[-sx2,.35,sz2], [sx2,.35,sz2], [sx2,.35,-sz2], [-sx2,.35,-sz2], 
-			[-sx2,.60,sz2], [sx2,.60,sz2], [sx2,.60,-sz2], [-sx2,.60,-sz2], 
-			[-sx2,.70,sz2], [sx2,.70,sz2], [sx2,.70,-sz2], [-sx2,.70,-sz2], 
-			[-sx2,.95,sz2], [sx2,.95,sz2], [sx2,.95,-sz2], [-sx2,.95,-sz2], 
-			])
-		this.addListFaces(f1, uv1, [
-				[0,2,1], [0,3,2],
-				[4,5,6], [4,6,7],
-				[8,10,9], [8,11,10],
-				[12,13,14], [12,14,15],
-				[16,18,17], [16,19,18],
-				[20,21,22], [20,22,23],
-
-				[0,1,5], [0,5,4], [1,2,6], [1,6,5], [2,3,7], [2,7,6], [3,0,4], [3,4,7],
-				[8,9,13], [8,13,12], [9,10,14], [9,14,13], [10,11,15], [10,15,14], [11,8,12], [11,12,15],
-				[16,17,21], [16,21,20], [17,18,22], [17,22,21], [18,19,23], [18,23,22], [19,16,20], [19,20,23],
-			],
-			[
-				[[0,0],[.75,.75],[.75,0]],  [[0,0],[0,.75],[.75,.75]],
-				[[0,0],[.75,0],[.75,.75]],  [[0,0],[.75,.75],[0,.75]],
-				[[0,0],[.75,.75],[.75,0]],  [[0,0],[0,.75],[.75,.75]],
-				[[0,0],[.75,0],[.75,.75]],  [[0,0],[.75,.75],[0,.75]],
-				[[0,0],[.75,.75],[.75,0]],  [[0,0],[0,.75],[.75,.75]],
-				[[0,0],[.75,0],[.75,.75]],  [[0,0],[.75,.75],[0,.75]],
-
-				[[0,.75],[1,.75],[1,1]],  [[0,.75],[1,1],[0,1]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-
-				[[0,.75],[1,.75],[1,1]],  [[0,.75],[1,1],[0,1]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-
-				[[0,.75],[1,.75],[1,1]],  [[0,.75],[1,1],[0,1]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-				[[0,0],[0,0],[0,0]],  [[0,0],[0,0],[0,0]],
-
-			])
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		for(let x = 0; x < 2; x++) {
-			g[x].verticesNeedUpdate = true;
-			g[x].elementsNeedUpdate = true;
-			g[x].uvsNeedUpdate = true;
-
-			g[x].computeBoundingBox();
-			g[x].computeBoundingSphere();
-			g[x].computeVertexNormals();
-			g[x].computeFlatVertexNormals();
-		}
-
-		this.draw_needed = true;
+		this.setGeometryUpdated(g, template_geometry.flat_normals);
 	}
 
 	updateDeviceGeometry(id, sceneid) {
 		let meshgroup = this.findMesh("device", id, this.scene[sceneid]);
-		if(meshgroup.userData.e.type == "R")
-			this.updateDeviceCylinderGeometry(meshgroup, 1, .4, 1);
-		else if(meshgroup.userData.e.type == "S")
+
+		if(meshgroup.userData.e.type == "S")
 			this.updateDeviceCubeGeometry(meshgroup, 1, .4, 1);
 		else if(meshgroup.userData.e.type == "F")
 			this.updateDeviceCubeGeometry(meshgroup, 1, 1.2, .6);
 		else if(meshgroup.userData.e.type == "LB")
 			this.updateDeviceLBGeometry(meshgroup, 1, .4, 1, .6, .8);
-		else if(meshgroup.userData.e.type == "ML")
-			this.updateDeviceMLGeometry(meshgroup, 1, 1.5, 1, .6);
-		else if(meshgroup.userData.e.type == "SR")
-			this.updateDeviceSRGeometry(meshgroup, .7, 1.5, 1);
-		else if(meshgroup.userData.e.type == "ST")
-			this.updateDeviceSTGeometry(meshgroup, .8, 1, 1);
+		else
+			this.updateStandardDeviceGeometry(meshgroup);
 	}
 
 	updateDeviceColor(id, sceneid) {
@@ -1723,14 +1395,7 @@ class WGL {
 
 		g.lookAt(dir_vector);
 
-		g.computeBoundingBox();
-		g.computeBoundingSphere();
-		g.computeVertexNormals();
-		g.verticesNeedUpdate = true;
-		g.elementsNeedUpdate = true;
-		g.uvsNeedUpdate = true;
-
-		this.draw_needed = true;
+		this.setGeometryUpdated([g], false);
 	}
 
 	addLinkSegment(id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, index) {
@@ -1976,15 +1641,6 @@ class WGL {
 			[8,9,12], [9,10,12],[10,11,12], [11,8,12],
 		], fvuv);
 
-		g1.verticesNeedUpdate = true;
-		g1.elementsNeedUpdate = true;
-		g1.uvsNeedUpdate = true;
-
-		g1.computeBoundingBox();
-		g1.computeBoundingSphere();
-		g1.computeVertexNormals();
-		g1.computeFlatVertexNormals();
-
 		let mesh1 = new THREE.Mesh(g1, m1);
 		meshgroup.add(mesh1);
 
@@ -1997,15 +1653,6 @@ class WGL {
 			[4,5,6], [4,6,7],
 			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
 		], fvuv);
-
-		g2.verticesNeedUpdate = true;
-		g2.elementsNeedUpdate = true;
-		g2.uvsNeedUpdate = true;
-
-		g2.computeBoundingBox();
-		g2.computeBoundingSphere();
-		g2.computeVertexNormals();
-		g2.computeFlatVertexNormals();
 
 		let mesh2 = new THREE.Mesh(g2, m2);
 		meshgroup.add(mesh2);
@@ -2020,7 +1667,7 @@ class WGL {
 		mesh1.castShadow = true;
 		mesh2.castShadow = true;
 
-		this.draw_needed = true;
+		this.setGeometryUpdated([g1, g2], true);
 	}
 
 	getDummyFVUVs(faces) {
@@ -2115,6 +1762,13 @@ class WGL {
 		else
 			data = this.getDataSymbolX(meshgroup);
 
+		for(let data_i = 0; data_i < data.length; data_i++) {
+			for(let v_i = 0; v_i < data[data_i].vertices.length; v_i++) {
+				data[data_i].vertices[v_i][0] = data[data_i].vertices[v_i][0] * meshgroup.userData.e.sx;
+				data[data_i].vertices[v_i][1] = data[data_i].vertices[v_i][1] * meshgroup.userData.e.sy;
+				data[data_i].vertices[v_i][2] = data[data_i].vertices[v_i][2] * meshgroup.userData.e.sz;
+			}
+		}
 		for(let x = 0; x < data.length; x++) {
 			let geometry = new THREE.Geometry();
 			let material = new THREE.MeshPhongMaterial({color: data[x].color});
@@ -2161,9 +1815,9 @@ class WGL {
 		meshgroup.rotation.x = e.rx;
 		meshgroup.rotation.y = e.ry;
 		meshgroup.rotation.z = e.rz;
-		meshgroup.scale.x = e.sx;
-		meshgroup.scale.y = e.sy;
-		meshgroup.scale.z = e.sz;
+		//meshgroup.scale.x = e.sx;
+		//meshgroup.scale.y = e.sy;
+		//meshgroup.scale.z = e.sz;
 
 		return meshgroup;
 	}

@@ -43,6 +43,10 @@ function createDefaultDevice(x, y, z, type, base) {
         dev.color1 = 0x333333;
         dev.color2 = 0x666666;
     }
+    else if(type.startsWith("_B")) {
+        dev.color1 = 0x66aaff;
+        dev.color2 = 0x88ccff;        
+    }
 
     return dev;
 }
@@ -260,14 +264,17 @@ function process_message_resize(data) {
     if((data.v == "L2") && (data.t == "base")) {
         d.wgl.resizeMesh_Base(data.v, data.i, data.x, data.y, data.z);
     }
-    else if((data.v == "L2") && ((data.t == "device") || (data.t == "symbol"))) {
+    else if((data.v == "L2") && (data.t == "device")) {
+        d.wgl.resizeMesh(data.v, data.t, data.i, data.x, data.y, data.z);
+    }
+    else if((data.v == "L2") && (data.t == "symbol")) {
         d.wgl.resizeMesh(data.v, data.t, data.i, data.x, data.y, data.z);
     }
 }
 
 function process_message_settings(data) {
     if((data.v == "L2") && (data.t == "base")) {
-        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.color1, data.color2, data.t1name, data.t2name, data.sy, data.tsx, data.tsy);
+        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.t1name, data.t2name, data.sy, data.tsx, data.tsy);
     }
     else if((data.v == "L2") && (data.t == "device")) {
         d.wgl.settingsMesh_L2Device(data.i, data.name, data.color1, data.color2, data.ifnaming);
@@ -496,6 +503,7 @@ function sendSettings_BaseFloor(view, type, id, windata) {
             i: id,
 
             name: windata.d.name.value,
+            subtype: windata.d.subtype.value,
             color1: parseInt(windata.d.color1.value),
             color2: parseInt(windata.d.color2.value),
             t1name: windata.d.t1name.value,
@@ -916,8 +924,9 @@ function init_window_addtool(toolbox, tooldesc, isactive = false) {
         tool.setAttribute("data-newtoolbox", "");
     }
 
-    if("d" in tooldesc)
-        tool.title = tooldesc.d;
+    if("d" in tooldesc) {
+        WIN_addBasicMouseDescriptionActions(tool, tooldesc.d);
+    }
 
     tool.setAttribute("data-code", tooldesc.s)
 
@@ -1564,7 +1573,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         if (Math.abs(p.z) > Math.abs(p.x))
             newscale = Math.abs(2*p.z*mesh.scale.z);
         d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
-            newscale, newscale, newscale)
+            newscale, newscale, newscale);
     }
 }
 
@@ -1608,11 +1617,11 @@ function init_window() {
 
     // Home button
     d.dom.home = DOM.cimg(b, staticurl + "/static/img/home.png", "home", "box toolbutton", null, () => { window.location.href = "/";});
-    d.dom.home.title = "Back to Home Page";
+    WIN_addBasicMouseDescriptionActions(d.dom.home, "Back to Home Page");
 
     // Button to change camera type
     d.dom.cam_type = DOM.cimg(b, staticurl + "/static/img/cam3d.png", "camtype", "box toolbutton", null, toggle_cam_type);
-    d.dom.cam_type.title = "Change between 2D and 3D views (1)";
+    WIN_addBasicMouseDescriptionActions(d.dom.cam_type, "Change between 2D and 3D views (1)");
     d.dom.cam_type.setAttribute("data-camtype", "3D");
 
     // Button to change general settings
@@ -1621,23 +1630,23 @@ function init_window() {
             show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); }
         });
     });
-    d.dom.global_settings.title = "Global Settings";
+    WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");
 
     // Menu to open tools
     d.dom.tool_camera_b = DOM.cimg(b, staticurl + "/static/img/camera.png", "tool_camera_b", "box toolbutton", null, () => {
         d.dom.tools.active_tb = d.dom.tools.active_tb == "camera" ? "" : "camera";
     });
-    d.dom.tool_camera_b.title = "Camera Actions";
+    WIN_addBasicMouseDescriptionActions(d.dom.tool_camera_b, "Camera Actions. Move, rotate or zoom the view.");
     
     d.dom.tool_element_b = DOM.cimg(b, staticurl + "/static/img/element.png", "tool_element_b", "box toolbutton", null, () => {
         d.dom.tools.active_tb = d.dom.tools.active_tb == "element" ? "" : "element";
     });
-    d.dom.tool_element_b.title = "Element Actions";
+    WIN_addBasicMouseDescriptionActions(d.dom.tool_element_b, "Element Actions. Modify the existing elements of the diagram.");
     
     d.dom.tool_new_b = DOM.cimg(b, staticurl + "/static/img/new.png", "tool_new_b", "box toolbutton", null, () => {
         d.dom.tools.active_tb = d.dom.tools.active_tb == "new" ? "" : "new";
     });
-    d.dom.tool_new_b.title = "New Elements";
+    WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
 
     // Toolbox states and dom elements
     d.dom.tools = {
@@ -1648,43 +1657,133 @@ function init_window() {
                 init_left: -142, left: -142, width: 128,
                 name: "Move Camera",
                 components: [
-                    {n: "Move",     s: "CM",    i: "cam_move.png",      f: null, d: "Move the view (q)", q: "KeyQ"},
-                    {n: "Rotate",   s: "CR",    i: "cam_rotate.png",    f: null, d: "Rotate the view (w)", q: "KeyW"},
-                    {n: "Zoom",     s: "CZ",    i: "cam_zoom.png",      f: null, d: "Zoom in and out (e)", q: "KeyE"},
+                    {n: "Move",     s: "CM",    i: "cam_move.png",      f: null, d: "Move the view\nQuick access key: 'q'", q: "KeyQ"},
+                    {n: "Rotate",   s: "CR",    i: "cam_rotate.png",    f: null, d: "Rotate the view\nQuick access key: 'w'", q: "KeyW"},
+                    {n: "Zoom",     s: "CZ",    i: "cam_zoom.png",      f: null, d: "Zoom in and out\nQuick access key: 'e'", q: "KeyE"},
                 ]},
             element: {
                 init_left: -142, left: -142, width: 128,
                 name: "Change Elements",
                 components: [
-                    {n: "Move",     s: "EM",    i: "move.png",      f: null, d: "Move diagram elements (a)", q: "KeyA"},
-                    {n: "Rotate",   s: "ER",    i: "rotate.png",    f: null, d: "Rotate diagram elements (s)", q: "KeyS"},
-                    {n: "Resize",   s: "EX",    i: "resize.png",    f: null, d: "Resize diagram elements (d)", q: "KeyD"},
-                    {n: "Settings", s: "EC",    i: "settings.png",  f: null, d: "View the settings of an element (z)", q: "KeyZ"},
-                    {n: "Config",   s: "EI",    i: "edit.png",      f: null, d: "View config related to a diagram element (x)", q: "KeyX"},
-                    {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram (c)", q: "KeyC"},
-                    {n: "Base",     s: null,    i: "base.png",      f: "base_change"},
+                    {n: "Move",     s: "EM",    i: "move.png",      f: null, d: "Move diagram elements\nQuick access key: 'a'", q: "KeyA"},
+                    {n: "Rotate",   s: "ER",    i: "rotate.png",    f: null, d: "Rotate diagram elements\nQuick access key: 's'", q: "KeyS"},
+                    {n: "Resize",   s: "EX",    i: "resize.png",    f: null, d: "Resize diagram elements\nQuick access key: 'd'", q: "KeyD"},
+                    {n: "Settings", s: "EC",    i: "settings.png",  f: null, d: "View the settings of an element\nQuick access key: 'z'", q: "KeyZ"},
+                    {n: "Config",   s: "EI",    i: "edit.png",      f: null, d: "View config related to a diagram element\nQuick access key: 'x'", q: "KeyX"},
+                    {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram\nQuick access key: 'c'", q: "KeyC"},
+                    {n: "Base",     s: null,    i: "base.png",      f: "base_change", d: "Modify Floors and walls."},
                 ]},
             new: {
                 init_left: -142, left: -142, width: 128,
                 name: "Add New Elements",
                 components: [
-                    {n: "Device",   s: null,    i: "device_router.png",      f: "new_device" },
-                    {n: "Link",     s: null,    i: "link.png",      f: "new_link" },
-                    {n: "Base",     s: null,    i: "base.png",    f: "new_base" },
-                    {n: "Text",     s: null,    i: "text.png",    f: "new_text" },
-                    {n: "Symbol",   s: null,    i: "symbol.png",    f: "new_symbol" },
+                    {n: "Device",   s: null,    i: "device_router.png", f: "new_device",    d: "Add new devices to the diagram." },
+                    {n: "Link",     s: null,    i: "link.png",          f: "new_link",      d: "Add connections between devices." },
+                    {n: "Base",     s: null,    i: "base.png",          f: "new_base",      d: "Add new Floors or Walls."},
+                    {n: "Text",     s: null,    i: "text.png",          f: "new_text",      d: "Add text to the diagrams." },
+                    {n: "Symbol",   s: null,    i: "symbol.png",        f: "new_symbol",    d: "Add symbols to the diagrams." },
                 ]},
             new_device: {
+                init_left: -142, left: -142, width: 128,
+                name: "Add New Devices",
+                components: [
+                    {n: "Shapes",   s: null,    i: "unknown.png",       f: "new_device_shapes",     d: "Simple devices with geometrical shapes." },
+                    {n: "Network",  s: null,    i: "device_router.png", f: "new_device_network",    d: "Network devices like routers and switches."},
+                    {n: "Clients",  s: null,    i: "unknown.png",       f: "new_device_clients",    d: "Laptops, desktops, phones, ..." },
+                    {n: "Servers",  s: null,    i: "unknown.png",       f: "new_device_servers",    d: "Different kind of servers."},
+                    {n: "Security",  s: null,    i: "unknown.png",      f: "new_device_security",   d: "Security devices like firewalls, "},
+                ]},
+            new_device_shapes: {
                 init_left: -190, left: -190, width: 170,
-                name: "Add Device",
+                name: "Add Basic Shapes",
+                components: [
+                    {n: "Cube",     s: "AD_BC",    i: "unknown.png",      f: null},
+                    {n: "Cube/2",     s: "AD_BC2",    i: "unknown.png",   f: null, d: "Half cube"},
+                    {n: "Cylinder", s: "AD_BY",    i: "unknown.png",      f: null},
+                    {n: "Cylind/2", s: "AD_BY2",    i: "unknown.png",     f: null, d: "Half cylinder."},
+                    {n: "Sphere",   s: "AD_BS",    i: "unknown.png",      f: null},
+                    {n: "Prism",     s: "AD_BO",    i: "unknown.png",      f: null},
+                    {n: "Piramid",    s: "AD_BP",    i: "unknown.png",      f: null},
+                    {n: "Octaedr",    s: "AD_B8",    i: "unknown.png",      f: null},
+                ]},
+            new_device_network: {
+                init_left: -190, left: -190, width: 170,
+                name: "Add Network Device",
                 components: [
                     {n: "Router",   s: "ADR",    i: "device_router.png",      f: null},
                     {n: "Switch",   s: "ADS",    i: "device_switch.png",      f: null},
-                    {n: "ML Dev",   s: "ADML",   i: "device_ml.png",      f: null},
-                    {n: "Firewall", s: "ADF",    i: "device_firewall.png",      f: null},
-                    {n: "Load B",   s: "ADLB",   i: "device_lb.png",      f: null},
-                    {n: "Server",   s: "ADSR",   i: "device_server.png",    f: null},
-                    {n: "Storage",  s: "ADST",   i: "device_storage.png",    f: null},
+                    {n: "ML Dev",   s: "ADML",   i: "device_ml.png",          f: null, d: "Multilayer Device."},
+                    {n: "Load B",   s: "ADLB",   i: "device_lb.png",          f: null, d: "Load Balancer."},
+                    {n: "Cloud",    s: "ADC",    i: "unknown.png",     f: null},
+                    {n: "ATM",      s: "AD_NA",    i: "unknown.png",      f: null},
+                    {n: "ML Sw",    s: "AD_NM",    i: "unknown.png",      f: null, d: "Multilayer Switch."},
+                    {n: "T.Server", s: "AD_NT",    i: "unknown.png",      f: null, d: "Terminal Server."},
+                    {n: "Wireless", s: "AD_NW",    i: "unknown.png",      f: null, d: "Wirless Router."},
+                    {n: "mpls pe",  s: "AD_NME",    i: "unknown.png",      f: null, d: "MPLS Provider Edge."},
+                    {n: "mpls p",   s: "AD_NMP",    i: "unknown.png",      f: null, d: "MPLS P"},
+                    {n: "mpls ce",  s: "AD_NMC",    i: "unknown.png",      f: null, d: "Customer Edge."},
+                    {n: "VxLan",    s: "AD_NVX",    i: "unknown.png",      f: null, d: "VxLAN Router."},
+                    {n: "V.Switch", s: "AD_NC",    i: "unknown.png",      f: null, d: "Virtual Switch."},
+                    {n: "IP PBX",     s: "AD_NVP",    i: "unknown.png",      f: null, d: "VoIP PBX"},
+                    {n: "VoIP G.",     s: "AD_NVG",    i: "unknown.png",      f: null, d: "VoIP Gateway"},
+                ]},
+            new_device_clients: {
+                init_left: -190, left: -190, width: 170,
+                name: "Add Clients",
+                components: [
+                    {n: "User",         s: "AD_CU",    i: "unknown.png",      f: null},
+                    {n: "W. User",      s: "AD_CUW",    i: "unknown.png",      f: null},
+                    {n: "Desktop",      s: "AD_CD",    i: "unknown.png",      f: null},
+                    {n: "Laptop",       s: "AD_CL",    i: "unknown.png",      f: null},
+                    {n: "Tablet",       s: "AD_CT",    i: "unknown.png",      f: null},
+                    {n: "Phone",        s: "AD_CP",    i: "unknown.png",      f: null},
+                    {n: "House",        s: "AD_CBH",    i: "unknown.png",      f: null},
+                    {n: "Office",       s: "AD_CBO",    i: "unknown.png",      f: null},
+                    {n: "HQ",           s: "AD_CBQ",    i: "unknown.png",      f: null},
+                    {n: "Car",          s: "AD_CTC",    i: "unknown.png",      f: null},
+                    {n: "Truck",        s: "AD_CTT",    i: "unknown.png",      f: null},
+                    {n: "Plane",        s: "AD_CTP",    i: "unknown.png",      f: null},
+                    {n: "Mac",          s: "AD_COM",    i: "unknown.png",      f: null},
+                    {n: "Windows",      s: "AD_COW",    i: "unknown.png",      f: null},
+                    {n: "Linux",        s: "AD_COL",    i: "unknown.png",      f: null},
+                ]},
+            new_device_servers: {
+                init_left: -190, left: -190, width: 170,
+                name: "Add Servers",
+                components: [
+                    {n: "Server",   s: "ADSR",   i: "device_server.png",      f: null},
+                    {n: "Storage",  s: "ADST",   i: "device_storage.png",     f: null},
+                    {n: "DB",       s:  "AD_SDB",    i: "unknown.png",      f: null},
+                    {n: "Web",      s:  "AD_SW",    i: "unknown.png",      f: null},
+                    {n: "Mail",     s:  "AD_SM",    i: "unknown.png",      f: null},
+                    {n: "DNS",      s:  "AD_SD",    i: "unknown.png",      f: null},
+                    {n: "Log",      s:  "AD_SL",    i: "unknown.png",      f: null},
+                    {n: "Cache",    s:  "AD_SC",    i: "unknown.png",      f: null},
+                    {n: "LDAP",     s:  "AD_SA",    i: "unknown.png",      f: null},
+                    {n: "Robot",    s:  "AD_SR",    i: "unknown.png",      f: null},
+                    {n: "Monitor",  s:  "AD_SMM",    i: "unknown.png",      f: null},
+                    {n: "V.Guest",  s:  "AD_SVG",    i: "unknown.png",      f: null},
+                    {n: "V.Host",   s:  "AD_SVH",    i: "unknown.png",      f: null},
+                    {n: "Calc",     s:  "AD_SN",    i: "unknown.png",      f: null},
+                ]},
+            new_device_security: {
+                init_left: -190, left: -190, width: 170,
+                name: "Add Security Devices",
+                components: [
+                    {n: "Firewall",  s: "ADF",      i: "device_firewall.png",    f: null},
+                    {n: "Proxy",     s: "AD_XP",    i: "unknown.png",      f: null},
+                    {n: "IPSec",     s: "AD_XI",    i: "unknown.png",      f: null},
+                    {n: "ssl vpn",   s: "AD_XS",    i: "unknown.png",      f: null},
+                    {n: "Cert",      s: "AD_XC",    i: "unknown.png",      f: null},
+                    {n: "Tread",     s: "AD_XT",    i: "unknown.png",      f: null},
+                    {n: "TreadP",    s: "AD_XTP",    i: "unknown.png",      f: null},
+                    {n: "Virus",     s: "AD_XV",    i: "unknown.png",      f: null},
+                    {n: "A.Virus",   s: "AD_XAV",    i: "unknown.png",      f: null},
+                    {n: "A.Spam",    s: "AD_XAS",    i: "unknown.png",      f: null},
+                    {n: "Key",       s: "AD_XK",    i: "unknown.png",      f: null},
+                    {n: "Lock",      s: "AD_XL",    i: "unknown.png",      f: null},
+                    {n: "DDOS",      s: "AD_XD",    i: "unknown.png",      f: null},
+                    {n: "Hacker",    s: "AD_XH",    i: "unknown.png",      f: null},
                 ]},
             new_link: {
                 init_left: -190, left: -190, width: 170,
@@ -1718,11 +1817,11 @@ function init_window() {
                 init_left: -142, left: -142, width: 128,
                 name: "Change Base",
                 components: [
-                    {n: "Move",     s: "BM",    i: "move.png",      f: null, d: "Move floors/walls (f)", q: "KeyF"},
-                    {n: "Rotate",   s: "BR",    i: "rotate.png",    f: null, d: "Rotate floors/walls (g)", q: "KeyG"},
-                    {n: "Resize",   s: "BX",    i: "resize.png",    f: null, d: "Resize floors/walls (h)", q: "KeyH"},
-                    {n: "Settings", s: "BC",    i: "settings.png",  f: null, d: "View the settings of floors/walls (v)", q: "KeyV"},
-                    {n: "Delete",   s: "BD",    i: "delete.png",    f: null, d: "Delete floors/walls (b)", q: "KeyB"},
+                    {n: "Move",     s: "BM",    i: "move.png",      f: null, d: "Move floors/walls\nQuick access key: 'f'", q: "KeyF"},
+                    {n: "Rotate",   s: "BR",    i: "rotate.png",    f: null, d: "Rotate floors/walls\nQuick access key: 'g'", q: "KeyG"},
+                    {n: "Resize",   s: "BX",    i: "resize.png",    f: null, d: "Resize floors/walls\nQuick access key: 'h'", q: "KeyH"},
+                    {n: "Settings", s: "BC",    i: "settings.png",  f: null, d: "View the settings of floors/walls\nQuick access key: 'v'", q: "KeyV"},
+                    {n: "Delete",   s: "BD",    i: "delete.png",    f: null, d: "Delete floors/walls\nQuick access key: 'b'", q: "KeyB"},
                 ]},
         }
     }
