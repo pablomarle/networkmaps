@@ -528,7 +528,6 @@ class WGL {
 			for(let x = 0; x < mesh.children.length; x++) {
 				if(mesh.children[x].userData.type == "device") {
 					mesh.children[x].position.y = sy;
-					mesh.children[x].userData.e.py = sy;
 
 					let listlinks = this.findLinksOfDevice(mesh.children[x].userData.id, this.scene[view]);
 					for (let x = 0; x < listlinks.length; x++) {
@@ -537,6 +536,9 @@ class WGL {
 				}
 				else if(mesh.children[x].userData.type == "text") {
 					mesh.children[x].position.y = sy + mesh.children[x].userData.e.py;
+				}
+				else if(mesh.children[x].userData.type == "symbol") {
+					mesh.children[x].position.y = sy;
 				}
 			}
 		}
