@@ -1,26 +1,29 @@
 {
     "comment": "This file is expected to be in /etc/networkmaps",
+    "comment2": "Server running on HTTPS. Serve all static content directly from server.js. No need for a external web server for this purpose",
+    
+    "serve_static_locally": true,
     "timers": {
         "usertimeout": 3600,
         "savediagram": 300
     },
-    "use_ssl_socket": false,
-    "use_ssl": false,
+    "use_ssl_socket": true,
+    "use_ssl": true,
     "socket": {
         "address": "172.31.95.91",
-        "port": 3000,
+        "port": 443,
         "cert": "/etc/mycerts/netgraph.net.crt",
         "key": "/etc/mycerts/netgraph.net.key"
     },
     "server":
     {
         "hostname": "www.masshandra.com",
-        "port": 3000
+        "port": 443
     },
     "staticserver": 
     {
-        "hostname": "static.masshandra.com",
-        "port": 80
+        "hostname": "www.masshandra.com",
+        "port": 443
     },
     "db":
     {

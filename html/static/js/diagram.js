@@ -1536,6 +1536,7 @@ function mousemove(x, y, dx, dy, dom_element) {
                         objlist[x].p.x, objlist[x].p.y + mesh.userData.e.linedata.height , objlist[x].p.z
                     ]
                     d.wgl.updateLinkGeometry(mesh, d.current_view);
+                    break;
                 }
             }
         }
@@ -1713,7 +1714,7 @@ function init_window() {
                     {n: "Switch",   s: "ADS",    i: "device_switch.png",      f: null},
                     {n: "ML Dev",   s: "ADML",   i: "device_ml.png",          f: null, d: "Multilayer Device."},
                     {n: "Load B",   s: "ADLB",   i: "device_lb.png",          f: null, d: "Load Balancer."},
-                    {n: "Cloud",    s: "ADC",    i: "unknown.png",     f: null},
+                    {n: "Cloud",    s: "AD_NC",    i: "unknown.png",     f: null},
                     {n: "ATM",      s: "AD_NA",    i: "unknown.png",      f: null},
                     {n: "ML Sw",    s: "AD_NM",    i: "unknown.png",      f: null, d: "Multilayer Switch."},
                     {n: "T.Server", s: "AD_NT",    i: "unknown.png",      f: null, d: "Terminal Server."},
@@ -1722,7 +1723,7 @@ function init_window() {
                     {n: "mpls p",   s: "AD_NMP",    i: "unknown.png",      f: null, d: "MPLS P"},
                     {n: "mpls ce",  s: "AD_NMC",    i: "unknown.png",      f: null, d: "Customer Edge."},
                     {n: "VxLan",    s: "AD_NVX",    i: "unknown.png",      f: null, d: "VxLAN Router."},
-                    {n: "V.Switch", s: "AD_NC",    i: "unknown.png",      f: null, d: "Virtual Switch."},
+                    {n: "V.Switch", s: "AD_NVS",    i: "unknown.png",      f: null, d: "Virtual Switch."},
                     {n: "IP PBX",     s: "AD_NVP",    i: "unknown.png",      f: null, d: "VoIP PBX"},
                     {n: "VoIP G.",     s: "AD_NVG",    i: "unknown.png",      f: null, d: "VoIP Gateway"},
                 ]},

@@ -22,11 +22,16 @@ It is currently running here:
 
 ## Installation
 
-For now, only instructions for testing:
+Requires Node version 10 or higher.
+
+Basic setup:
 1. Create Users database using database_schema/users.sql
-2. Configure your web server to publish the html directory on https
-3. Create a config.json file on directory /etc/networkmaps. There is a sample file on "netmap/sample_config.json
-4. Run the websocket server on netmap directory: node server.js
+2. Create a config.json file on directory /etc/networkmaps. There is a sample file on "netmap/sample_config_serve_static.json
+3. Create the directories referenced on the config file:
+    a. db.diagrams.path: this is where diagrams will be stored
+    b. sendmail.queue: emails that need to be sent will be stored here
+    c. sendmail.sent: emails sent will be moved here
+4. Run the websocket server on base directory: ./server.js
 5. Run the mail server: node smtp_daemon.js
 
 ## Credits

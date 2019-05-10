@@ -30,7 +30,7 @@ function createPrysm() {
 		uv.push([[x/steps, 1], [(x+1)/steps, 0], [x/steps, 0]])
 	}
 	for(let x = 2; x < steps; x++) {
-		f.push([0, x-1, x]);
+		f.push([0, x, x-1]);
 		uv.push([[0,0],[0,0],[0,0]]);
 	}
 	return {
@@ -39,8 +39,6 @@ function createPrysm() {
 		uv: [uv]
 	}
 }
-
-JSON.stringify(createPrysm())
 
 function createSphere() {
 	let v = [];
@@ -84,4 +82,31 @@ function createSphere() {
 	}
 }
 
-JSON.stringify(createSphere())
+function add(target, source) {
+	if((source.v.length == 2) && (target.v.length == 1)) {
+		target.v.push([]);
+		target.f.push([]);
+		target.uv.push([]);
+	}
+	if((target.v.length == 2) && (source.v.length == 1)) {
+		source.v.push([]);
+		source.f.push([]);
+		source.uv.push([]);
+	}
+
+	for(let y = 0; y < source.v.length; y++) {
+		let base_index = target.v[y].length;
+
+		for(let x = 0; x < source.v[y].length; x++) {
+			target.v[y].push(source.v[y][x]);
+		}
+		for(let x = 0; x < source.f[y].length; x++) {
+			target.f[y].push([base_index + source.f[y][x][0], base_index + source.f[y][x][1], base_index + source.f[y][x][2]]);
+		}
+		for(let x = 0; x < source.uv.length; x++) {
+			target.uv[y].push(source.uv[y][x]);
+		}
+	}
+
+	return target;
+}

@@ -480,8 +480,10 @@ class WGL {
 				//mesh.scale.z = sz;
 				mesh.userData.e.sz = sz;
 			}
-			if(type == "device")
+			if(type == "device") {
 				this.updateDeviceGeometry(id, view);
+				this.addDeviceName(mesh);
+			}
 			else if(type == "symbol")
 				this.updateSymbolGeometry(mesh);
 

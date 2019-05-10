@@ -6,6 +6,7 @@ const html = require('./lib/html');
 const UserMGT = require('./lib/usermgt');
 const ws = require('./lib/ws');
 const sendmail = require("./lib/sendmail");
+const staticcontent = require("./lib/staticcontent");
 const usermgt = new UserMGT(config.db.users, config.timers.usertimeout);
 
 function sendMail(to, subject, content) {
@@ -99,6 +100,13 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 			}
 			sendresponse(200, "text/html", html.diagram(config, surl[2]), session.sessionid);
 			return;
+		}
+		else if((url == "/favicon.ico") && (method == "GET")) {
+			staticcontent.get("/static/img/favicon.ico", sendresponse, session.sessionid);
+		}
+		// Serving static content
+		else if ((config.serve_static_locally) && url.startsWith("/static/") && (method == "GET"))  {
+			staticcontent.get(url, sendresponse, session.sessionid);
 		}
 
 		else {
