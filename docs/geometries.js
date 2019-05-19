@@ -82,31 +82,33 @@ function createSphere() {
 	}
 }
 
-function add(target, source) {
-	if((source.v.length == 2) && (target.v.length == 1)) {
-		target.v.push([]);
-		target.f.push([]);
-		target.uv.push([]);
-	}
-	if((target.v.length == 2) && (source.v.length == 1)) {
-		source.v.push([]);
-		source.f.push([]);
-		source.uv.push([]);
-	}
+function combine(g1, g2) {
+	let result = {v:[], f:[], uv:[]}
+	let l = [g1, g2];
+	l.forEach((g) => {
+		for(let y = 0; y < g.v.length; y++) {
+			console.log("A: " + y);
+			if(result.v.length <= y) {
+				result.v.push([]);
+				result.f.push([]);
+				result.uv.push([]);
+			}
 
-	for(let y = 0; y < source.v.length; y++) {
-		let base_index = target.v[y].length;
+			let base_index = result.v[y].length;
+			
+			console.log("B");
+			for(let x = 0; x < g.v[y].length; x++) {
+				result.v[y].push([g.v[y][x][0], g.v[y][x][1], g.v[y][x][2]]);
+			}
+			console.log("C");
+			for(let x = 0; x < g.f[y].length; x++) {
+				result.f[y].push([base_index + g.f[y][x][0], base_index + g.f[y][x][1], base_index + g.f[y][x][2]]);
+			}
+			for(let x = 0; x < g.uv[y].length; x++) {
+				result.uv[y].push([ [g.uv[y][x][0][0], g.uv[y][x][0][1]], [g.uv[y][x][1][0], g.uv[y][x][1][1]], [g.uv[y][x][2][0], g.uv[y][x][2][1]] ]);
+			}
+		}
+	});
 
-		for(let x = 0; x < source.v[y].length; x++) {
-			target.v[y].push(source.v[y][x]);
-		}
-		for(let x = 0; x < source.f[y].length; x++) {
-			target.f[y].push([base_index + source.f[y][x][0], base_index + source.f[y][x][1], base_index + source.f[y][x][2]]);
-		}
-		for(let x = 0; x < source.uv.length; x++) {
-			target.uv[y].push(source.uv[y][x]);
-		}
-	}
-
-	return target;
+	return result;
 }

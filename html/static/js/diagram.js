@@ -27,7 +27,16 @@ function createDefaultDevice(x, y, z, type, base) {
         base: base,
     }
 
-    if ((type === "R") || (type === "S") || (type === "LB")) {
+    if((type in GEOMETRY.DEVICE) && ("color" in GEOMETRY.DEVICE[type])) {
+        dev.color1 = GEOMETRY.DEVICE[type].color[0];
+        dev.color2 = GEOMETRY.DEVICE[type].color[1];
+    }
+    else {
+        dev.color1 = 0xcccccc;
+        dev.color2 = 0xaaaaaa;        
+    }
+
+/*    if ((type === "R") || (type === "S") || (type === "LB")) {
         dev.color1 = 0x66aaff;
         dev.color2 = 0x88ccff;
     }
@@ -47,7 +56,11 @@ function createDefaultDevice(x, y, z, type, base) {
         dev.color1 = 0x66aaff;
         dev.color2 = 0x88ccff;        
     }
-
+    else {
+        dev.color1 = 0xcccccc;
+        dev.color2 = 0xaaaaaa;        
+    }
+*/
     return dev;
 }
 
@@ -1714,9 +1727,9 @@ function init_window() {
                     {n: "Switch",   s: "ADS",    i: "device_switch.png",      f: null},
                     {n: "ML Dev",   s: "ADML",   i: "device_ml.png",          f: null, d: "Multilayer Device."},
                     {n: "Load B",   s: "ADLB",   i: "device_lb.png",          f: null, d: "Load Balancer."},
-                    {n: "Cloud",    s: "AD_NC",    i: "unknown.png",     f: null},
-                    {n: "ATM",      s: "AD_NA",    i: "unknown.png",      f: null},
-                    {n: "ML Sw",    s: "AD_NM",    i: "unknown.png",      f: null, d: "Multilayer Switch."},
+                    {n: "Cloud",    s: "AD_NC",    i: "device_cloud.png",     f: null},
+                    {n: "ATM",      s: "AD_NA",    i: "device_atm.png",      f: null},
+                    {n: "ML Sw",    s: "AD_NM",    i: "device_mlswitch.png",      f: null, d: "Multilayer Switch."},
                     {n: "T.Server", s: "AD_NT",    i: "unknown.png",      f: null, d: "Terminal Server."},
                     {n: "Wireless", s: "AD_NW",    i: "unknown.png",      f: null, d: "Wirless Router."},
                     {n: "mpls pe",  s: "AD_NME",    i: "unknown.png",      f: null, d: "MPLS Provider Edge."},

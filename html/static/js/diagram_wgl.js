@@ -234,6 +234,16 @@ class WGL {
 	// ***********************************************
 	// Camera Functions
 	// ***********************************************
+	setCamera(px, py, pz, rx, ry, rz) {
+		let ac = this.camera[this.view][this.camera.current];
+		ac.position.x = px;
+		ac.position.y = py;
+		ac.position.z = pz;
+		ac.rotation.x = rx;
+		ac.rotation.y = ry;
+		ac.rotation.z = rz;
+		this.draw_needed = true;		
+	}
 	moveCamera(dx, dy) {
 		let ac = this.camera[this.view][this.camera.current];
 		let sin = Math.sin(ac.rotation.y);
@@ -1260,11 +1270,24 @@ class WGL {
 		this.draw_needed = true;
 	}
 
+	getDeviceTextureByType(type, index) {
+		if(type in GEOMETRY.DEVICE)
+			return GEOMETRY.DEVICE[type].texture[index];
+		else if(type == "S")
+			return "S_" + (index+1) + ".png";
+		else if (type == "F")
+			return "F_" + (index+1) + ".png";
+		else if (type == "LB")
+			return "LB_" + (index+1) + ".png";
+		else
+			return GEOMETRY.DEVICE["UNKNOWN"].texture[index];
+	}
+
 	addDevice(id, sceneid, e) {
 		let geometry1 = new THREE.Geometry();
 		let geometry2 = new THREE.Geometry();
-		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.type + "_1.png", (t) => {this.processLoadedTexture(t)} );
-		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.type + "_2.png", (t) => {this.processLoadedTexture(t)} );		
+		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
+		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 1), (t) => {this.processLoadedTexture(t)} );		
 		//let material1 = new THREE.MeshLambertMaterial({lightMap: texture1, lightMapIntensity:8})
 		//let material2 = new THREE.MeshLambertMaterial({map: texture2})
 		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1})

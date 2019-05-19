@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+	<title>MaSSHandra Symbol Composer</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="/static/js/three.min.js"></script>
+	<script src="/static/js/diagram_wgl_font.js"></script>
+	<script src="/static/js/diagram_wgl.js"></script>
+	<script src="/static/js/geometries.js"></script>
+	<script src="/static/js/DOM.js"></script>
+	<script src="creator.js"></script>
+	<style>
+		body, html {
+			height: 98%;
+			width: 98%;
+			padding:0px;
+			margin:0px;
+		}
+		.container {
+			display: grid;
+			width: 100%;
+			height: 100%;
+			grid-template-columns: 2% 20% 20% 40% 10% 2%;
+			grid-template-rows: 5% 40% 20% 30%;
+		}
+		#camera {
+			grid-column: 5;
+			grid-row: 2 / span 2;
+			display: flex;
+			flex-direction: column;
+		}
+		#draw_cell {
+			grid-column: 4;
+			grid-row: 2 / span 2;
+		}
+		#shape_0 {
+			grid-column: 2;
+			grid-row: 2;
+		}
+		#shape_1 {
+			grid-column: 3;
+			grid-row: 2;
+		}
+		.shape {
+			display: flex;
+			flex-direction: column;
+			overflow: auto;
+			width: 100%;
+			height: 100%;
+			font-size: 10px;
+		}
+		#shape_config {
+			grid-column: 2 / span 2;
+			grid-row: 3 / span 2;
+		}
+		.form_horizontal {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			justify-content: space-around;
+		}
+		#result_cell {
+			grid-column: 4 / span 2;
+			grid-row: 4;
+			font-size: 6px;
+			overflow: auto;
+		}
+		#config {
+			width: 98%;
+			height: 98%;
+		}
+		.small_number {
+			font-size: 8px;
+			width: 20px;
+		}
+		.big_number {
+			font-size: 8px;
+			width: 60px;
+		}
+		select {
+			font-size: 8px;
+		}
+		.data {
+			margin: 0px 2px;
+		}
+		.form_part {
+			margin: 0px 10px;
+			min-width: 120px;
+		}
+		.label {
+			font-size: 10px;
+			font-weight: bold;
+		}
+	</style>
+</head>
+<body onload="main();">
+	<div class="container">
+		<div id="shape_0" class="shape"></div>
+		<div id="shape_1" class="shape"></div>
+		<div id="shape_config">
+			<div class="form_horizontal">
+				<div class="form_part">
+					<label class="label">Shape</label>
+					<select id="s_id">
+						<option value="0">Shape 1</option>
+						<option value="1">Shape 2</option>
+					</select>
+				</div>
+				<div class="form_part">
+					<label class="label">Type</label>
+					<select id="s_type">
+						<option value="cube">Cube</option>
+						<option value="sphere">Sphere</option>
+						<option value="prysm">Prysm</option>
+						<option value="cylinder">Cylinder</option>
+						<option value="acylinder">A. Cylinder</option>
+					</select>
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part">
+					<label class="label">PX</label>
+					<input id="s_px" class="small_number" placeholder="px" value="0">
+				</div>
+				<div class="form_part">
+					<label class="label">PY</label>
+					<input id="s_py" class="small_number" placeholder="py" value="0">
+				</div>
+				<div class="form_part">
+					<label class="label">PZ</label>
+					<input id="s_pz" class="small_number" placeholder="pz" value="0">
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part">
+					<label class="label">SX</label>
+					<input id="s_sx" class="small_number" placeholder="sx" value="1">
+				</div>
+				<div class="form_part">
+					<label class="label">SY</label>
+					<input id="s_sy" class="small_number" placeholder="sy" value="1">
+				</div>
+				<div class="form_part">
+					<label class="label">SZ</label>
+					<input id="s_sz" class="small_number" placeholder="sz" value="1">
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part">
+					<label class="label">RX</label>
+					<input id="s_rx" class="small_number" placeholder="rx" value="0">
+				</div>
+				<div class="form_part">
+					<label class="label">RY</label>
+					<input id="s_ry" class="small_number" placeholder="ry" value="0">
+				</div>
+				<div class="form_part">
+					<label class="label">RZ</label>
+					<input id="s_rz" class="small_number" placeholder="rz" value="0">
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part" id="extra1">
+					<label id="extra1_label" class="label" id=>RX</label>
+					<input id="extra1_input" class="small_number" placeholder="rx" value="0">
+				</div>
+				<div class="form_part" id="extra2">
+					<label id="extra2_label" class="label">RY</label>
+					<input id="extra2_input" class="small_number" placeholder="ry" value="0">
+				</div>
+				<div class="form_part" id="extra3">
+					<label id="extra3_label" class="label">RZ</label>
+					<input id="extra3_input" class="small_number" placeholder="rz" value="0">
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<button id="s_add">Add</button>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part">
+					<label class="label">Normals</label>
+					<select id="flat_normals">
+						<option value="flat">Flat</option>
+						<option vlaue="curve">Curve</option>
+					</select>
+				</div>
+				<div class="form_part">
+					<label class="label">Color 1</label>
+					<input id="color1" class="big_number" placeholder="0xaabbff" value="0xaabbff">
+				</div>
+				<div class="form_part">
+					<label class="label">Color 2</label>
+					<input id="color2" class="big_number" placeholder="0xffbbaa" value="0xffbbaa">
+				</div>
+			</div>
+			<div class="form_horizontal">
+				<div class="form_part">
+				</div>
+				<div class="form_part">
+					<label class="label">Texture 1</label>
+					<input id="texture1" class="big_number" placeholder="0xaabbff" value="ATM.png">
+				</div>
+				<div class="form_part">
+					<label class="label">Texture 2</label>
+					<input id="texture2" class="big_number" placeholder="0xffbbaa" value="basic.png">
+				</div>
+			</div>
+		</div>
+		<div id="draw_cell"></div>
+		<div id="result_cell"></div>
+		<div id="camera">
+			<button id="camera_1">Camera 1</button>
+			<button id="camera_2">Camera 2</button>
+			<button id="camera_3">Camera 3</button>
+			<button id="camera_4">Camera 4</button>
+		</div>
+	</div>
+</body>
+</html>
