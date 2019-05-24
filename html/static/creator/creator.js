@@ -127,16 +127,16 @@ function createAnnularCylinder(circ_points, r1, r2) {
     return {v: v, f: f, uv: uv}
 }
 
-function createCube() {
+function createCube(sx2, sy2, sz2) {
     let v = [
         [-.5, 0, -.5],
         [.5, 0, -.5],
-        [.5, 0, .5],
-        [-.5, 0, .5],
+        [.5*sx2, 0, .5*sz2],
+        [-.5*sx2, 0, .5*sz2],
         [-.5, 1, -.5],
         [.5, 1, -.5],
-        [.5, 1, .5],
-        [-.5, 1, .5],
+        [.5*sx2, sy2, .5*sz2],
+        [-.5*sx2, sy2, .5*sz2],
     ];
     let f = [
         [0,1,2], [0,2,3],
@@ -230,6 +230,61 @@ function createSphere(stepsH, stepsV) {
     return {v: v, f: f, uv: uv}
 }
 
+function createSemiSphere(stepsH, stepsV) {
+    let v = [];
+    let f = [];
+    let uv = [];
+    for(let j = 0; j < stepsV; j++) {
+        let a_j = -Math.PI/2 + Math.PI/2 * j/(stepsV-1);
+        for(let i = 0; i < stepsH + 1; i++) {
+            let a_i = i * 2 * Math.PI / stepsH;
+            v.push([
+                .5 * Math.cos(a_i) * Math.cos(a_j),
+                -.5 * Math.sin(a_j),
+                .5 * Math.sin(a_i) * Math.cos(a_j)
+            ])
+        }
+    }
+
+    for(let j = 0; j < stepsV-1; j++) {
+        for(let i = 0; i < stepsH; i++) {
+            f.push([j*(stepsH+1)+i, j*(stepsH+1)+i+1, (j+1)*(stepsH+1)+i+1]);
+            f.push([j*(stepsH+1)+i, (j+1)*(stepsH+1)+i+1, (j+1)*(stepsH+1)+i]);
+            uv.push([ 
+                [1-i/stepsH+.5, 1-j/stepsV], 
+                [1-(i+1)/stepsH+.5, 1-j/stepsV], 
+                [1-(i+1)/stepsH+.5, 1-(j+1)/stepsV] 
+                ]);
+            uv.push([ 
+                [1-i/stepsH+.5, 1-j/stepsV], 
+                [1-(i+1)/stepsH+.5, 1-(j+1)/stepsV], 
+                [1-i/stepsH+.5, 1-(j+1)/stepsV] 
+                ]);
+        }
+    }
+
+    // Base
+    let base = v.length;
+    for(let i = 0; i < stepsH + 1; i++) {
+        let a_i = i * 2 * Math.PI / stepsH;
+        v.push([
+            .5 * Math.cos(a_i),
+            0,
+            .5 * Math.sin(a_i)
+        ])
+    }
+    for(let i = 0; i < stepsH-2; i++) {
+        f.push([base, base+i+1, base+i+2]);
+        uv.push([ 
+            [1,.5],
+            [.5 + .5 * Math.cos((i+1)*2*Math.PI/stepsH), .5 + .5 * Math.sin((i+1)*2*Math.PI/stepsH)], 
+            [.5 + .5 * Math.cos((i+2)*2*Math.PI/stepsH), .5 + .5 * Math.sin((i+2)*2*Math.PI/stepsH)] 
+            ]);
+    }
+
+    return {v: v, f: f, uv: uv}
+}
+
 function combine(g1, g2) {
     let result = {v:[], f:[], uv:[]}
     let l = [g1, g2];
@@ -272,6 +327,12 @@ function generate_geometry() {
                 rotate(ng, entry.rx, entry.ry, entry.rz);
                 move(ng, entry.px, entry.py, entry.pz);
             }
+            else if(entry.type == "sphere2") {
+                ng = createSemiSphere(entry.e1, entry.e2);
+                scale(ng, entry.sx, entry.sy, entry.sz);
+                rotate(ng, entry.rx, entry.ry, entry.rz);
+                move(ng, entry.px, entry.py, entry.pz);
+            }
             else if(entry.type == "prysm") {
                 ng = createPrysm(entry.e1);
                 scale(ng, entry.sx, entry.sy, entry.sz);
@@ -279,7 +340,7 @@ function generate_geometry() {
                 move(ng, entry.px, entry.py, entry.pz);
             }
             else if(entry.type == "cube") {
-                ng = createCube();
+                ng = createCube(entry.e1, entry.e2, entry.e3);
                 scale(ng, entry.sx, entry.sy, entry.sz);
                 rotate(ng, entry.rx, entry.ry, entry.rz);
                 move(ng, entry.px, entry.py, entry.pz);
@@ -308,6 +369,7 @@ function generate_geometry() {
     g.base_scale = [1,1,1];
     g.flat_normals = document.getElementById("flat_normals").value == "flat";
     g.texture = [texture1, texture2];
+    g.color = [parseInt(color1), parseInt(color2)];
     GEOMETRY.DEVICE.UNK = g;
 
     let result = document.getElementById("result_cell");
@@ -389,10 +451,23 @@ function update_extra_options() {
             ["N Points V", 16],
             null])
     }
+    else if(type == "sphere2") {
+        apply_extra_options([
+            ["N Points H", 16],
+            ["N Points V", 8],
+            null])
+    }
     else if(type == "prysm") {
         apply_extra_options([
             ["N Points", 32],
             null, null])
+    }
+    else if(type == "cube") {
+        apply_extra_options([
+            ["SX2", 1],
+            ["SY2", 1],
+            ["SZ2", 1]
+            ]);        
     }
     else {
         apply_extra_options([null, null, null]);
@@ -418,7 +493,7 @@ function main() {
         px: 0, py: 4, pz: 0,
         rx: 0, ry: 0, rz: 0,
         sx: 1, sy: 1, sz: 1,
-        color1: 0xaabbff, color2: 0xffbbaa,
+        color1: 0x66aaff, color2: 0xff4444,
 
         base: "BASE",       
     });
@@ -487,4 +562,5 @@ function main() {
 
     document.getElementById("flat_normals").addEventListener("change", draw_shape_data);
     document.getElementById("s_type").addEventListener("change", update_extra_options);
+    update_extra_options();
 }
