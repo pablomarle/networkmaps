@@ -250,7 +250,6 @@ function process_message_add(data) {
             (windata) => {
                 sendSettings_L2Text("L2", "text", mesh.userData.id, windata);
             });
-
     }
     else if((data.v == "L2") && (data.t == "symbol")) {
         d.wgl.addSymbol(data.i, "L2", data.d);
@@ -994,7 +993,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                         newcoords.x, newcoords.y, newcoords.z, 
                         d.dom.tools.active_t.substring(2),
                         objlist[x].mesh.userData.id
-                    ))
+                    ), true)
                 }
                 break;
             }
@@ -1051,7 +1050,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                         newcoords.x, newcoords.z, 
                         d.dom.tools.active_t.substring(2),
                         objlist[x].mesh.userData.id
-                    ))
+                    ), true)
                 }
                 break;
             }
@@ -1070,7 +1069,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                         mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbolFlag(
                             newcoords.x, newcoords.y, newcoords.z, 
                             objlist[x].mesh.userData.id
-                        ))
+                        ), true)
                     }
                 }
                 else {
@@ -1080,7 +1079,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                             symboltype,
                             newcoords.x, newcoords.y, newcoords.z, 
                             objlist[x].mesh.userData.id
-                        ))
+                        ), true)
                     }
                 }
                 break;
@@ -1434,7 +1433,7 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "ABF") {
         p = d.wgl.pickLevel(x, y, 0);
-        d.wgl.moveMesh(d.current_view, "base", "CURSOR", p.x, p.y, p.z);
+        d.wgl.moveMesh(d.current_view, "base", "CURSOR", p.x, p.y, p.z, null, true);
     }
     else if (d.dom.tools.active_t.startsWith("AD")) {
         let p = d.wgl.pickObject(x, y);
@@ -1443,7 +1442,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         for(let x = 0; x < p.length; x++) {
             if (p[x].mesh.userData.type === "base") {
                 let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", p[x].mesh.userData.id, p[x].p.x, p[x].p.y, p[x].p.z);
-                d.wgl.moveMesh(d.current_view, "device", "CURSOR", newcoords.x, newcoords.y, newcoords.z, p[x].mesh.userData.id);
+                d.wgl.moveMesh(d.current_view, "device", "CURSOR", newcoords.x, undefined, newcoords.z, p[x].mesh.userData.id, true);
                 break;
             }
         }
@@ -1455,7 +1454,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         for(let x = 0; x < p.length; x++) {
             if (p[x].mesh.userData.type === "base") {
                 let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", p[x].mesh.userData.id, p[x].p.x, p[x].p.y, p[x].p.z);
-                d.wgl.moveMesh(d.current_view, "text", "CURSOR", newcoords.x, undefined, newcoords.z, p[x].mesh.userData.id);
+                d.wgl.moveMesh(d.current_view, "text", "CURSOR", newcoords.x, undefined, newcoords.z, p[x].mesh.userData.id, true);
                 break;
             }
         }
@@ -1502,7 +1501,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         for(let x = 0; x < p.length; x++) {
             if (p[x].mesh.userData.type === "base") {
                 let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", p[x].mesh.userData.id, p[x].p.x, p[x].p.y, p[x].p.z);
-                d.wgl.moveMesh(d.current_view, "symbol", "CURSOR", newcoords.x, newcoords.y, newcoords.z, p[x].mesh.userData.id);
+                d.wgl.moveMesh(d.current_view, "symbol", "CURSOR", newcoords.x, newcoords.y, newcoords.z, p[x].mesh.userData.id, true);
                 break;
             }
         }
@@ -1511,7 +1510,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         level = d.mouseaction.level;
         p = d.wgl.pickLevel(x, y, level);
         d.wgl.moveMesh(d.current_view, "base", d.mouseaction.id, 
-            p.x - d.mouseaction.diffx, 0, p.z - d.mouseaction.diffz)
+            p.x - d.mouseaction.diffx, 0, p.z - d.mouseaction.diffz, null, true);
     }
     else if(d.dom.tools.active_t === "EM") {
         let objlist = d.wgl.pickObject(x, y);
@@ -1523,7 +1522,7 @@ function mousemove(x, y, dx, dy, dom_element) {
                         objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
                     d.wgl.moveMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh,
                         newcoords.x, newcoords.y, newcoords.z, 
-                        objlist[x].mesh.userData.id);
+                        objlist[x].mesh.userData.id, true);
                     break;
                 }
             }
@@ -1536,7 +1535,7 @@ function mousemove(x, y, dx, dy, dom_element) {
                         objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
                     d.wgl.moveMesh(d.current_view, "text", d.mouseaction.mesh,
                         newcoords.x, undefined, newcoords.z, 
-                        objlist[x].mesh.userData.id);
+                        objlist[x].mesh.userData.id, true);
                     break;
                 }
             }
@@ -1556,12 +1555,12 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "BR") {
         d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
-        d.wgl.rotateMesh(d.current_view, "base", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz);
+        d.wgl.rotateMesh(d.current_view, "base", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
     }
     else if(d.dom.tools.active_t === "ER") {
         if((d.mouseaction.type == "device") || (d.mouseaction.type == "symbol")) {
             d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
-            d.wgl.rotateMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz);
+            d.wgl.rotateMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
         }
         else if(d.mouseaction.type == "text") {
             d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
@@ -1570,14 +1569,14 @@ function mousemove(x, y, dx, dy, dom_element) {
                 d.mouseaction.rx = Math.PI/2;
             if(d.mouseaction.rx < -Math.PI/2)
                 d.mouseaction.rx = -Math.PI/2;
-            d.wgl.rotateMesh(d.current_view, "text", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz);
+            d.wgl.rotateMesh(d.current_view, "text", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
         }
     }
     else if(d.dom.tools.active_t === "BX") {
         p = d.wgl.pickLevel(x, y, d.mouseaction.y);
         p = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", d.mouseaction.id, p.x, p.y, p.z)
         d.wgl.resizeMesh_Base(d.current_view, d.mouseaction.id, 
-            Math.abs(p.x * 2), null, Math.abs(p.z * 2))
+            Math.abs(p.x * 2), null, Math.abs(p.z * 2), true)
     }
     else if(d.dom.tools.active_t === "EX") {
         p = d.wgl.pickLevel(x, y, d.mouseaction.y);
@@ -1587,7 +1586,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         if (Math.abs(p.z) > Math.abs(p.x))
             newscale = Math.abs(2*p.z*mesh.scale.z);
         d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
-            newscale, newscale, newscale);
+            newscale, newscale, newscale, true);
     }
 }
 
@@ -1641,7 +1640,8 @@ function init_window() {
     // Button to change general settings
     d.dom.global_settings = DOM.cimg(b, staticurl + "/static/img/settings_w.png", "global_settings", "box toolbutton", null, () => {
         WIN_showGlobalSettingsWindow(d.wgl.global_settings, {
-            show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); }
+            show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); },
+            grid_change: (active, x, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, z, angle, resize); }
         });
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");
@@ -1746,14 +1746,13 @@ function init_window() {
                 name: "Add Clients",
                 components: [
                     {n: "User",         s: "AD_CU",    i: "device_user.png",      f: null},
-                    {n: "W. User",      s: "AD_CUW",    i: "unknown.png",      f: null},
                     {n: "Desktop",      s: "AD_CD",    i: "device_desktop.png",      f: null},
                     {n: "Laptop",       s: "AD_CL",    i: "device_laptop.png",      f: null},
                     {n: "Tablet",       s: "AD_CT",    i: "device_tablet.png",      f: null},
                     {n: "Phone",        s: "AD_CP",    i: "device_phone.png",      f: null},
-                    {n: "Home",         s: "AD_CBH",    i: "unknown.png",      f: null},
-                    {n: "Office",       s: "AD_CBO",    i: "unknown.png",      f: null},
-                    {n: "HQ",           s: "AD_CBQ",    i: "unknown.png",      f: null},
+                    {n: "Home",         s: "AD_CBH",    i: "device_home.png",      f: null},
+                    {n: "Office",       s: "AD_CBO",    i: "device_office.png",      f: null},
+                    {n: "HQ",           s: "AD_CBQ",    i: "device_hq.png",      f: null},
                     {n: "Car",          s: "AD_CTC",    i: "unknown.png",      f: null},
                     {n: "Truck",        s: "AD_CTT",    i: "unknown.png",      f: null},
                     {n: "Plane",        s: "AD_CTP",    i: "unknown.png",      f: null},

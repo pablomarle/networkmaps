@@ -143,6 +143,13 @@ function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
 	grab.style.left = "" + (value-low)/(high-low)*width + "px";
 	
 	i.value = value;
+	if ("createEvent" in document) {
+    	var evt = document.createEvent("HTMLEvents");
+    	evt.initEvent("change", false, true);
+    	i.dispatchEvent(evt);
+	}
+	else
+    	i.fireEvent("onchange");
 }
 
 function WIN_create(id, title, width, height) {
@@ -629,14 +636,36 @@ function WIN_addRadioImgInput(win, px, py, label, choices, value, onchange_callb
 function WIN_showGlobalSettingsWindow(gs, callbacks) {
 	let winid = "global_settings_window";
 
-	let wdata = WIN_create(winid, "Global Settings", 260, 65);
+	let wdata = WIN_create(winid, "Global Settings", 360, 160);
 	if(!wdata)
 		return;
 	let w = wdata.w;
 
 	// Checkbox to show hide name of devices
 	wdata.d.show_device_name = WIN_addCheckBoxInput(w, 40, 30, 20, 30, "Show Device Names", gs.show_device_name);
-	wdata.d.show_device_name.addEventListener("change", () => {callbacks.show_device_name(wdata.d.show_device_name)} );
+	wdata.d.show_device_name.addEventListener("change", () => {callbacks.show_device_name(wdata.d.show_device_name.checked)} );
+
+	// Checkbox to activate grid
+	wdata.d.grid_active = WIN_addCheckBoxInput(w, 40, 60, 20, 60, "Align to Grid", gs.grid.active);
+	wdata.d.grid_x = WIN_addSlider(w, 20, 80, 100, "Grid Size X", gs.grid.x, .05, 1, .05);
+	wdata.d.grid_z = WIN_addSlider(w, 180, 80, 100, "Grid Size Z", gs.grid.z, .05, 1, .05);
+	wdata.d.grid_angle = WIN_addSlider(w, 20, 110, 100, "Grid Angle", gs.grid.angle, 5, 45, 5);
+	wdata.d.grid_resize = WIN_addSlider(w, 180, 110, 100, "Grid Resize", gs.grid.resize, .1, .25, .05);
+	wdata.d.grid_active.addEventListener("change", () => {
+		callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+	});
+	wdata.d.grid_x.addEventListener("change", () => {
+		callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+	});
+	wdata.d.grid_z.addEventListener("change", () => {
+		callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+	});
+	wdata.d.grid_angle.addEventListener("change", () => {
+		callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+	});
+	wdata.d.grid_resize.addEventListener("change", () => {
+		callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+	});
 }
 
 function WIN_showBaseElementWindow(view, type, id, e, callback) {

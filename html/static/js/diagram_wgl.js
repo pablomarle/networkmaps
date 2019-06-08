@@ -94,6 +94,13 @@ class WGL {
 	constructor(domelement) {
 		this.global_settings = {
         	show_device_name: true,
+        	grid: {
+        		active: true,
+        		x: .5,
+        		z: .5,
+        		angle: 15,
+        		resize: .25,
+        	}
     	}
 
 		this.domelement = domelement;
@@ -402,21 +409,36 @@ class WGL {
 		return this.tempVector;
 	}
 
-	moveMesh(view, type, id, x, y, z, base) {
+	moveMesh(view, type, id, x, y, z, base, alignToGrid) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {
 			if(x !== undefined) {
 				mesh.position.x = x;
-				mesh.userData.e.px = x;
 			}
 			if(y !== undefined) {
 				mesh.position.y = y;
-				mesh.userData.e.py = y;
 			}
 			if(z !== undefined) {
 				mesh.position.z = z;
-				mesh.userData.e.pz = z;
 			}
+
+			if(alignToGrid) {
+				this.alignVectorToGrid(mesh.position);
+			}
+
+			if(x !== undefined)
+				mesh.userData.e.px = mesh.position.x;
+			if(y !== undefined) {
+				if(mesh.userData.type == "text") {
+					let basemesh = this.findMesh("base", mesh.userData.e.base, this.scene[view]);
+					mesh.userData.e.py = mesh.position.y - basemesh.userData.e.sy;
+				}
+				else
+					mesh.userData.e.py = mesh.position.y;
+			}
+			if(z !== undefined)
+				mesh.userData.e.pz = mesh.position.z;
+
 			if(base != null) {
 				mesh.userData.e.base = base;
 				let basemesh = this.findMesh("base", base, this.scene[view]);
@@ -444,20 +466,27 @@ class WGL {
 		}
 	}
 
-	rotateMesh(view, type, id, rx, ry, rz) {
+	rotateMesh(view, type, id, rx, ry, rz, alignToGrid) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
+		let grid_angle = this.global_settings.grid.angle * Math.PI / 180;
 		if(mesh) {
 			if(rx !== undefined) {
 				mesh.rotation.x = rx;
-				mesh.userData.e.rx = rx;
+				if(alignToGrid && this.global_settings.grid.active)
+					mesh.rotation.x = Math.round(mesh.rotation.x / grid_angle) * grid_angle;
+				mesh.userData.e.rx = mesh.rotation.x;
 			}
 			if(ry !== undefined) {
 				mesh.rotation.y = ry;
-				mesh.userData.e.ry = ry;
+				if(alignToGrid && this.global_settings.grid.active)
+					mesh.rotation.y = Math.round(mesh.rotation.y / grid_angle) * grid_angle;
+				mesh.userData.e.ry = mesh.rotation.y;
 			}
 			if(rz !== undefined) {
 				mesh.rotation.z = rz;
-				mesh.userData.e.rz = rz;
+				if(alignToGrid && this.global_settings.grid.active)
+					mesh.rotation.z = Math.round(mesh.rotation.z / grid_angle) * grid_angle;
+				mesh.userData.e.rz = mesh.rotation.z;
 			}
 
 			mesh.updateMatrixWorld();
@@ -475,20 +504,27 @@ class WGL {
 
 	}
 
-	resizeMesh(view, type, id, sx, sy, sz) {
+	resizeMesh(view, type, id, sx, sy, sz, alignToGrid) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
+		let resize_step = this.global_settings.grid.resize;
 		if(mesh) {
-			if ((sx != null) && (sx > .2)) {
-				//mesh.scale.x = sx;
-				mesh.userData.e.sx = sx;
+			if (sx != null) {
+				if(alignToGrid && this.global_settings.grid.active)
+					sx = Math.round(sx / resize_step) * resize_step;
+				if(sx >= .1)
+					mesh.userData.e.sx = sx;
 			}
-			if ((sy != null) && (sy > .2)) {
-				//mesh.scale.y = sy;
-				mesh.userData.e.sy = sy;
+			if (sy != null) {
+				if(alignToGrid && this.global_settings.grid.active)
+					sy = Math.round(sy / resize_step) * resize_step;
+				if(sy >= .1)
+					mesh.userData.e.sy = sy;
 			}
-			if ((sz != null) && (sz > .2)) {
-				//mesh.scale.z = sz;
-				mesh.userData.e.sz = sz;
+			if (sz != null) {
+				if(alignToGrid && this.global_settings.grid.active)
+					sz = Math.round(sz / resize_step) * resize_step;
+				if(sz >= .1)
+					mesh.userData.e.sz = sz;
 			}
 			if(type == "device") {
 				this.updateDeviceGeometry(id, view);
@@ -501,19 +537,26 @@ class WGL {
 		}
 	}
 
-	resizeMesh_Base(view, id, sx, sy, sz) {
+	resizeMesh_Base(view, id, sx, sy, sz, alignToGrid) {
 		let mesh = this.findMesh("base", id, this.scene[view]);
+		let resize_step = this.global_settings.grid.resize;
 		
 		if(mesh) {
 			if (sx != null) {
+				if(alignToGrid && this.global_settings.grid.active)
+					sx = Math.round(sx / resize_step) * resize_step;
 				if(sx < 1) sx = 1;
 				mesh.userData.e.sx = sx;
 			}
 			if (sy != null) {
+				if(alignToGrid && this.global_settings.grid.active)
+					sy = Math.round(sy / resize_step) * resize_step;
 				if(sy < .5) sy = .5;
 				mesh.userData.e.sy = sy;
 			}
 			if (sz != null) { 
+				if(alignToGrid && this.global_settings.grid.active)
+					sz = Math.round(sz / resize_step) * resize_step;
 				if(sz < 1) sz = 1;
 				mesh.userData.e.sz = sz;
 			}
@@ -660,7 +703,7 @@ class WGL {
 
 	deleteMesh(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
-		if(mesh) {
+		while(mesh) {
 			mesh.parent.remove(mesh);
 			this.draw_needed = true;
 
@@ -670,6 +713,7 @@ class WGL {
 					listlinks[x].parent.remove(listlinks[x]);
 				}
 			}
+			mesh = this.findMesh(type, id, this.scene[view]);
 		}
 	}
 
@@ -730,8 +774,8 @@ class WGL {
 		return this.tempVector;
 	}
 
-	updateGlobalSettings_show_device_name(wdata) {
-		this.global_settings.show_device_name = wdata.checked;
+	updateGlobalSettings_show_device_name(show_device_name) {
+		this.global_settings.show_device_name = show_device_name;
 		
 		// Update visibilit of device names
 		for(let view in this.scene) {
@@ -748,6 +792,21 @@ class WGL {
 		}
 
 		this.draw_needed = true;
+	}
+
+	updateGlobalSettings_grid(active, x, z, angle, resize) {
+		this.global_settings.grid.active = active;
+		this.global_settings.grid.x = parseFloat(x);
+		this.global_settings.grid.z = parseFloat(z);
+		this.global_settings.grid.angle = parseFloat(angle);
+		this.global_settings.grid.resize = parseFloat(resize);
+	}
+
+	alignVectorToGrid(vector) {
+		if(this.global_settings.grid.active) {
+			vector.x = Math.round(vector.x / this.global_settings.grid.x) * this.global_settings.grid.x;
+			vector.z = Math.round(vector.z / this.global_settings.grid.z) * this.global_settings.grid.z;
+		}
 	}
 
 	// ***********************************************
@@ -1283,7 +1342,7 @@ class WGL {
 			return GEOMETRY.DEVICE["UNKNOWN"].texture[index];
 	}
 
-	addDevice(id, sceneid, e) {
+	addDevice(id, sceneid, e, alignToGrid) {
 		let geometry1 = new THREE.Geometry();
 		let geometry2 = new THREE.Geometry();
 		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
@@ -1313,16 +1372,13 @@ class WGL {
 		group.userData.type = "device";
 		group.userData.e = e
 
-		//this.scene[sceneid].add(group);
 		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
 		basemesh.add(group);
 
 		this.updateDeviceGeometry(id, sceneid);
 		this.updateDeviceColor(id, sceneid);
 
-		group.position.x = e.px;
-		group.position.y = basemesh.userData.e.sy;
-		group.position.z = e.pz;
+		this.moveMesh(sceneid, "device", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
 		group.rotation.x = e.rx;
 		group.rotation.y = e.ry;
 		group.rotation.z = e.rz;
@@ -1617,7 +1673,7 @@ class WGL {
 		return g;
 	}
 
-	addText(id, sceneid, e) {
+	addText(id, sceneid, e, alignToGrid) {
 		let base = this.findMesh("base", e.base, this.scene[sceneid]);
 		let g = this.createTextGeometry(e.text, e.height, e.depth, "center")
 
@@ -1627,14 +1683,16 @@ class WGL {
 		mesh.userData.type = "text";
 		mesh.userData.e = e;
 
-		mesh.position.x = e.px;
+		base.add(mesh);
+
+		this.moveMesh(sceneid, "text", id, e.px, e.py + base.userData.e.sy, e.pz, null, alignToGrid);
+		/*mesh.position.x = e.px;
 		mesh.position.y = e.py + base.userData.e.sy;
-		mesh.position.z = e.pz;
+		mesh.position.z = e.pz; */
 		mesh.rotation.order = "YXZ";
 		mesh.rotation.x = e.rx;
 		mesh.rotation.y = e.ry;
 
-		base.add(mesh);
 		mesh.castShadow = true;
 		this.draw_needed = true;
 
@@ -1824,7 +1882,7 @@ class WGL {
 		this.draw_needed = true;
 	}
 
-	addSymbol(id, sceneid, e) {
+	addSymbol(id, sceneid, e, alignToGrid) {
 		let base = this.findMesh("base", e.base, this.scene[sceneid]);
 		let meshgroup = new THREE.Group ();
 
@@ -1836,9 +1894,8 @@ class WGL {
 
 		base.add(meshgroup);
 
-		meshgroup.position.x = e.px;
-		meshgroup.position.y = base.userData.e.sy;
-		meshgroup.position.z = e.pz;
+		this.moveMesh(sceneid, "symbol", id, e.px, base.userData.e.sy, e.pz, null, alignToGrid);
+
 		meshgroup.rotation.x = e.rx;
 		meshgroup.rotation.y = e.ry;
 		meshgroup.rotation.z = e.rz;
