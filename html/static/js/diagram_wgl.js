@@ -61,7 +61,6 @@ function $WGL_V2(x,y) {return new THREE.Vector2(x,y)}
 function $WGL_F3(a,b,c) {return new THREE.Face3(a,b,c)}
 
 function WGL_initialize() {
-
 }
 
 function WGL_createDeviceMaterial(parameters) {
@@ -100,7 +99,7 @@ class WGL {
         		z: .5,
         		angle: 15,
         		resize: .25,
-        	}
+        	},
     	}
 
 		this.domelement = domelement;
@@ -261,6 +260,22 @@ class WGL {
 		this.draw_needed = true;
 	}
 
+	adjustLabelsToCamera() {
+		let angle = this.camera[this.view][this.camera.current].rotation.y;
+		let view = this.scene[this.view];
+
+		view.children.forEach((base_element) => {
+			if(base_element.userData.type === "base") {
+				base_element.children.forEach((device) => {
+					if(device.userData.type === "device")
+						this.adjustDeviceNameRotation(device);
+				})
+			}
+		})
+
+		this.draw_needed = true;
+	}
+
 	rotateCamera(dx, dy) {
 		let ac = this.camera[this.view][this.camera.current];
 
@@ -278,6 +293,8 @@ class WGL {
 			ac.rotation.y += dx/100.0;
 			this.draw_needed = true;
 		}
+
+		this.adjustLabelsToCamera();
 	}
 
 	zoomCamera(dy) {
@@ -312,6 +329,8 @@ class WGL {
 		this.camera.current = this.camera.current == "ortho" ? "persp" : "ortho"
 		this.draw_needed = true;
 		
+		this.adjustLabelsToCamera();
+
 		return this.camera.current;
 	}
 
@@ -454,6 +473,9 @@ class WGL {
 				for (let x = 0; x < listlinks.length; x++) {
 					this.updateLinkGeometry(listlinks[x], view);
 				}
+				// In case of devices, we have to adjust the rotation of the name to face the camera
+				// in this case, this is only a problem if the device is changing base
+				this.adjustDeviceNameRotation(mesh);
 			}
 			else if(type === "base") {
 				let links = this.findLinksOfBase(mesh, this.scene[view]);
@@ -496,7 +518,11 @@ class WGL {
 				for(let link_id in links) {
 					this.updateLinkGeometry(links[link_id], view);
 				}
-
+				this.adjustLabelsToCamera();
+			}
+			if(type == "device") {
+				// In case of devices, we have to adjust the rotation of the name to face the camera
+				this.adjustDeviceNameRotation(mesh);
 			}
 
 			this.draw_needed = true;
@@ -1437,13 +1463,21 @@ class WGL {
 		mesh.position.z = 0;
 		mesh.rotation.order = "YXZ";
 		mesh.rotation.x = -Math.PI/4;
-		mesh.rotation.y = 0;
 
 		group.add(mesh);
+
+		this.adjustDeviceNameRotation(group);
 
 		mesh.visible = this.global_settings.show_device_name;
 
 		this.draw_needed = true;
+	}
+
+	adjustDeviceNameRotation(device) {
+		device.children.forEach((label) => {
+			if(label.userData.submesh === "name")
+				label.rotation.y = this.camera[this.view][this.camera.current].rotation.y - device.rotation.y - device.parent.rotation.y; 
+		})
 	}
 
 	updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, radius) {
