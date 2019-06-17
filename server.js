@@ -7,7 +7,7 @@ const UserMGT = require('./lib/usermgt');
 const ws = require('./lib/ws');
 const sendmail = require("./lib/sendmail");
 const staticcontent = require("./lib/staticcontent");
-const usermgt = new UserMGT(config.db.users, config.timers.usertimeout);
+const usermgt = new UserMGT(config.users.file, config.timers.usertimeout, config.timers.usersavetimeout);
 
 function sendMail(to, subject, content) {
     console.log(`Sending email to queue: ${to} : ${subject}`)
@@ -118,6 +118,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 
 
 function main() {
+	usermgt.initialize();
     sendmail.initialize(config.sendmail);
     html.set_use_ssl(config.use_ssl);
     if(config.google_analytics_tag) {

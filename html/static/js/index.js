@@ -207,9 +207,11 @@ function get_permissions(uuid) {
 
 function delete_permission() {
 	let id = this.getAttribute("data-id");
+	let uuid = this.getAttribute("data-uuid");
 	send({
 		m: "PD",
 		d: {
+			uuid: uuid,
 			id: id
 		}
 	})
@@ -812,6 +814,7 @@ function screen_diagram_config_updateshares(sharelist) {
 		i = DOM.cdiv(div, null, "diagram_button");
 		set_node_infobox(i, "Remove Permission");
 		i.setAttribute("data-id", share.pid);
+		i.setAttribute("data-uuid", sharelist.uuid);
 		i.addEventListener("click", delete_permission);
 			DOM.cimg(i, staticurl + "/static/img/delete.png", null, "diagram_button_img");
 

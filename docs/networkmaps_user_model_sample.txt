@@ -1,0 +1,47 @@
+user_struct:
+    session: {
+        a66928e914b0ec87d8d29253de6ec0615c89d849d021b6b06535367f9fc32455: {
+            user: "" if no user
+                  email if user exists
+            last_used: datetime of last use
+            data: {}
+        }
+    }
+
+    user: {
+        pablo@masshandra.com: {
+            name:
+            lastname:
+            password:
+            salt:
+            is_active: (bool)
+            activation_code:
+            activation_date:
+            diagrams: [<list of all diagrams, this user has access to>]
+        }
+    }
+
+    password_reset: {
+        <activation_code>: {
+            activation_date:
+            user: <email>
+        }
+
+    }
+
+    diagram: {
+        uuid: {
+            name:
+            owner: <email of owner>
+            last_modified: <date of last change>
+            mark_delete: bool
+            permissions: {
+                user: permission
+            }
+        }
+    }
+
+
+
+
+

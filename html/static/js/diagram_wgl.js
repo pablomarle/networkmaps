@@ -1330,8 +1330,6 @@ class WGL {
 
 		if(meshgroup.userData.e.type == "S")
 			this.updateDeviceCubeGeometry(meshgroup, 1, .4, 1);
-		else if(meshgroup.userData.e.type == "F")
-			this.updateDeviceCubeGeometry(meshgroup, 1, 1.2, .6);
 		else if(meshgroup.userData.e.type == "LB")
 			this.updateDeviceLBGeometry(meshgroup, 1, .4, 1, .6, .8);
 		else
@@ -1360,8 +1358,6 @@ class WGL {
 			return GEOMETRY.DEVICE[type].texture[index];
 		else if(type == "S")
 			return "S_" + (index+1) + ".png";
-		else if (type == "F")
-			return "F_" + (index+1) + ".png";
 		else if (type == "LB")
 			return "LB_" + (index+1) + ".png";
 		else
