@@ -1799,8 +1799,7 @@ function init_window() {
                     {n: "Web F",       s: "AD_XWF",    i: "device_wf.png",      f: null, d: "Web Filtering"},
                     {n: "Led",       s: "AD_XPL",    i: "device_led.png",      f: null},
                     {n: "Lock",      s: "AD_XL",    i: "device_lock.png",      f: null},
-                    {n: "DDOS",      s: "AD_XD",    i: "unknown.png",      f: null},
-                    {n: "Hacker",    s: "AD_XH",    i: "unknown.png",      f: null},
+                    {n: "Hacker",    s: "AD_XH",    i: "device_hacker.png",      f: null},
                 ]},
             new_link: {
                 init_left: -190, left: -190, width: 170,

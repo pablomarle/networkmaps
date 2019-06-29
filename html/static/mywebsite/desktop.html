@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>Legacy MaSSHandra Desktop</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			body, html {
+				color: #fff;
+				background: #222;
+				font-size: 16px;
+				font-family: Verdana;
+                margin: 0;
+                height: 100%;
+			}
+			form {
+				display:inline;
+			}
+			.head {
+				font-size:40px;
+				display: flex;
+				justify-content: space-evenly;
+                padding: 10px;
+                color: #fff;
+                text-align:center;
+			}
+			.head2 {
+				display: flex;
+				justify-content: center;
+                color: #fff;
+                font-weight: normal;
+                margin: 20px;
+			}
+			.head_button {
+				font-size: 14px;
+				text-decoration: none;
+				color: #EEE;
+				margin: 2px 24px;
+				padding: 0px;
+				border: none;
+				background: none;
+				vertical-align: bottom;
+				font-family: sans-serif;
+				font-weight: bold;
+			}
+            .head_button:hover {
+                color: #888;
+            }
+            .head_button:active {
+                box-shadow: none;
+            }
+
+			.content {
+				display: flex;
+				flex-direction: column;
+                height: 100%;
+			}
+			.contentblock {
+				display:flex;
+				justify-content: space-around;
+				text-align: center;
+				margin: 8px;
+				flex-wrap: wrap;
+			}
+			.paragraph {
+				margin: 15px 0px;
+                font-size: 20px;
+                font-family: sans-serif;
+			}
+			.paragraph_left {
+				margin: 15px 0px;
+                font-size: 20px;
+                font-family: sans-serif;
+                text-align: left;
+                color: #FFF;
+			}
+			a {
+				color: #fff;
+			}
+            .sampleimg {
+                width:180px;
+                height: 180px;
+                cursor: pointer;
+            }
+		</style>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-22282732-2"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-22282732-2');
+        </script>
+    </head>
+	<body>
+		<div class="content">
+			<div class="head2">
+                <a href="index.html" class="head_button">Home</a>
+				<a href="https://app.masshandra.com" class="head_button">Try it now</a>
+				<a href="documentation.html" class="head_button">Documentation</a>
+				<a href="https://github.com/pablomarle/networkmaps" class="head_button">Source Code</a>
+				<form action="https://www.paypal.com/cgi-bin/webscr" method="POST" target="_top">
+					<input type="hidden" name="cmd" value="_s-xclick">
+	               	<input type="hidden" name="hosted_button_id" value="G4WCUPHDE2HZN">
+	                <input type="submit" class="head_button" value="Donate">
+				</form>
+                <a><a href="https://twitter.com/masshandra?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-show-count="false">Follow @masshandra</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></a>
+			</div>
+			<div class="head">
+                MaSSHandra 2.3.1. Desktop Edition.
+            </div>
+            <div class="contentblock imgblock">
+                <img class="sampleimg" src="img/download_windows.png" alt="MaSSHandra 2.3.1 for Windows" onclick="window.open('desktop/MaSSHandra-2.3.1.msi')"></img>
+                <img class="sampleimg" src="img/download_mac.png" alt="MaSSHandra 2.3.1 for Mac" onclick="window.open('desktop/MaSSHandra_2.3.1.dmg.zip')"></img>
+                <img class="sampleimg" src="img/download_linux.png" alt="MaSSHandra 2.3.1 for Linux" onclick="window.open('desktop/masshandra_2.3.1_amd64.tar.gz')"></img>
+            </div>
+			<div class="contentblock">
+				<div>
+					<div class="paragraph">
+            			The Free 3D Network Diagramming Tool.
+					</div>
+					<div class="paragraph">
+						Please, note that the desktop versions are discontinued. I will not continue developing them.
+					</div>
+					<div class="paragraph">
+						All efforts will be placed on developing the web application.
+					</div>
+					<div class="paragraph">
+						If you don't agree with this decision, let me know and if there is enough people, I'll change my mind :)
+					</div>
+					<div class="paragraph_left">
+						Here are the external mesh extensions:
+						<ul>
+							<li><a href="meshes/blocks.m2m">Collection of block shapes for diagrams</a></li>
+							<li><a href="meshes/Catalyst6500.m2m">Cisco Catalysh</a></li>
+							<li><a href="meshes/ciscoisr.m2m">Cisco ISR</a></li>
+							<li><a href="meshes/cisconexus.m2m">Cisco Nexus</a></li>
+							<li><a href="meshes/ciscoWiFi.m2m">Cisco WiFi</a></li>
+							<li><a href="meshes/DellServers.m2m">Dell Servers</a></li>
+							<li><a href="meshes/HPBladeSystem.m2m">HP Blade Servers</a></li>
+							<li><a href="meshes/L3Cisco.m2m">Cisco Logical Symbols</a></li>
+							<li><a href="meshes/L3Servers.m2m">Collection of Logical Servers</a></li>
+							<li><a href="meshes/security.m2m">Security Icons</a></li>
+							<li><a href="meshes/SRXHighEnd.m2m">Juniper SRX High End</a></li>
+							<li><a href="meshes/textbox.m2m">Text Boxes</a></li>
+							<li><a href="meshes/vmware.m2m">VMWare Icons</a></li>
+						</ul>
+				</div>
+			</div>
+		</div>
+
+        <script>
+
+        </script>
+	</body>
+</html>
+

@@ -7,7 +7,8 @@ const UserMGT = require('./lib/usermgt');
 const ws = require('./lib/ws');
 const sendmail = require("./lib/sendmail");
 const staticcontent = require("./lib/staticcontent");
-const usermgt = new UserMGT(config.users.file, config.timers.usertimeout, config.timers.usersavetimeout);
+const usermgt = new UserMGT(config.users.path, config.timers.usertimeout, config.timers.usersavetimeout);
+const fs = require('fs');
 
 function sendMail(to, subject, content) {
     console.log(`Sending email to queue: ${to} : ${subject}`)
@@ -116,14 +117,39 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 	});
 }
 
+function test_directories() {
+	// Function to check if the directories on the configuration files exist and if we have RW access to them
+	try {
+		fs.accessSync(config.diagrams.path, fs.constants.R_OK | fs.constants.W_OK);
+	} catch(e) {
+		throw("I don't have RW access to diagrams directory " + config.diagrams.path);
+	}
+
+	try {
+		fs.accessSync(config.users.path, fs.constants.R_OK | fs.constants.W_OK);
+	} catch(e) {
+		throw("I don't have RW access to users directory " + config.users.path);
+	}
+
+	try {
+		fs.accessSync(config.users.path, fs.constants.R_OK | fs.constants.W_OK);
+	} catch(e) {
+		throw("I don't have RW access to users directory " + config.users.path);
+	}
+
+	try {
+		fs.accessSync(config.sendmail.queue, fs.constants.R_OK | fs.constants.W_OK);
+	} catch(e) {
+		throw("I don't have RW access to sendmail queue directory " + config.sendmail.queue);
+	}
+}
 
 function main() {
+	test_directories();
+
 	usermgt.initialize();
     sendmail.initialize(config.sendmail);
-    html.set_use_ssl(config.use_ssl);
-    if(config.google_analytics_tag) {
-    	html.set_google_analytics(config.google_analytics_tag);
-    }
+    html.initialize(config);
 	ws.initialize(config, usermgt, html, sendmail);
 
 	const server = new httpServer(config.use_ssl_socket, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);

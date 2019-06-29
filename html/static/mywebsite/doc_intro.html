@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <title>Networkmaps Introduction</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="documentation.css">
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=UA-22282732-2"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-22282732-2');
+        </script>
+    </head>
+	<body>
+		<div class="content">
+			<div class="head2">
+                <a href="index.html" class="head_button">Home</a>
+                <a href="documentation.html" class="head_button">Index</a>
+			</div>
+			<div class="head">
+                Introduction.
+            </div>
+			<div class="document">
+				<div class="paragraph_intro">
+                    Networkmaps is a web based 3D network diagram editor.
+                </div>
+                <div class="paragraph_intro">
+                    It allows you to document the topology of your network including physical connectivity (Layer 2), logical configuration (Layer 3) and routing protocol information (bgp, ospf, isis, mpls, vxlan).
+                </div>
+                <div class="paragraph_intro">
+                    It also allows you to collaborate with others on the same document at the same time, seeing on realtime the changes others do on the documents.
+                </div>
+                <div class="doc_head">Features</div>
+                <div class="paragraph">
+                    <ul>
+                        <li class="green">Real 3D network diagrams. All elements of your diagrams are real 3D objects that can be seen from any side. No more fake 2d icons with 3d aspect.</li>
+                        <li class="green">All the project is free and open sourced. You can get the code and run it in your own private cloud or server.</li>
+                        <li class="green">Share your diagrams with others and collaborate. Using websockets, we can edit the same diagram at the same time receiving on real time the changes others have done on our diagrams.</li>
+                        <li class="green">API to generate automatically your diagrams.</li>
+                        <li class="black">Edit your physical connectivity and your logical configuration and the L3 diagram will be automatically created.</li>
+                        <li class="black">Document all your routing protocols and show how your network devices talk to each other.</li>
+                        <li class="black">Extensible library of icons to use on your network diagrams.</li>
+                        <li class="red">Device configuration automatically generated and pushed to your devices.</li>
+                        <li class="red">Autodiscovery of networks.</li>
+                        <li class="red">Realtime device monitoring.</li>
+                    </ul>
+                    <div>* Features in green are already implemented.</div>
+                    <div>* Features in black are still under development</div>
+                    <div>* Features in red are still not committed.</div>
+                </div>
+                <div class="doc_head">Requirements</div>
+                <div class="paragraph">
+                    Node version 10.15.1
+                </div>
+                <div class="doc_head">Arquitecture</div>
+                <div class="paragraph">
+                    Networkmaps does not use a regular database to store all the needed information. Instead of this, and to give the best performance, all information is kept in memory and saved to disk regularly for persistence.
+                </div>
+                <div class="paragraph">
+                    It also does not require of a external web server although it is possible (and recommended) to configure one to serve all the static content.
+                </div>
+                <div class="paragraph">
+                    It has three parts.
+                    <ul>
+                        <li>Server. This will be a web server written in javascript. It requires node to be installed.</li>
+                        <li>Web client. Any browser should work. The client will connect to the server using websockets for realtime updates on changes made by any user to the diagram being eddited.</li>
+                        <li>Email daemon. Networkmaps by itself doesn't send registration emails. It relies on a provided daemon to send these emails using smtp relay provided on the configuration.</li>
+                    </ul>
+                </div>
+			</div>
+		</div>
+
+        <script>
+
+        </script>
+	</body>
+</html>
+

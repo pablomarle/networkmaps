@@ -25,20 +25,14 @@
         "hostname": "www.masshandra.com",
         "port": 443
     },
-    "db":
+    "users":
     {
-	    "users":
-	    {
-	    	"database": "users",
-	    	"host": "localhost",
-	    	"user": "db_user",
-	    	"password": "db_password"
-	    }
-	},
-	"diagrams":
-	{
-		"path": "/diagrams/"
-	},
+        "path": "/users/"
+    },	
+    "diagrams":
+    {
+        "path": "/diagrams/"
+    },
     "sendmail":
     {
         "queue": "/sendmail/queue",
