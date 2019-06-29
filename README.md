@@ -17,7 +17,7 @@ We have a live demo running the latest code here:
 
 ## Installation & Documentation.
 
-All the documentation can be found here: https://www.masshandra.com/documentation.html
+All the documentation can be found here: [Networkmaps Documentation](https://www.masshandra.com/documentation.html)
 
 ## Special note for already existing installations.
 
