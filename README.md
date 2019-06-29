@@ -19,6 +19,10 @@ We have a live demo running the latest code here:
 
 All the documentation can be found here: https://www.masshandra.com/documentation.html
 
+## Special note for already existing installations.
+
+For administrators who deployed Networkmaps before June 2019, on newer releases, Networkmaps does not use the mysql database anymore to store user information. 
+Check https://www.masshandra.com/doc_installation.html for instructions on how to migrate.
 ## Credits
 
 We are using some 3rd party software:
