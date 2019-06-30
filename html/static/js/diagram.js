@@ -1750,6 +1750,7 @@ function init_window() {
                     {n: "Laptop",       s: "AD_CL",    i: "device_laptop.png",      f: null},
                     {n: "Tablet",       s: "AD_CT",    i: "device_tablet.png",      f: null},
                     {n: "Phone",        s: "AD_CP",    i: "device_phone.png",      f: null},
+                    {n: "Printer",      s: "AD_CPT",    i: "device_printer.png",      f: null},
                     {n: "Home",         s: "AD_CBH",    i: "device_home.png",      f: null},
                     {n: "Office",       s: "AD_CBO",    i: "device_office.png",      f: null},
                     {n: "HQ",           s: "AD_CBQ",    i: "device_hq.png",      f: null},
