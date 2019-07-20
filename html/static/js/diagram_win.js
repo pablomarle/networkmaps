@@ -563,7 +563,7 @@ function WIN_addButton(win, px, py, label, callback, description) {
 	let b = DOM.cbutton(win, null, "win_button", label, null, callback);
 	DOM.setElementPos(b, px, py);
 
-	if(description !== null ) {
+	if(description) {
 		WIN_addBasicMouseDescriptionActions(b, description);
 	}
 
@@ -732,7 +732,13 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 
 function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 	let winid = view + "_" + type + "_" + id + "_config";
-	
+	let vrf_options = [];
+	for(let rd in e.vrfs) {
+		vrf_options.push([e.vrfs[rd].name, rd])
+
+	}
+	let default_vrf = (vrf_options.length > 0) ? vrf_options[0][1] : "";	
+
 	let wdata = WIN_create(winid, e.name, 660, 440);
 	if(!wdata)
 		return;
@@ -755,6 +761,7 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 			name: e.svis[svi_tag].name, 
 			ipv4: (e.svis[svi_tag].ipv4.length > 0) ? e.svis[svi_tag].ipv4[0] : "",
 			ipv6: (e.svis[svi_tag].ipv6.length > 0) ? e.svis[svi_tag].ipv6[0] : "",
+			vrf: (e.svis[svi_tag].vrf === undefined) ? default_vrf : e.svis[svi_tag].vrf,
 		})
 	}
 
@@ -765,6 +772,7 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 			name: e.los[lo_id].name, 
 			ipv4: (e.los[lo_id].ipv4.length > 0) ? e.los[lo_id].ipv4[0] : "",
 			ipv6: (e.los[lo_id].ipv6.length > 0) ? e.los[lo_id].ipv6[0] : "",
+			vrf: (e.los[lo_id].vrf === undefined) ? default_vrf : e.los[lo_id].vrf,
 		})
 	}
 
@@ -778,18 +786,20 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 		"name": { name: "VRF Name", width: 120, "description": "Name of the VRF." },
 	});
 
-	wdata.d.svis = WIN_addDictList(w, 20, 150, 540, 120, "SVI List", list_svis, {
+	wdata.d.svis = WIN_addDictList(w, 20, 150, 620, 120, "SVI List", list_svis, {
 		"tag":   { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)." },
 		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Vlan100)." },
 		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
 		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
+		"vrf": { name: "VRF", width: 80, "descripion": "VRF this interface belongs to.", options: vrf_options },
 	});
 
-	wdata.d.los = WIN_addDictList(w, 20, 280, 540, 120, "Loopback List", list_los, {
+	wdata.d.los = WIN_addDictList(w, 20, 280, 620, 120, "Loopback List", list_los, {
 		"id":   { name: "Lo ID", width: 60, "description": "ID of loopback interface (number 0 - 10)." },
 		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Lo0)." },
 		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
 		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
+		"vrf": { name: "VRF", width: 80, "descripion": "VRF this interface belongs to.", options: vrf_options },
 	});
 
 	// Button to apply

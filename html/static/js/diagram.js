@@ -229,6 +229,10 @@ function process_message(message) {
             DOM.showError("Error Received", message.d)
             break;
     }
+
+    if("l3_changes" in message) {
+        process_message_l3(message.l3_changes);
+    }
 }
 
 function process_message_add(data) {
@@ -236,13 +240,13 @@ function process_message_add(data) {
         d.wgl.addCubeFloor(data.i, "L2", data.d);
     }
     else if((data.v == "L2") && (data.t == "device")) {
-        d.wgl.addDevice(data.i, "L2", data.d);
+        d.wgl.addDevice(data.t, data.i, "L2", data.d);
     }
     else if((data.v == "L2") && (data.t == "link")) {
-        d.wgl.addLink(data.i, "L2", data.d);
+        d.wgl.addLink(data.t, data.i, "L2", data.d);
     }
     else if((data.v == "L2") && (data.t == "joint")) {
-        d.wgl.addJoint(data.link_id, data.joint_index, "L2", data.px, data.py, data.pz);
+        d.wgl.addJoint("link", data.link_id, data.joint_index, "L2", data.px, data.py, data.pz);
     }
     else if((data.v == "L2") && (data.t == "text")) {
         let mesh = d.wgl.addText(data.i, "L2", data.d);
@@ -261,7 +265,7 @@ function process_message_move(data) {
         let mesh = d.wgl.getMesh(data.v, "link", data.i);
         if(mesh) {
             mesh.userData.e.linedata.points[data.joint_index] = [data.x, data.y, data.z];
-            d.wgl.updateLinkGeometry(mesh, data.v);
+            d.wgl.updateLinkGeometry("link", mesh, data.v);
         }
     }
     else
@@ -328,6 +332,64 @@ function process_message_delete(data) {
     }
     else if ((data.v == "L2") && (data.t == "joint"))
         d.wgl.deleteJoint("L2", data.i, data.pi);
+}
+
+function process_message_l3(l3_changes) {
+    l3_changes.forEach((message) => {
+        if(message.t === "vrf") {
+            if(message.m === "A") {
+                // Add vrf
+                d.wgl.addDevice("vrf", message.id, "L3", message.data);
+            }
+            else if(message.m === "D") {
+                // Remove vrf
+                d.wgl.deleteMesh("L3", "vrf", message.id);
+            }
+            else if(message.m === "CN") {
+                d.wgl.changeNameVRF(message.id, message.data.name);
+            }
+        }
+        else if(message.t === "l2segment") {
+            if(message.m === "A") {
+                d.wgl.addL2Segment(message.id, message.data);
+            }
+            else if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "l2segment", message.id);
+            }
+        }
+        else if(message.t === "l2link") {
+            if(message.m === "A") {
+                d.wgl.addLink("l2link", message.id, "L3", message.data);
+            }
+            else if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "l2link", message.id);
+            }
+        }
+        else if(message.t === "interface") {
+            if(message.m === "A") {
+                d.wgl.addLink("interface", message.id, "L3", message.data);
+            }
+            else if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "interface", message.id);
+            }
+        }
+        else if(message.t === "svi_interface") {
+            if(message.m === "A") {
+                d.wgl.addLink("svi_interface", message.id, "L3", message.data);
+            }
+            else if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "svi_interface", message.id);
+            }
+        }
+        else if(message.t === "p2p_interface") {
+            if(message.m === "A") {
+                d.wgl.addLink("p2p_interface", message.id, "L3", message.data);
+            }
+            else if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "p2p_interface", message.id);
+            }
+        }
+    })
 }
 
 function sendAdd_BaseFloor(subtype, x, y, z, sx, sy, sz, rx, ry, rz) {
@@ -573,12 +635,12 @@ function sendConfig_L2Device(id, windata) {
     for(let x = 0; x < svis.length; x++) {
         let ipv4 = (svis[x].ipv4 === "") ? [] : [svis[x].ipv4];
         let ipv6 = (svis[x].ipv6 === "") ? [] : [svis[x].ipv6];
-        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: ipv4, ipv6: ipv6 };
+        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: ipv4, ipv6: ipv6, vrf: svis[x].vrf };
     }
     for(let x = 0; x < los.length; x++) {
         let ipv4 = (los[x].ipv4 === "") ? [] : [los[x].ipv4];
         let ipv6 = (los[x].ipv6 === "") ? [] : [los[x].ipv6];
-        message.d.los[los[x].id] = { name: los[x].name, ipv4: ipv4, ipv6: ipv6 };
+        message.d.los[los[x].id] = { name: los[x].name, ipv4: ipv4, ipv6: ipv6, vrf: los[x].vrf };
     }
 
     if(!d.ws.send(message))
@@ -900,12 +962,12 @@ function init_diagram() {
     }
     for(let id in d.diagram.L2.device) {
         let e = d.diagram.L2.device[id];
-        d.wgl.addDevice(id, "L2", e);
+        d.wgl.addDevice("device", id, "L2", e);
     }
 
     for(let id in d.diagram.L2.link) {
         let e = d.diagram.L2.link[id];
-        d.wgl.addLink(id, "L2", e);
+        d.wgl.addLink("link", id, "L2", e);
     }
 
     for(let id in d.diagram.L2.text) {
@@ -916,6 +978,39 @@ function init_diagram() {
     for(let id in d.diagram.L2.symbol) {
         let e = d.diagram.L2.symbol[id];
         d.wgl.addSymbol(id, "L2", e);
+    }
+
+    // ********************************
+    // Draw the L3 diagram
+    // ********************************
+    for(let id in d.diagram.L3.base) {
+        let e = d.diagram.L3.base[id];
+        if(e.type == "F")
+            d.wgl.addCubeFloor(id, "L3", e);
+    }
+    for(let id in d.diagram.L3.vrf) {
+        let e = d.diagram.L3.vrf[id];
+        d.wgl.addDevice("vrf", id, "L3", e);
+    }
+    for(let id in d.diagram.L3.l2segment) {
+        let e = d.diagram.L3.l2segment[id];
+        d.wgl.addL2Segment(id, e);
+    }
+    for(let id in d.diagram.L3.l2link) {
+        let e = d.diagram.L3.l2link[id];
+        d.wgl.addLink("l2link", id, "L3", e);
+    }
+    for(let id in d.diagram.L3.p2p_interface) {
+        let e = d.diagram.L3.p2p_interface[id];
+        d.wgl.addLink("p2p_interface", id, "L3", e);
+    }
+    for(let id in d.diagram.L3.svi_interface) {
+        let e = d.diagram.L3.svi_interface[id];
+        d.wgl.addLink("svi_interface", id, "L3", e);
+    }
+    for(let id in d.diagram.L3.interface) {
+        let e = d.diagram.L3.interface[id];
+        d.wgl.addLink("interface", id, "L3", e);
     }
 }
 
@@ -963,15 +1058,17 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
 
     if(
-        (d.dom.tools.active_t === "CM") || 
-        (d.dom.tools.active_t === "CR") || 
-        (d.dom.tools.active_t === "CZ")
+        (
+            (d.dom.tools.active_t === "CM") || 
+            (d.dom.tools.active_t === "CR") || 
+            (d.dom.tools.active_t === "CZ")
+        )
         ) {
             d.mouseaction = {
                 m: d.dom.tools.active_t,
             };
         }
-    else if (d.dom.tools.active_t === "ABF") {
+    else if ((d.dom.tools.active_t === "ABF") && (d.current_view === "L2")) {
         // Add Floor
         let p = d.wgl.pickLevel(x, y, 0);
         if(p) {
@@ -981,7 +1078,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t.startsWith("AD")) {
+    else if (d.dom.tools.active_t.startsWith("AD") && (d.current_view === "L2")) {
         // Add a device
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "base") {
@@ -989,7 +1086,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                     objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
                 d.mouseaction = {
                     m: d.dom.tools.active_t,
-                    mesh: d.wgl.addDevice("CURSOR", d.current_view, createDefaultDevice(
+                    mesh: d.wgl.addDevice("device", "CURSOR", d.current_view, createDefaultDevice(
                         newcoords.x, newcoords.y, newcoords.z, 
                         d.dom.tools.active_t.substring(2),
                         objlist[x].mesh.userData.id
@@ -999,7 +1096,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t.startsWith("AL")) {
+    else if (d.dom.tools.active_t.startsWith("AL") && (d.current_view === "L2")) {
         // Add a link
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "device") {
@@ -1021,7 +1118,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t === "AJ") {
+    else if ((d.dom.tools.active_t === "AJ") && (d.current_view === "L2")) {
         // Add Joint
         for(let x = 0; x < objlist.length; x++) {
             if ((objlist[x].mesh.userData.type === "link") && 
@@ -1038,7 +1135,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t.startsWith("AT")) {
+    else if (d.dom.tools.active_t.startsWith("AT") && (d.current_view === "L2")) {
         // Add a text
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "base") {
@@ -1056,7 +1153,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }    
-    else if (d.dom.tools.active_t.startsWith("AS")) {
+    else if (d.dom.tools.active_t.startsWith("AS") && (d.current_view === "L2")) {
         // Add a symbol
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "base") {
@@ -1086,7 +1183,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t === "BM") {
+    else if ((d.dom.tools.active_t === "BM") && (d.current_view === "L2")) {
         // Move base
         if((objlist.length > 0) && (objlist[0].mesh.userData.type == "base")) {
             pos = d.wgl.getMeshPosition(d.current_view, "base", objlist[0].mesh.userData.id)
@@ -1102,7 +1199,13 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
     else if (d.dom.tools.active_t === "EM") {
         // Move Element
-        if((objlist.length > 0) && ((objlist[0].mesh.userData.type === "device") || (objlist[0].mesh.userData.type === "symbol") || ((objlist[0].mesh.userData.type === "text"))) ) {
+        if((objlist.length > 0) && (
+            (objlist[0].mesh.userData.type === "device") ||
+            (objlist[0].mesh.userData.type === "symbol") ||
+            (objlist[0].mesh.userData.type === "text") ||
+            (objlist[0].mesh.userData.type === "vrf") ||
+            (objlist[0].mesh.userData.type === "l2segment")
+            ))  {
             d.mouseaction = {
                 m: "EM",
                 type: objlist[0].mesh.userData.type,
@@ -1127,7 +1230,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t === "BR") {
+    else if ((d.dom.tools.active_t === "BR") && (d.current_view === "L2")) {
         // Rotate base
         if((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
             v = d.wgl.getMeshRotation(d.current_view, "base", objlist[0].mesh.userData.id)
@@ -1138,7 +1241,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t === "ER") {
+    else if ((d.dom.tools.active_t === "ER") && (d.current_view === "L2")) {
         // Rotate element
         if((objlist.length > 0) && ((objlist[0].mesh.userData.type === "device") || (objlist[0].mesh.userData.type === "text") || ((objlist[0].mesh.userData.type === "symbol"))) ) {
             v = d.wgl.getMeshRotation(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id)
@@ -1150,7 +1253,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t  === "BX") {
+    else if ((d.dom.tools.active_t  === "BX") && (d.current_view === "L2")) {
         // Scale base
         if((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
             d.mouseaction = {
@@ -1160,7 +1263,7 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if (d.dom.tools.active_t  === "EX") {
+    else if ((d.dom.tools.active_t  === "EX") && (d.current_view === "L2")) {
         // Scale element
         if(
             (objlist.length > 0) && 
@@ -1176,8 +1279,10 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
 
     else if (
-        (d.dom.tools.active_t === "BD") || 
-        (d.dom.tools.active_t === "BC")
+        (
+            (d.dom.tools.active_t === "BD") || 
+            (d.dom.tools.active_t === "BC")
+        ) && (d.current_view === "L2")
         ) {
         // Base Delete and settings action
         if((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
@@ -1190,9 +1295,11 @@ function mousedown(x, y, dx, dy, dom_element) {
         }
     }
     else if (
-        (d.dom.tools.active_t === "ED") ||
-        (d.dom.tools.active_t === "EC") ||
-        (d.dom.tools.active_t === "EI")
+        (
+            (d.dom.tools.active_t === "ED") ||
+            (d.dom.tools.active_t === "EC") ||
+            (d.dom.tools.active_t === "EI")
+        ) && (d.current_view === "L2")
         ) {
         // Element Delete, settings and data
         if( (objlist.length > 0) && ((objlist[0].mesh.userData.type === "device") || 
@@ -1290,14 +1397,8 @@ function mouseup(x, y, dx, dy, dom_element) {
         sendMove(d.current_view, "base", a.id);
     }
     else if(d.dom.tools.active_t === "EM") {
-        if(a.type === "device") {
-            sendMove(d.current_view, "device", a.mesh);
-        }
-        else if(a.type === "text") {
-            sendMove(d.current_view, "text", a.mesh);
-        }
-        else if(a.type === "symbol") {
-            sendMove(d.current_view, "symbol", a.mesh);
+        if((a.type === "device") || (a.type === "text") || (a.type === "symbol") || (a.type === "l2segment") || (a.type === "vrf")) {
+            sendMove(d.current_view, a.type, a.mesh);
         }
         else if(a.type === "joint") {
             let m = d.wgl.getMesh(d.current_view, "link", a.mesh)
@@ -1514,7 +1615,7 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "EM") {
         let objlist = d.wgl.pickObject(x, y);
-        if((d.mouseaction.type === "device") || (d.mouseaction.type === "symbol")) {
+        if((d.mouseaction.type === "device") || (d.mouseaction.type === "symbol") || (d.mouseaction.type === "vrf") || (d.mouseaction.type === "l2segment")) {
             let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh);
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
@@ -1547,7 +1648,7 @@ function mousemove(x, y, dx, dy, dom_element) {
                     mesh.userData.e.linedata.points[d.mouseaction.joint_index] = [
                         objlist[x].p.x, objlist[x].p.y + mesh.userData.e.linedata.height , objlist[x].p.z
                     ]
-                    d.wgl.updateLinkGeometry(mesh, d.current_view);
+                    d.wgl.updateLinkGeometry("link", mesh, d.current_view);
                     break;
                 }
             }

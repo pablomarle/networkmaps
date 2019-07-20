@@ -84,7 +84,8 @@ this.diagram = {
 					5: {
 						name: "vlan5",
 						ipv4: [],
-						ipv6: []
+						ipv6: [],
+						vrf: "<vrf rd>"
 					}
 				},
 				los: {												-> Loopbacks
@@ -92,6 +93,7 @@ this.diagram = {
 						name: "lo5",
 						ipv4: [],
 						ipv6: []
+						vrf: "<vrf rd>"
 					}
 				},
 				data: [
@@ -145,7 +147,8 @@ this.diagram = {
 						vlan_id: vlan_id
 					}
 					base: 0,											-> Base element used to calculate position
-					type: "VLAN"										-> For now, only type vlan will exist. determines the shape of this element
+					type: "VLAN",										-> For now, only type vlan will exist. determines the shape of this element
+					name: "A name",
 					px: 0, py: 0, pz: 0,
 					sx: 1, sy: 1, sz: 1,
 					rx: 0, ry: 0, rz: 0,
@@ -156,10 +159,7 @@ this.diagram = {
 		l2link: {
 			0: {
 				l2_reference: {
-					src_device_id: device_id,
-					src_iface_id:
-					dst_device_id: device_id,
-					dst_iface_id:
+					link_id:
 				}
 				l3_reference: {
 					src_l2segment_id: 0,
@@ -185,7 +185,8 @@ this.diagram = {
 					}			
 
 					base: 0,											-> Base element used to calculate position
-					type: "R"										
+					type: "R",
+					name: "",
 					px: 0, py: 0, pz: 0,
 					sx: 1, sy: 1, sz: 1,
 					rx: 0, ry: 0, rz: 0,
@@ -195,12 +196,8 @@ this.diagram = {
 		p2p_interface: {
 			0: {
 				l2_reference: {
-					src_device_id: device_id,
-					src_iface_id:
-					src_subif_id:
-					dst_device_id: device_id,
-					dst_iface_id:
-					dst_subif_id:
+					link_id: link_id,
+					vlan_tag: vlan_tag,
 				}
 
 				l3_reference: {
@@ -220,19 +217,40 @@ this.diagram = {
 				}
 			}
 		}
-		interfaces: {
+		interface: {
 			0: {
 				l2_reference: {
-					src_device_id: device_id,
-					src_iface_id:
-					src_subif_id:
-					dst_device_id: device_id,
-					dst_vlan_id:
+					link_id:
+					vlan_tag:
 				}
 
 				l3_reference: {
-					src_vrf_id: 0,
-					dst_l2segment_id: 1,
+					vrf_id: 0,
+					l2segment_id: 1,
+				}
+
+				type: 0,											-> 0: line, 1: square, 2: curve
+				order: "XY",										-> order in which square interfaces are drawn (XY, YX, XZ, ZX, YZ, ZY)
+				linedata: {
+					height: .25,
+					weight: 1,
+					color: 0xffffff,
+					points: [										-> Aditional points. Only valid for type 0.
+						[0,0,0],
+					],
+				}
+			}
+		},
+		svi_interface: {
+			0: {
+				l2_reference: {
+					device_id: device_id,
+					svi_id:
+				}
+
+				l3_reference: {
+					vrf_id: 0,
+					l2segment_id: 1,
 				}
 
 				type: 0,											-> 0: line, 1: square, 2: curve
@@ -247,7 +265,6 @@ this.diagram = {
 				}
 			}
 		}
-
 	}
 }
 

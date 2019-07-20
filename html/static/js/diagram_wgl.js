@@ -168,8 +168,8 @@ class WGL {
 		this.scene.L2.add(this.ambientlightL2);
 		this.scene.L2.add(this.directionallightL2);
 		
-		this.ambientlightL3 = new THREE.AmbientLight(0xFFFFFF, 0);
-		this.directionallightL3 = new THREE.DirectionalLight(0xFFFFFF, 1);
+		this.ambientlightL3 = new THREE.AmbientLight(0xFFFFFF, 0.7);
+		this.directionallightL3 = new THREE.DirectionalLight(0xFFFFFF, .4);
 		this.directionallightL3.castShadow = true;
 		this.directionallightL3.position.set(40,100,60);
 		this.directionallightL3.shadow.camera.left = -50;
@@ -267,7 +267,7 @@ class WGL {
 		view.children.forEach((base_element) => {
 			if(base_element.userData.type === "base") {
 				base_element.children.forEach((device) => {
-					if(device.userData.type === "device")
+					if((device.userData.type === "device") || (device.userData.type === "vrf") || (device.userData.type === "l2segment"))
 						this.adjustDeviceNameRotation(device);
 				})
 			}
@@ -306,19 +306,19 @@ class WGL {
 		}
 		else {
 			this.camera[this.view].ortho_size += dy*.1;
-			if(this.camera.L2.ortho_size < 1)
-				this.camera.L2.ortho_size = 1;
-			if(this.camera.L2.ortho_size > this.domelement.clientHeight*.1)
-				this.camera.L2.ortho_size = this.domelement.clientHeight*.1;
+			if(this.camera[this.view].ortho_size < 1)
+				this.camera[this.view].ortho_size = 1;
+			if(this.camera[this.view].ortho_size > this.domelement.clientHeight*.1)
+				this.camera[this.view].ortho_size = this.domelement.clientHeight*.1;
 			
 			let os = this.camera[this.view].ortho_size;
 
 			let cam_ratio = this.domelement.clientWidth / this.domelement.clientHeight;
 
-			ac.left = -this.camera.L2.ortho_size * cam_ratio;
-			ac.right = this.camera.L2.ortho_size * cam_ratio;
-			ac.top = this.camera.L2.ortho_size;
-			ac.bottom = -this.camera.L2.ortho_size;
+			ac.left = -this.camera[this.view].ortho_size * cam_ratio;
+			ac.right = this.camera[this.view].ortho_size * cam_ratio;
+			ac.top = this.camera[this.view].ortho_size;
+			ac.bottom = -this.camera[this.view].ortho_size;
 			ac.updateProjectionMatrix();
 
 			this.draw_needed = true;
@@ -383,6 +383,52 @@ class WGL {
 					}
 				}				
 			}
+		}
+
+		return linklist;
+	}
+
+	findLinksOfL2Segment(id) {
+		let linklist = {
+			l2link: {},
+			interface: {},
+			svi_interface: {},
+		};
+
+		for(let x = 0; x < this.scene.L3.children.length; x++) {
+			let element = this.scene.L3.children[x];
+			if((element.userData.type == "l2link") && (
+					(element.userData.e.l3_reference.src_l2segment_id === id) ||
+					(element.userData.e.l3_reference.dst_l2segment_id === id)
+				))
+				linklist.l2link[element.userData.id] = element;
+			else if((element.userData.type == "interface") && (element.userData.e.l3_reference.l2segment_id === id))
+				linklist.interface[element.userData.id] = element;
+			else if((element.userData.type == "svi_interface") && (element.userData.e.l3_reference.l2segment_id === id))
+				linklist.svi_interface[element.userData.id] = element;
+		}
+
+		return linklist;
+	}
+
+	findLinksOfVrf(id) {
+		let linklist = {
+			p2p_interface: {},
+			interface: {},
+			svi_interface: {},
+		};
+
+		for(let x = 0; x < this.scene.L3.children.length; x++) {
+			let element = this.scene.L3.children[x];
+			if((element.userData.type == "p2p_interface") && (
+					(element.userData.e.l3_reference.src_vrf_id === id) ||
+					(element.userData.e.l3_reference.dst_vrf_id === id)
+				))
+				linklist.p2p_interface[element.userData.id] = element;
+			else if((element.userData.type == "interface") && (element.userData.e.l3_reference.vrf_id === id))
+				linklist.interface[element.userData.id] = element;
+			else if((element.userData.type == "svi_interface") && (element.userData.e.l3_reference.vrf_id === id))
+				linklist.svi_interface[element.userData.id] = element;
 		}
 
 		return linklist;
@@ -471,7 +517,7 @@ class WGL {
 			if(type === "device") {
 				let listlinks = this.findLinksOfDevice(id, this.scene[view]);
 				for (let x = 0; x < listlinks.length; x++) {
-					this.updateLinkGeometry(listlinks[x], view);
+					this.updateLinkGeometry("link", listlinks[x], view);
 				}
 				// In case of devices, we have to adjust the rotation of the name to face the camera
 				// in this case, this is only a problem if the device is changing base
@@ -480,7 +526,23 @@ class WGL {
 			else if(type === "base") {
 				let links = this.findLinksOfBase(mesh, this.scene[view]);
 				for(let link_id in links) {
-					this.updateLinkGeometry(links[link_id], view);
+					this.updateLinkGeometry("link", links[link_id], view);
+				}
+			}
+			else if(type === "l2segment") {
+				let links = this.findLinksOfL2Segment(id);
+				for(let link_type in links) {
+					for(let link_id in links[link_type]) {
+						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
+					}
+				}
+			}
+			else if(type === "vrf") {
+				let links = this.findLinksOfVrf(id);
+				for(let link_type in links) {
+					for(let link_id in links[link_type]) {
+						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
+					}
 				}
 			}
 
@@ -516,7 +578,7 @@ class WGL {
 			if(type == "base") {
 				let links = this.findLinksOfBase(mesh, this.scene[view]);
 				for(let link_id in links) {
-					this.updateLinkGeometry(links[link_id], view);
+					this.updateLinkGeometry("link", links[link_id], view);
 				}
 				this.adjustLabelsToCamera();
 			}
@@ -553,7 +615,7 @@ class WGL {
 					mesh.userData.e.sz = sz;
 			}
 			if(type == "device") {
-				this.updateDeviceGeometry(id, view);
+				this.updateDeviceGeometry("device", id, view);
 				this.addDeviceName(mesh);
 			}
 			else if(type == "symbol")
@@ -612,7 +674,7 @@ class WGL {
 
 					let listlinks = this.findLinksOfDevice(mesh.children[x].userData.id, this.scene[view]);
 					for (let x = 0; x < listlinks.length; x++) {
-						this.updateLinkGeometry(listlinks[x], view);
+						this.updateLinkGeometry("link", listlinks[x], view);
 					}
 				}
 				else if(mesh.children[x].userData.type == "text") {
@@ -632,7 +694,7 @@ class WGL {
 			mesh.userData.e.color1 = color1;
 			mesh.userData.e.color2 = color2;
 			mesh.userData.e.ifnaming = ifnaming
-			this.updateDeviceColor(id, "L2");
+			this.updateDeviceColor("device", id, "L2");
 			this.addDeviceName(mesh);
 		}
 	}
@@ -645,7 +707,7 @@ class WGL {
 			mesh.userData.e.linedata.color = color;
 			mesh.userData.e.linedata.weight = weight;
 			mesh.userData.e.linedata.height = height;
-			this.updateLinkGeometry(mesh, "L2");
+			this.updateLinkGeometry("link", mesh, "L2");
 		}
 	}
 
@@ -747,7 +809,15 @@ class WGL {
 		let mesh = this.findMesh("link", link_id, this.scene[view]);
 		if(mesh) {
 			mesh.userData.e.linedata.points.splice(joint_index, 1);
-			this.updateLinkGeometry(mesh, "L2");
+			this.updateLinkGeometry("link", mesh, "L2");
+		}
+	}
+
+	changeNameVRF(id, newname) {
+		let mesh = this.findMesh("vrf", id, this.scene.L3);
+		if(mesh) {
+			mesh.userData.e.name = newname;
+			this.addDeviceName(mesh);
 		}
 	}
 
@@ -1281,10 +1351,10 @@ class WGL {
 		this.setGeometryUpdated(g, true);
 	}
 
-	updateStandardDeviceGeometry(meshgroup) {
+	updateStandardGeometry(meshgroup, geometry_type) {
 		let template_geometry = GEOMETRY.DEVICE.UNKNOWN;
-		if(meshgroup.userData.e.type in GEOMETRY.DEVICE)
-			template_geometry = GEOMETRY.DEVICE[meshgroup.userData.e.type];
+		if(meshgroup.userData.e.type in GEOMETRY[geometry_type])
+			template_geometry = GEOMETRY[geometry_type][meshgroup.userData.e.type];
 
 		let m = this.findMeshesOfGroup(meshgroup);
 		let g = [m[0].geometry, m[1].geometry]
@@ -1325,19 +1395,19 @@ class WGL {
 		this.setGeometryUpdated(g, template_geometry.flat_normals);
 	}
 
-	updateDeviceGeometry(id, sceneid) {
-		let meshgroup = this.findMesh("device", id, this.scene[sceneid]);
+	updateDeviceGeometry(type, id, sceneid) {
+		let meshgroup = this.findMesh(type, id, this.scene[sceneid]);
 
 		if(meshgroup.userData.e.type == "S")
 			this.updateDeviceCubeGeometry(meshgroup, 1, .4, 1);
 		else if(meshgroup.userData.e.type == "LB")
 			this.updateDeviceLBGeometry(meshgroup, 1, .4, 1, .6, .8);
 		else
-			this.updateStandardDeviceGeometry(meshgroup);
+			this.updateStandardGeometry(meshgroup, "DEVICE");
 	}
 
-	updateDeviceColor(id, sceneid) {
-		let meshgroup = this.findMesh("device", id, this.scene[sceneid]);
+	updateDeviceColor(type, id, sceneid) {
+		let meshgroup = this.findMesh(type, id, this.scene[sceneid]);
 		let m = this.findMeshesOfGroup(meshgroup);
 
 		let color = [meshgroup.userData.e.color1, meshgroup.userData.e.color2];
@@ -1364,7 +1434,7 @@ class WGL {
 			return GEOMETRY.DEVICE["UNKNOWN"].texture[index];
 	}
 
-	addDevice(id, sceneid, e, alignToGrid) {
+	addDevice(type, id, sceneid, e, alignToGrid) {
 		let geometry1 = new THREE.Geometry();
 		let geometry2 = new THREE.Geometry();
 		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
@@ -1385,22 +1455,22 @@ class WGL {
 		group.add(mesh2);
 
 		mesh1.userData.id = id;
-		mesh1.userData.type = "device";
+		mesh1.userData.type = type;
 		mesh1.userData.e = e
 		mesh2.userData.id = id;
-		mesh2.userData.type = "device";
+		mesh2.userData.type = type;
 		mesh2.userData.e = e
 		group.userData.id = id;
-		group.userData.type = "device";
+		group.userData.type = type;
 		group.userData.e = e
 
 		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
 		basemesh.add(group);
 
-		this.updateDeviceGeometry(id, sceneid);
-		this.updateDeviceColor(id, sceneid);
+		this.updateDeviceGeometry(type, id, sceneid);
+		this.updateDeviceColor(type, id, sceneid);
 
-		this.moveMesh(sceneid, "device", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		this.moveMesh(sceneid, type, id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
 		group.rotation.x = e.rx;
 		group.rotation.y = e.ry;
 		group.rotation.z = e.rz;
@@ -1424,7 +1494,9 @@ class WGL {
 		}
 	}
 
-	addDeviceName(group) {
+	addDeviceName(group, size) {
+		if(!size)
+			size = .3;
 		let name = group.userData.e.name;
 
 		let m = null;
@@ -1445,7 +1517,7 @@ class WGL {
 		if(name == "")
 			return;
 
-		let g = this.createTextGeometry(name, .3, .01, "center")
+		let g = this.createTextGeometry(name, size, .01, "center")
 
 		let material = this.namematerial;
 		let mesh = new THREE.Mesh(g, material);
@@ -1511,14 +1583,14 @@ class WGL {
 		this.setGeometryUpdated([g], false);
 	}
 
-	addLinkSegment(id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, index) {
+	addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, index) {
 		let g = new THREE.Geometry();
 		this.updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, e.linedata.weight);
 		let m = new THREE.Mesh(g, material);
 		m.position.x = x1; m.position.y = y1; m.position.z = z1;
 
 		m.userData.id = id;
-		m.userData.type = "link";
+		m.userData.type = type;
 		m.userData.subtype = "segment";
 		m.userData.index = index;
 		m.userData.e = e
@@ -1526,28 +1598,48 @@ class WGL {
 		meshgroup.add(m);
 	}
 
-	addLinkJoint(id, e, meshgroup, x, y, z, material, index) {
+	addLinkJoint(type, id, e, meshgroup, x, y, z, material, index) {
 		let g = new THREE.SphereGeometry(e.linedata.weight*1.0, 10,10);
 		let m = new THREE.Mesh(g, material);
 		m.position.x = x, m.position.y = y, m.position.z = z;
 		m.userData.id = id;
-		m.userData.type = "link";
+		m.userData.type = type;
 		m.userData.subtype = "joint";
 		m.userData.joint_index = index;
 		m.userData.e = e
 		meshgroup.add(m);		
 	}
 
-	updateLinkGeometry(meshgroup, sceneid) {
+	updateLinkGeometry(type, meshgroup, sceneid) {
 		meshgroup.children = [];
 		
 		let e = meshgroup.userData.e;
 		let id = meshgroup.userData.id;
 
-		let material = new THREE.MeshStandardMaterial({color: e.linedata.color});
+		let material = new THREE.MeshPhongMaterial({color: e.linedata.color});
 
-		let dev1 = this.findMesh("device", e.devs[0].id, this.scene[sceneid]);
-		let dev2 = this.findMesh("device", e.devs[1].id, this.scene[sceneid]);
+		let dev1 = null;
+		let dev2 = null;
+		if(type === "link") {
+			dev1 = this.findMesh("device", e.devs[0].id, this.scene[sceneid]);
+			dev2 = this.findMesh("device", e.devs[1].id, this.scene[sceneid]);
+		}
+		else if(type === "l2link") {
+			dev1 = this.findMesh("l2segment", e.l3_reference.src_l2segment_id, this.scene[sceneid]);
+			dev2 = this.findMesh("l2segment", e.l3_reference.dst_l2segment_id, this.scene[sceneid]);
+		}
+		else if(type === "interface") {
+			dev1 = this.findMesh("vrf", e.l3_reference.vrf_id, this.scene[sceneid]);
+			dev2 = this.findMesh("l2segment", e.l3_reference.l2segment_id, this.scene[sceneid]);
+		}
+		else if(type === "svi_interface") {
+			dev1 = this.findMesh("vrf", e.l3_reference.vrf_id, this.scene[sceneid]);
+			dev2 = this.findMesh("l2segment", e.l3_reference.l2segment_id, this.scene[sceneid]);
+		}
+		else if(type === "p2p_interface") {
+			dev1 = this.findMesh("vrf", e.l3_reference.src_vrf_id, this.scene[sceneid]);
+			dev2 = this.findMesh("vrf", e.l3_reference.dst_vrf_id, this.scene[sceneid]);
+		}
 
 		this.tempVector = dev1.getWorldPosition();
 		let x1 = this.tempVector.x;
@@ -1558,10 +1650,10 @@ class WGL {
 		if(e.type == 0) {
 			for(let x = 0; x < points.length; x++) {
 				// Create intermediate link segmnets
-				this.addLinkSegment(id, e, meshgroup, x1, y1, z1, points[x][0], points[x][1], points[x][2], material, x);
+				this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, points[x][0], points[x][1], points[x][2], material, x);
 
 				// Create joint
-				this.addLinkJoint(id, e, meshgroup, points[x][0], points[x][1], points[x][2], material, x);
+				this.addLinkJoint(type, id, e, meshgroup, points[x][0], points[x][1], points[x][2], material, x);
 
 				x1 = points[x][0]; y1 = points[x][1]; z1 = points[x][2];
 			}
@@ -1571,7 +1663,7 @@ class WGL {
 			let y2 = this.tempVector.y+e.linedata.height;
 			let z2 = this.tempVector.z;
 			// Create last segment
-			this.addLinkSegment(id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, points.length);
+			this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, points.length);
 
 		}
 		else if (e.type == 1) {
@@ -1582,47 +1674,47 @@ class WGL {
 
 			for(let x = 0; x < 2; x++) {
 				if ((e.order[x] == "X") && (x1 !== x2)) {
-					this.addLinkSegment(id, e, meshgroup, x1, y1, z1, x2, y1, z1, material, 0);
+					this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y1, z1, material, 0);
 					if ((x1 !== x2) || (y1 !== y2) || (z1 !== z2))
-						this.addLinkJoint(id, e, meshgroup, x2, y1, z1, material, 0);
+						this.addLinkJoint(type, id, e, meshgroup, x2, y1, z1, material, 0);
 					x1 = x2;
 				}
 				else if ((e.order[x] == "Y") && (y1 !== y2)) {
-					this.addLinkSegment(id, e, meshgroup, x1, y1, z1, x1, y2, z1, material, 0);
+					this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x1, y2, z1, material, 0);
 					if ((x1 !== x2) || (y1 !== y2) || (z1 !== z2))
-						this.addLinkJoint(id, e, meshgroup, x1, y2, z1, material, 0);
+						this.addLinkJoint(type, id, e, meshgroup, x1, y2, z1, material, 0);
 					y1 = y2;
 				}
 				else if ((e.order[x] == "Z") && (z1 !== z2)) {
-					this.addLinkSegment(id, e, meshgroup, x1, y1, z1, x1, y1, z2, material, 0);
+					this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x1, y1, z2, material, 0);
 					if ((x1 !== x2) || (y1 !== y2) || (z1 !== z2))
-						this.addLinkJoint(id, e, meshgroup, x1, y1, z2, material, 0);
+						this.addLinkJoint(type, id, e, meshgroup, x1, y1, z2, material, 0);
 					z1 = z2;
 				}
 			}
 			if ((x1 !== x2) || (y1 !== y2) || (z1 !== z2))
-				this.addLinkSegment(id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, 0);
+				this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, 0);
 		}
 	}
 
-	addLink(id, sceneid, e) {
+	addLink(type, id, sceneid, e) {
 		let meshgroup = new THREE.Group ();
 
 		meshgroup.userData.id = id;
-		meshgroup.userData.type = "link";
+		meshgroup.userData.type = type;
 		meshgroup.userData.e = e
 
-		this.updateLinkGeometry(meshgroup, sceneid);
+		this.updateLinkGeometry(type, meshgroup, sceneid);
 
 		this.scene[sceneid].add(meshgroup);
 
 		return meshgroup;
 	}
 
-	addJoint(link_id, joint_index, sceneid, px, py, pz) {
-		let link = this.getMesh(sceneid, "link", link_id);
+	addJoint(type, link_id, joint_index, sceneid, px, py, pz) {
+		let link = this.getMesh(sceneid, type, link_id);
 		link.userData.e.linedata.points.splice(joint_index, 0, [px, py, pz]);
-        d.wgl.updateLinkGeometry(link, sceneid);
+        d.wgl.updateLinkGeometry(type, link, sceneid);
 	}
 
 	updateLine(mesh) {
@@ -1695,7 +1787,7 @@ class WGL {
 			font: this.font,
 			size: height,
 			height: depth,
-			curveSegments: 6,
+			curveSegments: 2,
 			bevelEnabled: false,
 		});
 		this.alignText(g, alignment);
@@ -1918,7 +2010,7 @@ class WGL {
 
 		meshgroup.userData.id = id;
 		meshgroup.userData.type = "symbol";
-		meshgroup.userData.e = e
+		meshgroup.userData.e = e;
 
 		this.updateSymbolGeometry(meshgroup);
 
@@ -1934,5 +2026,90 @@ class WGL {
 		//meshgroup.scale.z = e.sz;
 
 		return meshgroup;
+	}
+
+	updateL2SegmentGeometry(meshgroup) {
+		let m = this.findMeshesOfGroup(meshgroup);
+		let g = m[0].geometry;
+
+		g.vertices = [];
+		g.faces = [];
+		g.faceVertexUvs[0] = [];
+
+		let vertices = [];
+		let faces = [];
+		let fvuvs = [];
+		let n_points = 16;
+		let x_spacing = [[0,.6], [-.54,.65], [-.55,.7], [-.54,.9], [-.5,1], [.5,1], [.54,.9], [.55,.7], [.54,.65], [0,.6]];
+
+		for(let x = 0; x < n_points+1; x++) {
+			for(let y = 0; y < x_spacing.length; y++) {
+				vertices.push([
+					x_spacing[y][0] * meshgroup.userData.e.sx,
+					(.5 + .5 * x_spacing[y][1] * Math.sin(2*x*Math.PI/n_points)) * meshgroup.userData.e.sy,
+					(.5 * x_spacing[y][1] * Math.cos(2*x*Math.PI/n_points)) * meshgroup.userData.e.sz
+				]);
+			}
+		}
+		for(let x = 0; x < n_points; x++) {
+			for(let y = 0; y < (x_spacing.length-1); y++) {
+				faces.push([x*x_spacing.length+y, x*x_spacing.length+y+1, (x+1)*x_spacing.length + y+1]);
+				faces.push([x*x_spacing.length+y, (x+1)*x_spacing.length+y+1, (x+1)*x_spacing.length + y]);
+				fvuvs.push([[x_spacing[y][0]*meshgroup.userData.e.sx, 2*Math.PI*x/n_points], [x_spacing[y+1][0]*meshgroup.userData.e.sx, 2*Math.PI*x/n_points], [x_spacing[y+1][0]*meshgroup.userData.e.sx,2*Math.PI*(x+1)/n_points]]);
+				fvuvs.push([[x_spacing[y][0]*meshgroup.userData.e.sx, 2*Math.PI*x/n_points], [x_spacing[y+1][0]*meshgroup.userData.e.sx, 2*Math.PI*(x+1)/n_points], [x_spacing[y][0]*meshgroup.userData.e.sx, 2*Math.PI*(x+1)/n_points]]);
+			}
+		}
+
+		this.addListVertex(g.vertices, vertices);
+		this.addListFaces(g.faces, g.faceVertexUvs[0], faces, fvuvs);
+
+		g.verticesNeedUpdate = true;
+		g.elementsNeedUpdate = true;
+		g.uvsNeedUpdate = true;
+
+		g.computeBoundingBox();
+		g.computeBoundingSphere();
+		g.computeVertexNormals();
+		//g.computeFlatVertexNormals();
+
+		this.draw_needed = true;
+	}
+
+	addL2Segment(id, e, alignToGrid) {
+		let geometry1 = new THREE.Geometry();
+		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/basic.png", (t) => {this.processLoadedTexture(t)} );
+		
+		//let material1 = new THREE.MeshLambertMaterial({map: texture1, color: 0x888888})
+		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1});
+		let mesh1 = new THREE.Mesh( geometry1, material1 );
+		mesh1.userData.submesh = 1;
+
+		let group = new THREE.Group();
+
+		group.add(mesh1);
+
+		mesh1.userData.id = id;
+		mesh1.userData.type = "l2segment";
+		mesh1.userData.e = e
+		group.userData.id = id;
+		group.userData.type = "l2segment";
+		group.userData.e = e
+
+		let basemesh = this.findMesh("base", e.base, this.scene.L3);
+		basemesh.add(group);
+
+		this.updateL2SegmentGeometry(group);
+
+		this.moveMesh("L3", "l2segment", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		group.rotation.x = e.rx;
+		group.rotation.y = e.ry;
+		group.rotation.z = e.rz;
+		group.updateMatrixWorld();
+
+		mesh1.castShadow = true;
+
+		this.addDeviceName(group, .2);
+
+		return group;
 	}
 }
