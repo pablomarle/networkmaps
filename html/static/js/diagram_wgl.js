@@ -1785,6 +1785,7 @@ class WGL {
 	}
 
 	createTextGeometry(text, height, depth, alignment) {
+		/*
 		let g = new THREE.TextGeometry(text, {
 			font: this.font,
 			size: height,
@@ -1795,13 +1796,19 @@ class WGL {
 		this.alignText(g, alignment);
 
 		return g;
+		*/
+		let shapes = this.font.generateShapes( text, height, 2 );
+		let geometry = new THREE.ShapeGeometry( shapes, 4 );
+		this.alignText(geometry, alignment);
+
+		return geometry;
 	}
 
 	addText(id, sceneid, e, alignToGrid) {
 		let base = this.findMesh("base", e.base, this.scene[sceneid]);
 		let g = this.createTextGeometry(e.text, e.height, e.depth, "center")
 
-		let material = new THREE.MeshStandardMaterial({color: e.color});
+		let material = new THREE.MeshStandardMaterial({color: e.color, side: THREE.DoubleSide});
 		let mesh = new THREE.Mesh(g, material);
 		mesh.userData.id = id;
 		mesh.userData.type = "text";
