@@ -614,12 +614,14 @@ class WGL {
 				if(sz >= .1)
 					mesh.userData.e.sz = sz;
 			}
-			if(type == "device") {
-				this.updateDeviceGeometry("device", id, view);
+			if((type === "device") || (type === "vrf")) {
+				this.updateDeviceGeometry(type, id, view);
 				this.addDeviceName(mesh);
 			}
 			else if(type == "symbol")
 				this.updateSymbolGeometry(mesh);
+			else if(type == "l2segment")
+				this.updateL2SegmentGeometry(mesh);
 
 			this.draw_needed = true;
 		}
@@ -879,7 +881,7 @@ class WGL {
 				let be = this.scene[view].children[x];
 				if (be.userData.type === "base") {
 					for(let y = 0; y < be.children.length; y++) {
-						if(be.children[y].userData.type === "device") {
+						if((be.children[y].userData.type === "device") || (be.children[y].userData.type === "vrf") || (be.children[y].userData.type === "l2segment")) {
 							this.updateDeviceNameVisibility(be.children[y]);
 						}
 					}

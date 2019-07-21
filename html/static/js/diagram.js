@@ -255,10 +255,7 @@ function process_message_resize(data) {
     if((data.v == "L2") && (data.t == "base")) {
         d.wgl.resizeMesh_Base(data.v, data.i, data.x, data.y, data.z);
     }
-    else if((data.v == "L2") && (data.t == "device")) {
-        d.wgl.resizeMesh(data.v, data.t, data.i, data.x, data.y, data.z);
-    }
-    else if((data.v == "L2") && (data.t == "symbol")) {
+    else {
         d.wgl.resizeMesh(data.v, data.t, data.i, data.x, data.y, data.z);
     }
 }
@@ -1244,17 +1241,20 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if ((d.dom.tools.active_t  === "EX") && (d.current_view === "L2")) {
+    else if (d.dom.tools.active_t  === "EX") {
         // Scale element
         if(
-            (objlist.length > 0) && 
-            ((objlist[0].mesh.userData.type === "device") || (objlist[0].mesh.userData.type === "symbol"))
-          ) {
+            (objlist.length > 0) && (
+                (objlist[0].mesh.userData.type === "device") ||
+                (objlist[0].mesh.userData.type === "symbol") ||
+                (objlist[0].mesh.userData.type === "l2segment") ||
+                (objlist[0].mesh.userData.type === "vrf")
+            )) {
             d.mouseaction = {
                 m: "EX",
                 id: objlist[0].mesh.userData.id,
                 type: objlist[0].mesh.userData.type,
-                y: d.wgl.getMesh(d.current_view, "device", objlist[0].mesh.userData.id).parent.userData.e.sy,
+                y: d.wgl.getMesh(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id).parent.userData.e.sy,
             }
         }
     }
@@ -1667,8 +1667,12 @@ function mousemove(x, y, dx, dy, dom_element) {
         let newscale = Math.abs(2*p.x*mesh.scale.x);
         if (Math.abs(p.z) > Math.abs(p.x))
             newscale = Math.abs(2*p.z*mesh.scale.z);
-        d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
-            newscale, newscale, newscale, true);
+        if(d.mouseaction.type === "l2segment")
+            d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
+                newscale, null, null, true);
+        else
+            d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
+                newscale, newscale, newscale, true);
     }
 }
 
