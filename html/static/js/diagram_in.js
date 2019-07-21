@@ -19,14 +19,14 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback) {
 	domelement.addEventListener("mouseout", Input_mouseout);
 	domelement.addEventListener("mousemove", Input_mousemove);
 
-	domelement.addEventListener("touchstart", Input_touchstart);
-	domelement.addEventListener("touchend", Input_touchend);
-	domelement.addEventListener("touchmove", Input_touchmove);
-	domelement.addEventListener("touchenter", Input_touchenter);
-	domelement.addEventListener("touchleave", Input_touchleave);
-	domelement.addEventListener("touchcancel", Input_touchcancel);
+	domelement.addEventListener("touchstart", Input_touchstart, {passive: false});
+	domelement.addEventListener("touchend", Input_touchend, {passive: false});
+	domelement.addEventListener("touchmove", Input_touchmove, {passive: false});
+	domelement.addEventListener("touchenter", Input_touchenter, {passive: false});
+	domelement.addEventListener("touchleave", Input_touchleave, {passive: false});
+	domelement.addEventListener("touchcancel", Input_touchcancel, {passive: false});
 
-	domelement.addEventListener("contextmenu", Input_contextmenu);
+	domelement.addEventListener("contextmenu", Input_contextmenu, {passive: false});
 }
 
 function Input_registerclass(classname, callback_md, callback_mu, callback_mm) {
@@ -168,7 +168,7 @@ function Input_touchstart(ev) {
 	INPUT.diffx = 0;
 	INPUT.diffy = 0;
 
-	if(Input_findtarget(ev.changedTouches[0].composedPath()))
+	if(Input_findtarget(ev.composedPath()))
 		ev.preventDefault();
 
 	Input_callback("md");
@@ -178,7 +178,7 @@ function Input_touchstart(ev) {
 
 function Input_touchend(ev) {
 	if(INPUT.actionrunning == "T") {
-		ev.preventDefault();
+		//ev.preventDefault();
 		for(let x = 0; x < ev.changedTouches.length; x++) {
 			let t = ev.changedTouches[x];
 			if(t.identifier == INPUT.touchid) {
@@ -199,7 +199,7 @@ function Input_touchend(ev) {
 
 function Input_touchmove(ev) {
 	if(INPUT.actionrunning == "T") {
-		ev.preventDefault();
+		//ev.preventDefault();
 		for(let x = 0; x < ev.changedTouches.length; x++) {
 			let t = ev.changedTouches[x];
 			if(t.identifier == INPUT.touchid) {
