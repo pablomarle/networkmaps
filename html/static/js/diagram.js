@@ -36,31 +36,6 @@ function createDefaultDevice(x, y, z, type, base) {
         dev.color2 = 0xaaaaaa;        
     }
 
-/*    if ((type === "R") || (type === "S") || (type === "LB")) {
-        dev.color1 = 0x66aaff;
-        dev.color2 = 0x88ccff;
-    }
-    else if ((type === "ML")) {
-        dev.color1 = 0x66aaff;
-        dev.color2 = 0xff4444;
-    }
-    else if ((type === "F")) {
-        dev.color1 = 0xbb7766;
-        dev.color2 = 0xbb7766;
-    }
-    else if ((type === "SR") || (type === "ST")) {
-        dev.color1 = 0x333333;
-        dev.color2 = 0x666666;
-    }
-    else if(type.startsWith("_B")) {
-        dev.color1 = 0x66aaff;
-        dev.color2 = 0x88ccff;        
-    }
-    else {
-        dev.color1 = 0xcccccc;
-        dev.color2 = 0xaaaaaa;        
-    }
-*/
     return dev;
 }
 
@@ -1241,9 +1216,15 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if ((d.dom.tools.active_t === "ER") && (d.current_view === "L2")) {
+    else if (d.dom.tools.active_t === "ER") {
         // Rotate element
-        if((objlist.length > 0) && ((objlist[0].mesh.userData.type === "device") || (objlist[0].mesh.userData.type === "text") || ((objlist[0].mesh.userData.type === "symbol"))) ) {
+        if((objlist.length > 0) && (
+                (objlist[0].mesh.userData.type === "device") || 
+                (objlist[0].mesh.userData.type === "text") || 
+                (objlist[0].mesh.userData.type === "symbol") ||
+                (objlist[0].mesh.userData.type === "vrf") ||
+                (objlist[0].mesh.userData.type === "l2segment")
+                    ))  {
             v = d.wgl.getMeshRotation(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id)
             d.mouseaction = {
                 m: "ER",
@@ -1659,7 +1640,7 @@ function mousemove(x, y, dx, dy, dom_element) {
         d.wgl.rotateMesh(d.current_view, "base", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
     }
     else if(d.dom.tools.active_t === "ER") {
-        if((d.mouseaction.type == "device") || (d.mouseaction.type == "symbol")) {
+        if((d.mouseaction.type == "device") || (d.mouseaction.type == "symbol") || (d.mouseaction.type == "l2segment") || (d.mouseaction.type == "vrf")) {
             d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
             d.wgl.rotateMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
         }
