@@ -218,8 +218,9 @@ class WGL {
 	}
 
 	setView(view) {
+		this.view = view;
 		this.draw_needed = true;
-		this.view = view;		
+		this.adjustLabelsToCamera();
 	}
 
 	draw() {
@@ -1532,7 +1533,7 @@ class WGL {
 		mesh.position.y = height+.5;
 		mesh.position.z = 0;
 		mesh.rotation.order = "YXZ";
-		mesh.rotation.x = -Math.PI/4;
+		mesh.rotation.x = this.camera[this.view][this.camera.current].rotation.x;
 
 		group.add(mesh);
 
@@ -1545,8 +1546,10 @@ class WGL {
 
 	adjustDeviceNameRotation(device) {
 		device.children.forEach((label) => {
-			if(label.userData.submesh === "name")
+			if(label.userData.submesh === "name") {
 				label.rotation.y = this.camera[this.view][this.camera.current].rotation.y - device.rotation.y - device.parent.rotation.y; 
+				label.rotation.x = this.camera[this.view][this.camera.current].rotation.x;
+			}
 		})
 	}
 
