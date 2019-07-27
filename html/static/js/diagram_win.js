@@ -1027,7 +1027,7 @@ function WIN_showTextWindow(view, type, id, e, callback) {
 	}, "Apply changes.");	
 }
 
-function WIN_showL2SymbolFlagWindow(view, type, id, e, callback) {
+function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
 	let wdata = WIN_create(view, type, id, "Symbol " + id, 440, 140);
 	if(!wdata)
 		return;

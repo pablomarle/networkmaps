@@ -764,8 +764,8 @@ class WGL {
 		}
 	}
 
-	settingsMesh_L2Symbol(id, data) {
-		let mesh = this.findMesh("symbol", id, this.scene["L2"]);
+	settingsMesh_Symbol(view, id, data) {
+		let mesh = this.findMesh("symbol", id, this.scene[view]);
 		if(mesh) {
 			if(mesh.userData.e.type == "F") {
 				mesh.userData.e.color = data.color;

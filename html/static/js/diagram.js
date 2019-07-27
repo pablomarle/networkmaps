@@ -273,8 +273,8 @@ function process_message_settings(data) {
     else if(data.t == "text") {
         d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.depth, data.color);
     }
-    else if((data.v == "L2") && (data.t == "symbol")) {
-        d.wgl.settingsMesh_L2Symbol(data.i, data);
+    else if(data.t == "symbol") {
+        d.wgl.settingsMesh_Symbol(data.v, data.i, data);
     }
 }
 
@@ -750,7 +750,7 @@ function sendSettings_Text(view, type, id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendSettings_L2SymbolFlag(view, type, id, windata) {
+function sendSettings_SymbolFlag(view, type, id, windata) {
     let message = {
         m: "P",
         d: {
@@ -1468,11 +1468,18 @@ function mouseup(x, y, dx, dy, dom_element) {
                         });
             }
             else if (a.obj.mesh.userData.type == "symbol") {
-                if(a.obj.mesh.userData.e.type == "F")
-                    WIN_showL2SymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_L2SymbolFlag("L2", "symbol", a.obj.mesh.userData.id, windata);
-                        });
+                if(a.obj.mesh.userData.e.type == "F") {
+                    if(d.current_view === "L2")
+                        WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                            (windata) => {
+                                sendSettings_SymbolFlag("L2", "symbol", a.obj.mesh.userData.id, windata);
+                            });
+                    else if(d.current_view === "L3")
+                        WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                            (windata) => {
+                                sendSettings_SymbolFlag("L3", "symbol", a.obj.mesh.userData.id, windata);
+                            });
+                }
             }
         }
     }
