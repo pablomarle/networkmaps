@@ -367,24 +367,56 @@ class WGL {
 	}
 
 	findLinksOfBase(base, basemesh) {
-		let linklist = {};
-		let devids = {};
-		for (let i_dev = 0; i_dev < base.children.length; i_dev ++) {
-			if (base.children[i_dev].userData.type === "device") {
-				devids[base.children[i_dev].userData.id] = true;
-			}
-		}
-		for(let x = 0; x < basemesh.children.length; x++) {
-			let c = basemesh.children[x];
+		let linklist = {
+			link: {},
+			l2link: {},
+			interface: {},
+			svi_interface: {},
+			p2p_interface: {}
+		};
+		let devids = new Set();
+		let vrfids = new Set();
+		let l2segmentids = new Set();
+
+		base.children.forEach((element) => {
+			if(element.userData.type === "device")
+				devids.add(element.userData.id);
+			if(element.userData.type === "l2segment")
+				l2segmentids.add(element.userData.id);
+			if(element.userData.type === "vrf")
+				vrfids.add(element.userData.id);
+		});
+
+		basemesh.children.forEach((c) => {
 			if(c.userData.type === "link") {
 				for(let y = 0; y < c.userData.e.devs.length; y++) {
-					if (c.userData.e.devs[y].id in devids) {
-						linklist[c.userData.id] = c;
+					if (devids.has(c.userData.e.devs[y].id)) {
+						linklist.link[c.userData.id] = c;
 						break;
 					}
-				}				
+				}
 			}
-		}
+			else if((c.userData.type === "l2link") && ( 
+				l2segmentids.has(c.userData.e.l3_reference.src_l2segment_id) || 
+				l2segmentids.has(c.userData.e.l3_reference.dst_l2segment_id) 
+				))
+				linklist.l2link[c.userData.id] = c;
+			else if((c.userData.type === "interface") && ( 
+				vrfids.has(c.userData.e.l3_reference.vrf_id) || 
+				l2segmentids.has(c.userData.e.l3_reference.l2segment_id) 
+				))
+				linklist.interface[c.userData.id] = c;
+			else if((c.userData.type === "svi_interface") && ( 
+				vrfids.has(c.userData.e.l3_reference.vrf_id) || 
+				l2segmentids.has(c.userData.e.l3_reference.l2segment_id) 
+				))
+				linklist.svi_interface[c.userData.id] = c;
+			else if((c.userData.type === "p2p_interface") && ( 
+				vrfids.has(c.userData.e.l3_reference.src_vrf_id) || 
+				vrfids.has(c.userData.e.l3_reference.dst_vrf_id) 
+				))
+				linklist.p2p_interface[c.userData.id] = c;
+		});
 
 		return linklist;
 	}
@@ -526,9 +558,9 @@ class WGL {
 			}
 			else if(type === "base") {
 				let links = this.findLinksOfBase(mesh, this.scene[view]);
-				for(let link_id in links) {
-					this.updateLinkGeometry("link", links[link_id], view);
-				}
+				for(let link_type in links)
+					for(let link_id in links[link_type])
+						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
 			}
 			else if(type === "l2segment") {
 				let links = this.findLinksOfL2Segment(id);
@@ -578,9 +610,9 @@ class WGL {
 
 			if(type == "base") {
 				let links = this.findLinksOfBase(mesh, this.scene[view]);
-				for(let link_id in links) {
-					this.updateLinkGeometry("link", links[link_id], view);
-				}
+				for(let link_type in links)
+					for(let link_id in links[link_type])
+						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
 				this.adjustLabelsToCamera();
 			}
 			if(type == "device") {

@@ -36,7 +36,7 @@ body {
 
 .headtext {
 	display: inline;
-	font-size: 24px;
+	font-size: 20px;
 	margin:8px;
 }
 .headbutton {
@@ -214,7 +214,10 @@ body {
 .button:active {
 	box-shadow: 1px 1px 2px #5d948a;
 }
-
+.button-menu {
+	width:24px;
+	height: 24px;
+}
 .infobox {
 	font-size: 10px;
 	position: fixed;

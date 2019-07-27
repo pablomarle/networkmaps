@@ -152,7 +152,9 @@ function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
     	i.fireEvent("onchange");
 }
 
-function WIN_create(id, title, width, height) {
+function WIN_create(view, type, obj_id, title, width, height) {
+	let id = view + "_" + type + "_" + obj_id;
+
 	// Check if the id already exists
 	for(let x = 0; x < WIN_data.l.length; x++) {
 		if(WIN_data.l[x].id == id)
@@ -195,7 +197,12 @@ function WIN_create(id, title, width, height) {
 	let windata = {
 		w: w,
 		d: {},
-		id: id
+		id: id,
+		obj: {
+			view: view,
+			type: type,
+			id: obj_id,
+		}
 	}
 
 	WIN_data.l.push(windata);
@@ -634,9 +641,7 @@ function WIN_addRadioImgInput(win, px, py, label, choices, value, onchange_callb
 }
 
 function WIN_showGlobalSettingsWindow(gs, callbacks) {
-	let winid = "global_settings_window";
-
-	let wdata = WIN_create(winid, "Global Settings", 360, 160);
+	let wdata = WIN_create("global", "settings", "0", "Global Settings", 360, 160);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -669,9 +674,7 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
 }
 
 function WIN_showBaseElementWindow(view, type, id, e, callback) {
-	let winid = view + "_" + type + "_" + id;
-	
-	let wdata = WIN_create(winid, e.name, 460, 330);
+	let wdata = WIN_create(view, type, id, e.name, 460, 330);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -706,9 +709,7 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 }
 
 function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
-	let winid = view + "_" + type + "_" + id;
-	
-	let wdata = WIN_create(winid, e.name, 440, 340);
+	let wdata = WIN_create(view, type, id, e.name, 440, 340);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -731,7 +732,6 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 }
 
 function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
-	let winid = view + "_" + type + "_" + id + "_config";
 	let vrf_options = [];
 	for(let rd in e.vrfs) {
 		vrf_options.push([e.vrfs[rd].name, rd])
@@ -739,7 +739,7 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 	}
 	let default_vrf = (vrf_options.length > 0) ? vrf_options[0][1] : "";	
 
-	let wdata = WIN_create(winid, e.name, 660, 440);
+	let wdata = WIN_create(view, type + "-config", id, e.name, 660, 440);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -809,9 +809,7 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 }
 
 function WIN_showL2LinkWindow(view, type, id, e, callback) {
-	let winid = view + "_" + type + "_" + id;
-	
-	let wdata = WIN_create(winid, e.name, 440, 200);
+	let wdata = WIN_create(view, type, id, e.name, 440, 200);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -872,10 +870,9 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 			}
 
 	// Create the window
-	let winid = "L2_link_" + id + "_config";
 	let dev1name = (dev1.name == "" ? "unnamed" : dev1.name);
 	let dev2name = (dev2.name == "" ? "unnamed" : dev2.name);
-	let wdata = WIN_create(winid, "Link between '" + dev1name + "' and '" + dev2name + "'.", 360, 310);
+	let wdata = WIN_create("L2", "link-config", id, "Link between '" + dev1name + "' and '" + dev2name + "'.", 360, 310);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -985,9 +982,8 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 	}
 
 	// Create the window
-	let winid = "L2_link_" + link_id + "_dev_" + dev_index + "_config";
 	let devname = (dev.name == "" ? "unnamed" : dev.name);
-	let wdata = WIN_create(winid, "Dev " + devname + " interface config.", 600, 230);
+	let wdata = WIN_create("L2", "link-dev-"+ dev_index, link_id, "Dev " + devname + " interface config.", 600, 230);
 	if(!wdata)
 		return;
 
@@ -1008,9 +1004,7 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 }
 
 function WIN_showL2TextWindow(view, type, id, e, callback) {
-	let winid = view + "_" + type + "_" + id;
-	
-	let wdata = WIN_create(winid, "Text " + id, 440, 200);
+	let wdata = WIN_create(view, type, id, "Text " + id, 440, 200);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -1034,9 +1028,7 @@ function WIN_showL2TextWindow(view, type, id, e, callback) {
 }
 
 function WIN_showL2SymbolFlagWindow(view, type, id, e, callback) {
-	let winid = view + "_" + type + "_" + id;
-	
-	let wdata = WIN_create(winid, "Symbol " + id, 440, 140);
+	let wdata = WIN_create(view, type, id, "Symbol " + id, 440, 140);
 	if(!wdata)
 		return;
 	let w = wdata.w;

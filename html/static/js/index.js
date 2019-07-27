@@ -4,7 +4,7 @@ let index_data = {
 	session: null,
 	state: "",
 	current_diagram: {},
-	name: "ND"
+	name: "NetworkMaps"
 };
 
 function process_message(message) {
@@ -532,10 +532,15 @@ function screen_init_logged() {
 			div = DOM.cdiv(index_data.head, null, "headleft");
 				DOM.cimg(div, staticurl + "/static/img/icon.png", null, "titleicon");
 				DOM.cdiv(div, null, "headtext", index_data.name);
+			
 			div = DOM.cdiv(index_data.head, null, "headright");
-			i = DOM.cbutton(div, null, "button", "Account", null, () => {set_state("A")});
-			i = DOM.donate(div);
-			DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
+				//i = DOM.cbutton(div, null, "button", "Account", null, () => {set_state("A")});
+				//i = DOM.donate(div);
+				//DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
+				i = DOM.cimg(div, staticurl + "/static/img/account.png", null, "button button-menu", null, () => {set_state("A")});
+				set_node_infobox(i, "Account");
+				i = DOM.cimg(div, staticurl + "/static/img/unknown.png", null, "button button-menu", null, () => {set_state("AU")});
+				set_node_infobox(i, "About Us");
 		index_data.content = DOM.cdiv_fade(body, null, "content");
 			div = DOM.cdiv(index_data.content, null, "newdiagram");
 				i = DOM.cimg(div, staticurl + "/static/img/newdiagram.png", "newdiagram", "iconbutton button", null, () => {set_state("N")});

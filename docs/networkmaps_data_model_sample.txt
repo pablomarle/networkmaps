@@ -264,7 +264,9 @@ this.diagram = {
 					],
 				}
 			}
-		}
+		},
+		symbol: {} -> Same as L2
+		text: {} -> same as L2
 	}
 }
 
