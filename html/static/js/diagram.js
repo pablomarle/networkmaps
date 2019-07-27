@@ -294,13 +294,13 @@ function process_message_config(data) {
 
 function process_message_delete(data) {
     if(
-        (data.v == "L2") && (data.t == "base") ||
-        (data.v == "L2") && (data.t == "device") ||
-        (data.v == "L2") && (data.t == "link") ||
-        (data.v == "L2") && (data.t == "symbol") ||
-        (data.v == "L2") && (data.t == "text")
+        ((data.v == "L2") && (data.t == "base")) ||
+        ((data.v == "L2") && (data.t == "device")) ||
+        ((data.v == "L2") && (data.t == "link")) ||
+        (data.t == "symbol") ||
+        (data.t == "text")
         ) {
-        d.wgl.deleteMesh("L2", data.t, data.i)
+        d.wgl.deleteMesh(data.v, data.t, data.i)
     }
     else if((data.v == "L3") && (data.t == "base")) {
         d.wgl.deleteMesh("L3", data.t, data.i)
@@ -1292,10 +1292,28 @@ function mousedown(x, y, dx, dy, dom_element) {
             (d.dom.tools.active_t === "EI")
         ) && (d.current_view === "L2")
         ) {
-        // Element Delete, settings and data
+        // L2 Element Delete, settings and config
         if( (objlist.length > 0) && ((objlist[0].mesh.userData.type === "device") || 
                                      (objlist[0].mesh.userData.type === "link") ||
                                      (objlist[0].mesh.userData.type === "symbol") ||
+                                     (objlist[0].mesh.userData.type === "text")
+                                     )) {
+            d.mouseaction = {
+                m: d.dom.tools.active_t,
+                obj: objlist[0],
+                x: x,
+                y: y,
+            }
+        }
+    }
+    else if (
+        (
+            (d.dom.tools.active_t === "ED") ||
+            (d.dom.tools.active_t === "EC")
+        ) && (d.current_view === "L3")
+        ) {
+        // L3 Element Delete, settings
+        if( (objlist.length > 0) && ((objlist[0].mesh.userData.type === "symbol") || 
                                      (objlist[0].mesh.userData.type === "text")
                                      )) {
             d.mouseaction = {
