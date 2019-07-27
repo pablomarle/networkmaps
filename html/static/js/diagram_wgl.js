@@ -746,8 +746,8 @@ class WGL {
 		}
 	}
 
-	settingsMesh_L2Text(id, text, py, height, depth, color) {
-		let mesh = this.findMesh("text", id, this.scene["L2"]);
+	settingsMesh_Text(view, id, text, py, height, depth, color) {
+		let mesh = this.findMesh("text", id, this.scene[view]);
 		if(mesh) {
 			mesh.userData.e.text = text;
 			mesh.userData.e.py = py;

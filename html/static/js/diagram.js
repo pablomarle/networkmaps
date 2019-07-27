@@ -225,9 +225,9 @@ function process_message_add(data) {
     }
     else if(data.t == "text") {
         let mesh = d.wgl.addText(data.i, data.v, data.d);
-        WIN_showL2TextWindow(data.v, "text", mesh.userData.id, mesh.userData.e,
+        WIN_showTextWindow(data.v, "text", mesh.userData.id, mesh.userData.e,
             (windata) => {
-                sendSettings_L2Text(data.v, "text", mesh.userData.id, windata);
+                sendSettings_Text(data.v, "text", mesh.userData.id, windata);
             });
     }
     else if(data.t == "symbol") {
@@ -270,8 +270,8 @@ function process_message_settings(data) {
     else if((data.v == "L2") && (data.t == "link")) {
         d.wgl.settingsMesh_L2Link(data.i, data.type, data.order, data.color, data.weight, data.height);
     }
-    else if((data.v == "L2") && (data.t == "text")) {
-        d.wgl.settingsMesh_L2Text(data.i, data.text, data.py, data.height, data.depth, data.color);
+    else if(data.t == "text") {
+        d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.depth, data.color);
     }
     else if((data.v == "L2") && (data.t == "symbol")) {
         d.wgl.settingsMesh_L2Symbol(data.i, data);
@@ -727,7 +727,7 @@ function sendSettings_L2Link(view, type, id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendSettings_L2Text(view, type, id, windata) {
+function sendSettings_Text(view, type, id, windata) {
     if ((windata.d.text.value.length == 0) || (windata.d.text.value.length >= 64)) {
         DOM.showError("Format Error", "Text field length must be between 1 and 63.")
         return;
@@ -1456,10 +1456,16 @@ function mouseup(x, y, dx, dy, dom_element) {
                     });
             }
             else if (a.obj.mesh.userData.type == "text") {
-                WIN_showL2TextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_L2Text("L2", "text", a.obj.mesh.userData.id, windata);
-                    });
+                if(d.current_view === "L2")
+                    WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                        (windata) => {
+                            sendSettings_Text("L2", "text", a.obj.mesh.userData.id, windata);
+                        });
+                else if(d.current_view === "L3")
+                    WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                        (windata) => {
+                            sendSettings_Text("L3", "text", a.obj.mesh.userData.id, windata);
+                        });
             }
             else if (a.obj.mesh.userData.type == "symbol") {
                 if(a.obj.mesh.userData.e.type == "F")

@@ -1003,7 +1003,7 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 	}, "Apply changes.");	
 }
 
-function WIN_showL2TextWindow(view, type, id, e, callback) {
+function WIN_showTextWindow(view, type, id, e, callback) {
 	let wdata = WIN_create(view, type, id, "Text " + id, 440, 200);
 	if(!wdata)
 		return;
