@@ -695,7 +695,16 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 	wdata.d.color2 = WIN_addColorInput(w, 250, 120, "Color Border", e.color2);
 
 	// Texture option
-	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, [["Grid", "b1_t1"], ["Plain", "b1_t2"], ["Hexagon", "b1_t3"]]);
+	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, [
+		["Grid", "b1_t1"],
+		["Plain", "b1_t2"],
+		["Hexagon", "b1_t3"],
+		["Pavement", "b1_t4"],
+		["Wood", "b1_t5"],
+		["Metal", "b1_t6"],
+		["Grass", "b1_t7"],
+		["Sand", "b1_t8"],
+		]);
 	wdata.d.t2name = WIN_addImgSelection(w, 20, 245, "Border Texture", e.t2name, [["Bricks", "b2_t1"], ["Stones", "b2_t2"]]);
 
 	// Floor Texture size

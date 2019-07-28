@@ -770,7 +770,8 @@ class WGL {
 			if(mesh.userData.e.type == "F") {
 				mesh.userData.e.color = data.color;
 				mesh.userData.e.cd.flagcolor = data.flagcolor;
-				this.updateSymbolGeometryFlag(mesh);
+				this.updateSymbolColor("symbol", id, view);
+				//this.updateSymbolGeometryFlag(mesh);
 			}
 		}
 	}
@@ -1387,7 +1388,7 @@ class WGL {
 	}
 
 	updateStandardGeometry(meshgroup, geometry_type) {
-		let template_geometry = GEOMETRY.DEVICE.UNKNOWN;
+		let template_geometry = GEOMETRY[geometry_type].UNKNOWN;
 		if(meshgroup.userData.e.type in GEOMETRY[geometry_type])
 			template_geometry = GEOMETRY[geometry_type][meshgroup.userData.e.type];
 
@@ -1867,6 +1868,7 @@ class WGL {
 
 
 	updateSymbolGeometryFlag(meshgroup) {
+		return;
 		let e = meshgroup.userData.e;
 
 		let g1 = new THREE.Geometry();
@@ -2000,76 +2002,79 @@ class WGL {
 		return data;
 	}
 
-	updateSymbolGeometry(meshgroup) {
-		meshgroup.children = [];
-		let data = null;
-
-		if (meshgroup.userData.e.type === "F")
-			data = this.getDataSymbolFlag(meshgroup);
-		else if (meshgroup.userData.e.type === "X")
-			data = this.getDataSymbolX(meshgroup);
-		else if (meshgroup.userData.e.type === "V")
-			data = this.getDataSymbolV(meshgroup);
-		else
-			data = this.getDataSymbolX(meshgroup);
-
-		for(let data_i = 0; data_i < data.length; data_i++) {
-			for(let v_i = 0; v_i < data[data_i].vertices.length; v_i++) {
-				data[data_i].vertices[v_i][0] = data[data_i].vertices[v_i][0] * meshgroup.userData.e.sx;
-				data[data_i].vertices[v_i][1] = data[data_i].vertices[v_i][1] * meshgroup.userData.e.sy;
-				data[data_i].vertices[v_i][2] = data[data_i].vertices[v_i][2] * meshgroup.userData.e.sz;
-			}
-		}
-		for(let x = 0; x < data.length; x++) {
-			let geometry = new THREE.Geometry();
-			let material = new THREE.MeshPhongMaterial({color: data[x].color});
-			this.addListVertex(geometry.vertices, data[x].vertices);
-			this.addListFaces(geometry.faces, geometry.faceVertexUvs[0], data[x].faces, data[x].fvuvs);
-
-			geometry.verticesNeedUpdate = true;
-			geometry.elementsNeedUpdate = true;
-			geometry.uvsNeedUpdate = true;
-
-			geometry.computeBoundingBox();
-			geometry.computeBoundingSphere();
-			geometry.computeVertexNormals();
-			geometry.computeFlatVertexNormals();
-
-			let mesh = new THREE.Mesh(geometry, material);
-			meshgroup.add(mesh);
-
-			mesh.userData.id = meshgroup.userData.id;
-			mesh.userData.type = meshgroup.userData.type;
-			mesh.userData.e = meshgroup.userData.e
-
-			mesh.castShadow = true;
+	updateSymbolColor(type, id, sceneid) {
+		let meshgroup = this.findMesh(type, id, this.scene[sceneid]);
+		let m = this.findMeshesOfGroup(meshgroup);
+			
+		m[0].material.uniforms.mycolor.value.r = (meshgroup.userData.e.color >> 16) / 256;
+		m[0].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.color >> 8) & 0xFF) / 256;
+		m[0].material.uniforms.mycolor.value.b = (meshgroup.userData.e.color & 0xFF) / 256;
+		
+		if(meshgroup.userData.e.type === "F") {
+			m[1].material.uniforms.mycolor.value.r = (meshgroup.userData.e.cd.flagcolor >> 16) / 256;
+			m[1].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.cd.flagcolor >> 8) & 0xFF) / 256;
+			m[1].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.flagcolor & 0xFF) / 256;
 		}
 
 		this.draw_needed = true;
 	}
 
+	updateSymbolGeometry(meshgroup) {
+		this.updateStandardGeometry(meshgroup, "SYMBOL");
+		return;
+	}
+
+	getSymbolTextureByType(type, index) {
+		if(type in GEOMETRY.SYMBOL)
+			return GEOMETRY.SYMBOL[type].texture[index];
+		else
+			return GEOMETRY.SYMBOL["UNKNOWN"].texture[index];
+	}
+
 	addSymbol(id, sceneid, e, alignToGrid) {
-		let base = this.findMesh("base", e.base, this.scene[sceneid]);
-		let meshgroup = new THREE.Group ();
+		let geometry1 = new THREE.Geometry();
+		let geometry2 = new THREE.Geometry();
+		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
+		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 1), (t) => {this.processLoadedTexture(t)} );		
+		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1})
+		let material2 = WGL_createDeviceMaterial({map: texture2, mycolor: e.color2})
 
-		meshgroup.userData.id = id;
-		meshgroup.userData.type = "symbol";
-		meshgroup.userData.e = e;
+		let mesh1 = new THREE.Mesh( geometry1, material1 );
+		mesh1.userData.submesh = 1;
+		let mesh2 = new THREE.Mesh( geometry2, material2 );
+		mesh2.userData.submesh = 2;
 
-		this.updateSymbolGeometry(meshgroup);
+		let group = new THREE.Group();
 
-		base.add(meshgroup);
+		group.add(mesh1);
+		group.add(mesh2);
 
-		this.moveMesh(sceneid, "symbol", id, e.px, base.userData.e.sy, e.pz, null, alignToGrid);
+		mesh1.userData.id = id;
+		mesh1.userData.type = "symbol";
+		mesh1.userData.e = e
+		mesh2.userData.id = id;
+		mesh2.userData.type = "symbol";
+		mesh2.userData.e = e
+		group.userData.id = id;
+		group.userData.type = "symbol";
+		group.userData.e = e
 
-		meshgroup.rotation.x = e.rx;
-		meshgroup.rotation.y = e.ry;
-		meshgroup.rotation.z = e.rz;
-		//meshgroup.scale.x = e.sx;
-		//meshgroup.scale.y = e.sy;
-		//meshgroup.scale.z = e.sz;
+		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
+		basemesh.add(group);
 
-		return meshgroup;
+		this.updateSymbolGeometry(group);
+		this.updateSymbolColor("symbol", id, sceneid);
+
+		this.moveMesh(sceneid, "symbol", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		group.rotation.x = e.rx;
+		group.rotation.y = e.ry;
+		group.rotation.z = e.rz;
+		group.updateMatrixWorld();
+
+		mesh1.castShadow = true;
+		mesh2.castShadow = true;
+
+		return id;
 	}
 
 	updateL2SegmentGeometry(meshgroup) {
