@@ -695,7 +695,7 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 	wdata.d.color2 = WIN_addColorInput(w, 250, 120, "Color Border", e.color2);
 
 	// Texture option
-	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, [
+	let texture_options = [
 		["Grid", "b1_t1"],
 		["Plain", "b1_t2"],
 		["Hexagon", "b1_t3"],
@@ -704,8 +704,12 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 		["Metal", "b1_t6"],
 		["Grass", "b1_t7"],
 		["Sand", "b1_t8"],
-		]);
-	wdata.d.t2name = WIN_addImgSelection(w, 20, 245, "Border Texture", e.t2name, [["Bricks", "b2_t1"], ["Stones", "b2_t2"]]);
+		["Sand", "b1_t9"],
+		["Bricks", "b2_t1"], 
+		["Stones", "b2_t2"],
+		];
+	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, texture_options);
+	wdata.d.t2name = WIN_addImgSelection(w, 20, 245, "Border Texture", e.t2name, texture_options);
 
 	// Floor Texture size
 	wdata.d.tsx_i = WIN_addSlider(w, 250, 210, 100, "Texture U", 1/e.tsx, .25, 10, .25);
