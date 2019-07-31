@@ -200,9 +200,13 @@ function process_message(message) {
         case "D":
             process_message_delete(message.d)
             break;
+        case "BG":
+            d.wgl.settingsBackground(message.d.bg_color)
+            break;
         case "E":
             DOM.showError("Error Received", message.d)
             break;
+
     }
 
     if("l3_changes" in message) {
@@ -262,7 +266,7 @@ function process_message_resize(data) {
 
 function process_message_settings(data) {
     if(data.t == "base") {
-        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.t1name, data.t2name, data.sy, data.tsx, data.tsy);
+        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.opacity, data.t1name, data.t2name, data.sy, data.tsx, data.tsy);
     }
     else if((data.v == "L2") && (data.t == "device")) {
         d.wgl.settingsMesh_L2Device(data.i, data.name, data.color1, data.color2, data.ifnaming);
@@ -543,6 +547,17 @@ function sendResize(view, type, id) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
+function sendSettings_Background(windata) {
+    let message = {
+        m: "BG",
+        d: {
+            bg_color: parseInt(windata.d.bg_color.value),
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
 function sendSettings_BaseFloor(view, type, id, windata) {
     let message = {
         m: "P",
@@ -555,6 +570,7 @@ function sendSettings_BaseFloor(view, type, id, windata) {
             subtype: windata.d.subtype.value,
             color1: parseInt(windata.d.color1.value),
             color2: parseInt(windata.d.color2.value),
+            opacity: parseFloat(windata.d.opacity.value),
             t1name: windata.d.t1name.value,
             t2name: windata.d.t2name.value,
             sy: parseFloat(windata.d.sy.value),
@@ -927,6 +943,8 @@ function init_wgl() {
 }
 
 function init_diagram() {
+    // Background
+    d.wgl.setBGColor(d.diagram.settings.bg_color);
     // ********************************
     // Draw the L2 diagram
     // ********************************
@@ -1305,6 +1323,14 @@ function mousedown(x, y, dx, dy, dom_element) {
                 y: y,
             }
         }
+        else if((objlist.length == 0) && (d.dom.tools.active_t === "EC")) {
+            d.mouseaction = {
+                m: d.dom.tools.active_t,
+                obj: null,
+                x: x,
+                y: y,                
+            }
+        }
     }
     else if (
         (
@@ -1442,7 +1468,12 @@ function mouseup(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "EC") {
         if ((x == a.x) && (y == a.y)) {
-            if (a.obj.mesh.userData.type == "device") {
+            if(a.obj === null) {
+                WIN_showBackgroundSettings(d.diagram.settings, (windata) => {
+                    sendSettings_Background(windata);
+                });
+            }
+            else if (a.obj.mesh.userData.type == "device") {
                 WIN_showL2DeviceWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
                         sendSettings_L2Device("L2", "device", a.obj.mesh.userData.id, windata);

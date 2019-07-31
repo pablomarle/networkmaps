@@ -674,7 +674,7 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
 }
 
 function WIN_showBaseElementWindow(view, type, id, e, callback) {
-	let wdata = WIN_create(view, type, id, e.name, 460, 330);
+	let wdata = WIN_create(view, type, id, e.name, 460, 350);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -694,9 +694,15 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 	// Color2
 	wdata.d.color2 = WIN_addColorInput(w, 250, 120, "Color Border", e.color2);
 
+	// Opacity
+	wdata.d.opacity = WIN_addSlider(w, 20, 200, 100, "Opacity", (e.opacity) ? e.opacity : 1, .1, 1, .05);
+
 	// Texture option
 	let texture_options = [
 		["Grid", "b1_t1"],
+		["Grid2", "b1_t1-inv"],
+		["Grid3", "b1_t1-trans"],
+		["Grid4", "b1_t1-trans2"],
 		["Plain", "b1_t2"],
 		["Hexagon", "b1_t3"],
 		["Pavement", "b1_t4"],
@@ -704,19 +710,19 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 		["Metal", "b1_t6"],
 		["Grass", "b1_t7"],
 		["Sand", "b1_t8"],
-		["Sand", "b1_t9"],
+		["Water", "b1_t9"],
 		["Bricks", "b2_t1"], 
 		["Stones", "b2_t2"],
 		];
-	wdata.d.t1name = WIN_addImgSelection(w, 20, 210, "Floor Texture", e.t1name, texture_options);
-	wdata.d.t2name = WIN_addImgSelection(w, 20, 245, "Border Texture", e.t2name, texture_options);
+	wdata.d.t1name = WIN_addImgSelection(w, 20, 240, "Floor Texture", e.t1name, texture_options);
+	wdata.d.t2name = WIN_addImgSelection(w, 20, 275, "Border Texture", e.t2name, texture_options);
 
 	// Floor Texture size
-	wdata.d.tsx_i = WIN_addSlider(w, 250, 210, 100, "Texture U", 1/e.tsx, .25, 10, .25);
-	wdata.d.tsy_i = WIN_addSlider(w, 250, 245, 100, "Texture V", 1/e.tsy, .25, 10, .25);
+	wdata.d.tsx_i = WIN_addSlider(w, 250, 240, 100, "Texture U", 1/e.tsx, .25, 10, .25);
+	wdata.d.tsy_i = WIN_addSlider(w, 250, 275, 100, "Texture V", 1/e.tsy, .25, 10, .25);
 
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 190, 300, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 190, 325, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");
 }
@@ -1056,7 +1062,20 @@ function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
 	}, "Apply changes.");	
 }
 
+function WIN_showBackgroundSettings(settings, callback) {
+	let wdata = WIN_create("global", "background", "0", "Background", 240, 130);
+	if(!wdata)
+		return;
+	let w = wdata.w;
 
+	// Color1
+	wdata.d.bg_color = WIN_addColorInput(w, 20, 20, "BG Color", settings.bg_color);
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 100, 100, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");	
+}
 
 
 

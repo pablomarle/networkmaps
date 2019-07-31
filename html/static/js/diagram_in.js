@@ -95,9 +95,21 @@ function Input_callback(event_type) {
 		INPUT.click_dom_mm(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom);
 }
 
-function Input_mousedown(ev) {
-	
+function Input_getComposedPath(ev) {
+	if(ev.composedPath == 1)
+		return ev.composedPath();
+	else {
+		let result = [];
+		let current = ev.target;
+		while(current) {
+			result.push(current);
+			current = current.parentNode;
+		}
+		return result;
+	}
+}
 
+function Input_mousedown(ev) {
 	if(INPUT.actionrunning != "")
 		return false;
 
@@ -107,7 +119,9 @@ function Input_mousedown(ev) {
 		INPUT.diffx = 0;
 		INPUT.diffy = 0;
 		INPUT.actionrunning = "ML";
-		if(Input_findtarget(ev.composedPath()))
+		let composedPath = Input_getComposedPath(ev);
+
+		if(Input_findtarget(composedPath))
 			ev.preventDefault();
 
 		Input_callback("md");
@@ -168,7 +182,7 @@ function Input_touchstart(ev) {
 	INPUT.diffx = 0;
 	INPUT.diffy = 0;
 
-	if(Input_findtarget(ev.composedPath()))
+	if(Input_findtarget(Input_getComposedPath(ev)))
 		ev.preventDefault();
 
 	Input_callback("md");

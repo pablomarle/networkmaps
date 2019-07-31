@@ -1,13 +1,8 @@
 this.diagram = {
-	data: {
-		100: {n: "Model", t: "T"},
-		101: {n: "State", t: "O", o: ["Live", "Planned"]}
-		102: {n: "Reviewed", t: "C"}
+	settings: {
+        id_gen: 1000,
+        bg_color: 0xf0f0f0,		
 	},
-	datatemplate: {
-		100: {name: "A NAME", data: [100, 102, 101, ...]}
-	}
-	
 	l2: {
 		base: {
 			0: {

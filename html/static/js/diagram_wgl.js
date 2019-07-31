@@ -50,10 +50,11 @@ const DEVICE_FRAGMENT_SHADER = `
                          * directionalLights[i].color
                          * vec3(1,1,1);
 		}
+
 		gl_FragColor = tex_color * (light + vec4(ambientLightColor, 0.0));
-		
 	}
 `
+
 
 // Shortcut
 function $WGL_V3(x,y,z) {return new THREE.Vector3(x,y,z)}
@@ -197,6 +198,11 @@ class WGL {
 		//this.scene.L2.add(helper);
 	}
 
+	setBGColor(color) {
+		this.renderer.setClearColor(color);
+		this.draw_needed = true;
+	} 
+
 	resize() {
 		let cam_ratio = this.domelement.clientWidth / this.domelement.clientHeight;
 		this.camera.L2.persp.aspect = cam_ratio;
@@ -238,6 +244,9 @@ class WGL {
 		this.draw_needed = true;
 	}
 
+	settingsBackground(bg_color) {
+		this.setBGColor(bg_color);
+	}
 	// ***********************************************
 	// Camera Functions
 	// ***********************************************
@@ -687,7 +696,7 @@ class WGL {
 		}	
 	}
 
-	settingsMesh_Base(view, id, name, subtype, color1, color2, t1name, t2name, sy, tsx, tsy) {
+	settingsMesh_Base(view, id, name, subtype, color1, color2, opacity, t1name, t2name, sy, tsx, tsy) {
 		let mesh = this.findMesh("base", id, this.scene[view]);
 
 		if (mesh) {
@@ -695,6 +704,7 @@ class WGL {
 			mesh.userData.e.subtype = subtype;
 			mesh.userData.e.color1 = color1;
 			mesh.userData.e.color2 = color2;
+			mesh.userData.e.opacity = opacity;
 			mesh.userData.e.t1name = t1name;
 			mesh.userData.e.t2name = t2name;
 			mesh.userData.e.sy = sy;
@@ -1126,6 +1136,9 @@ class WGL {
 		else
 			this.updateCubeFloorGeometry_height_float(g[1], w2, h, 0, d2, tu1, tv1);
 
+		// Set the right render order on geometry 0 as it might have transparencies
+		m[0].renderOrder = meshgroup.userData.e.sy;
+		m[1].renderOrder = meshgroup.userData.e.sy;
 		// Mark vertex, faces, normals as updated and compute bounding boxes
 		this.setGeometryUpdated(g, true);
 	}
@@ -1143,8 +1156,11 @@ class WGL {
 		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + t2name + ".png", (t) => {this.processLoadedTexture(t)} );
 		//let material1 = new THREE.MeshLambertMaterial({map: texture1})
 		//let material2 = new THREE.MeshLambertMaterial({map: texture2})
-		let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2})
-		let material2 = new THREE.MeshStandardMaterial({map: texture2, bumpMap: texture2, metalness:.05, bumpScale:.2})
+		let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2, transparent: true})
+		let material2 = new THREE.MeshStandardMaterial({map: texture2, bumpMap: texture2, metalness:.05, bumpScale:.2, transparent: true})
+
+		material1.opacity = (meshgroup.userData.e.opacity) ? meshgroup.userData.e.opacity : 1;
+		material2.opacity = (meshgroup.userData.e.opacity) ? meshgroup.userData.e.opacity : 1;
 
 		material1.color.r = (color1 >> 16) / 256;
 		material1.color.g = ((color1 >> 8) & 0xFF) / 256;
@@ -1165,10 +1181,12 @@ class WGL {
 		let geometry2 = new THREE.Geometry();
 		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t1name + ".png", (t) => {this.processLoadedTexture(t)} );
 		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t2name + ".png", (t) => {this.processLoadedTexture(t)} );
-		//let material1 = new THREE.MeshLambertMaterial({map: texture1})
-		//let material2 = new THREE.MeshLambertMaterial({map: texture2})
-		let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2})
-		let material2 = new THREE.MeshStandardMaterial({map: texture2, bumpMap: texture2, metalness:.05, bumpScale:.2})
+		
+		let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2, transparent: true})
+		let material2 = new THREE.MeshStandardMaterial({map: texture2, bumpMap: texture2, metalness:.05, bumpScale:.2, transparent: true})
+
+		material1.opacity = (e.opacity) ? e.opacity : 1;
+		material2.opacity = (e.opacity) ? e.opacity : 1;
 
 		material1.color.r = (e.color1 >> 16) / 256;
 		material1.color.g = ((e.color1 >> 8) & 0xFF) / 256;
@@ -1189,13 +1207,13 @@ class WGL {
 
 		mesh1.userData.id = id;
 		mesh1.userData.type = "base";
-		mesh1.userData.e = e
+		mesh1.userData.e = e;
 		mesh2.userData.id = id;
 		mesh2.userData.type = "base";
-		mesh2.userData.e = e
+		mesh2.userData.e = e;
 		group.userData.id = id;
 		group.userData.type = "base";
-		group.userData.e = e
+		group.userData.e = e;
 
 		this.scene[sceneid].add(group);
 
