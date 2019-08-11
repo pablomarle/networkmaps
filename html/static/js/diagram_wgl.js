@@ -188,7 +188,6 @@ class WGL {
 		this.raycaster = new THREE.Raycaster();
 		this.pickvector = $WGL_V2(0,0);
 		
-		this.draw_needed = true;
 		this.tempVector = $WGL_V3(0,0,0);
 
 		this.font = new THREE.FontLoader().parse(WGL_FONT);
@@ -196,11 +195,12 @@ class WGL {
 
 		//var helper = new THREE.CameraHelper( this.directionallightL2.shadow.camera );
 		//this.scene.L2.add(helper);
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	setBGColor(color) {
 		this.renderer.setClearColor(color);
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	} 
 
 	resize() {
@@ -220,13 +220,13 @@ class WGL {
 		this.camera.L3.ortho.updateProjectionMatrix();
 		
 		this.renderer.setSize(this.domelement.clientWidth, this.domelement.clientHeight)
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	setView(view) {
 		this.view = view;
-		this.draw_needed = true;
 		this.adjustLabelsToCamera();
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	draw() {
@@ -241,7 +241,7 @@ class WGL {
 		texture.wrapT = THREE.RepeatWrapping;
 		texture.anisotropy = 4;
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	settingsBackground(bg_color) {
@@ -258,7 +258,7 @@ class WGL {
 		ac.rotation.x = rx;
 		ac.rotation.y = ry;
 		ac.rotation.z = rz;
-		this.draw_needed = true;		
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});		
 	}
 	moveCamera(dx, dy) {
 		let ac = this.camera[this.view][this.camera.current];
@@ -267,7 +267,7 @@ class WGL {
 		ac.position.x -= dx * .1 * cos + dy * .1 * sin;
 		ac.position.z -= -dx * .1 * sin + dy * .1 * cos;
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	adjustLabelsToCamera() {
@@ -283,7 +283,7 @@ class WGL {
 			}
 		})
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	rotateCamera(dx, dy) {
@@ -297,14 +297,13 @@ class WGL {
 			if (ac.rotation.x < -Math.PI*.5)
 				ac.rotation.x = -Math.PI*.5
 
-			this.draw_needed = true;
 		}
 		else {
 			ac.rotation.y += dx/100.0;
-			this.draw_needed = true;
 		}
 
 		this.adjustLabelsToCamera();
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	zoomCamera(dy) {
@@ -312,7 +311,6 @@ class WGL {
 
 		if(this.camera.current == "persp") {
 			ac.translateZ(dy*.1);
-			this.draw_needed = true;
 		}
 		else {
 			this.camera[this.view].ortho_size += dy*.1;
@@ -330,16 +328,16 @@ class WGL {
 			ac.top = this.camera[this.view].ortho_size;
 			ac.bottom = -this.camera[this.view].ortho_size;
 			ac.updateProjectionMatrix();
-
-			this.draw_needed = true;
 		}
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	toggleCamera() {
 		this.camera.current = this.camera.current == "ortho" ? "persp" : "ortho"
-		this.draw_needed = true;
 		
 		this.adjustLabelsToCamera();
+
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 
 		return this.camera.current;
 	}
@@ -498,6 +496,8 @@ class WGL {
 	getMeshPosition(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		let r = {x: mesh.position.x, y: mesh.position.y, z: mesh.position.z};
+		if(mesh.userData.type === "text")
+			r.y = mesh.userData.e.py;
 		if("base" in mesh.userData.e)
 			r.base = mesh.userData.e.base;
 
@@ -588,7 +588,7 @@ class WGL {
 				}
 			}
 
-			this.draw_needed = true;
+			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 		}
 	}
 
@@ -629,7 +629,7 @@ class WGL {
 				this.adjustDeviceNameRotation(mesh);
 			}
 
-			this.draw_needed = true;
+			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 		}
 
 	}
@@ -665,7 +665,7 @@ class WGL {
 			else if(type == "l2segment")
 				this.updateL2SegmentGeometry(mesh);
 
-			this.draw_needed = true;
+			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 		}
 	}
 
@@ -756,21 +756,43 @@ class WGL {
 		}
 	}
 
-	settingsMesh_Text(view, id, text, py, height, depth, color) {
+	settingsMesh_Text(view, id, text, py, height, depth, color, text_align, bg_type, bg_show, bg_color, border_show, border_color, border_width, bg_depth, rotation_x) {
 		let mesh = this.findMesh("text", id, this.scene[view]);
+		let textMesh = null, bgMesh = null, borderMesh = null;
+		for(let x = 0; x < mesh.children.length; x++) {
+			if(mesh.children[x].userData.subtype === "text")
+				textMesh = mesh.children[x];
+			if(mesh.children[x].userData.subtype === "bg")
+				bgMesh = mesh.children[x];
+			if(mesh.children[x].userData.subtype === "border")
+				borderMesh = mesh.children[x];
+		}
 		if(mesh) {
 			mesh.userData.e.text = text;
 			mesh.userData.e.py = py;
 			mesh.userData.e.height = height;
 			mesh.userData.e.depth = depth;
 			mesh.userData.e.color = color;
+			mesh.userData.e.text_align = text_align;
+			mesh.userData.e.bg_type = bg_type;
+			mesh.userData.e.bg_show = bg_show;
+			mesh.userData.e.bg_color = bg_color;
+			mesh.userData.e.border_show = border_show;
+			mesh.userData.e.border_color = border_color;
+			mesh.userData.e.border_width = border_width;
+			mesh.userData.e.bg_depth = bg_depth;
+			mesh.userData.e.rotation_x = rotation_x;
 
-			mesh.geometry = this.createTextGeometry(text, height, depth, "center");
-			mesh.material = new THREE.MeshStandardMaterial({color: color});
+			textMesh.geometry = this.createTextGeometry(text, height, depth, text_align, rotation_x);
+			[bgMesh.geometry, borderMesh.geometry] = this.createTextBGGeometry(textMesh.geometry, mesh.userData.e);
+
+			textMesh.material = new THREE.MeshPhongMaterial({color: color, side: THREE.DoubleSide});
+			bgMesh.material = new THREE.MeshPhongMaterial({color: bg_color});
+			borderMesh.material = new THREE.MeshPhongMaterial({color: border_color});
 
 			mesh.position.y = py + mesh.parent.userData.e.sy;
 
-			this.draw_needed = true;
+			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 		}
 	}
 
@@ -839,7 +861,6 @@ class WGL {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		while(mesh) {
 			mesh.parent.remove(mesh);
-			this.draw_needed = true;
 
 			if (type == "device") {
 				let listlinks = this.findLinksOfDevice(id, this.scene[view]);
@@ -849,6 +870,7 @@ class WGL {
 			}
 			mesh = this.findMesh(type, id, this.scene[view]);
 		}
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	deleteJoint(view, link_id, joint_index) {
@@ -933,7 +955,7 @@ class WGL {
 			}
 		}
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	updateGlobalSettings_grid(active, x, z, angle, resize) {
@@ -1032,7 +1054,7 @@ class WGL {
 			}
 		}
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	updateCubeFloorGeometry_height_float(g, w2, h, b, d2, tu1, tv1) {
@@ -1173,7 +1195,7 @@ class WGL {
 		m[0].material = material1;
 		m[1].material = material2;
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	addCubeFloor(id, sceneid, e) {
@@ -1474,7 +1496,7 @@ class WGL {
 			m[x].material.uniforms.mycolor.value.b = (color[x] & 0xFF) / 256;
 		}
 		
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	getDeviceTextureByType(type, index) {
@@ -1571,7 +1593,7 @@ class WGL {
 		if(name == "")
 			return;
 
-		let g = this.createTextGeometry(name, size, .01, "center")
+		let g = this.createTextGeometry(name, size, .01, "c")
 
 		let material = this.namematerial;
 		let mesh = new THREE.Mesh(g, material);
@@ -1592,7 +1614,7 @@ class WGL {
 
 		mesh.visible = this.global_settings.show_device_name;
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	adjustDeviceNameRotation(device) {
@@ -1819,26 +1841,26 @@ class WGL {
 		if(alignment === "center")
 			geometry.translate(
 				-b.min.x - (b.max.x-b.min.x)/2,
-				-b.min.y,
+				0,
 				-b.min.z - (b.max.z-b.min.z)/2
 			);
 		else if (alignment === "left")
 			geometry.translate(
 				-b.min.x,
-				-b.min.y,
+				0,
 				-b.min.z - (b.max.z-b.min.z)/2
 			);
 		else if (alignment === "right")
 			geometry.translate(
 				-b.max.x,
-				-b.min.y,
+				0,
 				-b.min.z - (b.max.z-b.min.z)/2
 			);
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
-	createTextGeometry(text, height, depth, alignment) {
+	createTextGeometry(text, height, depth, alignment, rotationX) {
 		/*
 		let g = new THREE.TextGeometry(text, {
 			font: this.font,
@@ -1851,37 +1873,268 @@ class WGL {
 
 		return g;
 		*/
-		let shapes = this.font.generateShapes( text, height, 2 );
-		let geometry = new THREE.ShapeGeometry( shapes, 4 );
-		this.alignText(geometry, alignment);
+		if(!rotationX)
+			rotationX = 0;
 
-		return geometry;
+		let finalGeometry = new THREE.Geometry();
+		let text_break = text.split("\n");
+		text_break.forEach((line) => {
+			let shapes = this.font.generateShapes( line, height, 2 );
+			let geometry = new THREE.ShapeGeometry( shapes, 4 );
+			if(alignment == "c") this.alignText(geometry, "center");
+			if(alignment == "l") this.alignText(geometry, "left");
+			if(alignment == "r") this.alignText(geometry, "right");
+			geometry.rotateX(rotationX * Math.PI/180);
+			finalGeometry.translate(0, height*1.2, 0);
+
+			finalGeometry.merge(geometry);
+		})
+		
+
+		finalGeometry.computeVertexNormals();
+		finalGeometry.computeFlatVertexNormals();
+
+		return finalGeometry;
+	}
+
+	createTextBGGeometry_addFaces(g, vertex_per_face, segments, isClosed) {
+		let facelist = [];
+		let uvlist = [];
+		if(isClosed)
+		for(let x = 0; x < vertex_per_face - 2; x++) {
+			facelist.push([0, x+1, x+2]);
+			uvlist.push([[0,0],[0,0],[0,0]]);
+			facelist.push([vertex_per_face * segments, vertex_per_face * segments + x+2, vertex_per_face * segments + x+1]);
+			uvlist.push([[0,0],[0,0],[0,0]]);
+		}
+		
+		for(let y = 0; y < segments; y++) {
+			for(let x = 0; x < vertex_per_face; x++) {
+				let x2 = (x+1) % vertex_per_face;
+				facelist.push([y * vertex_per_face + x, (y+1) * vertex_per_face + x2, y * vertex_per_face + x2]);
+				uvlist.push([[0,0],[0,0],[0,0]]);
+				facelist.push([y * vertex_per_face + x, (y+1) * vertex_per_face + x, (y+1) * vertex_per_face + x2]);
+				uvlist.push([[0,0],[0,0],[0,0]]);
+			}	
+		}
+
+		this.addListFaces(g.faces, g.faceVertexUvs[0], facelist, uvlist);
+
+		g.computeVertexNormals();
+		g.computeFlatVertexNormals();
+	}
+
+	createTextBGGeometry(text_geometry, e) {
+		text_geometry.computeBoundingBox();
+		let b = text_geometry.boundingBox;
+		let bg_g = new THREE.Geometry();
+		let border_g = new THREE.Geometry();
+		let xmin = b.min.x - e.height/2;
+		let xmax = b.max.x + e.height/2;
+		let ymin = b.min.y - e.height/2;
+		let ymax = b.max.y + e.height/2;
+		let zmin = b.min.z;
+		let zmax = b.max.z;
+		let CB = e.border_width*.2;
+
+		if(e.bg_show) {
+			if(e.bg_type === "r") {
+				this.addListVertex(bg_g.vertices, [
+					[xmin, ymin, zmin - e.bg_depth+.01], [xmax, ymin, zmin - e.bg_depth+.01], [xmax, ymax, zmin - e.bg_depth+.01], [xmin, ymax, zmin - e.bg_depth+.01],
+					[xmin, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(bg_g, 4, 1, true);
+			}
+			if(e.bg_type === "c") {
+				let vertexlist = [];
+				let xsize = (xmax-xmin)*.707;
+				let ysize = (ymax-ymin)*.707;
+				let displacex = xmax - (xmax-xmin)/2;
+				let displacey = ymax - (ymax-ymin)/2;
+				let num_points = 32;
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*xsize+displacex, Math.sin(angle)*ysize+displacey, zmin - e.bg_depth+.01]);
+				}
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*xsize+displacex, Math.sin(angle)*ysize+displacey, zmin - e.bg_depth]);
+				}
+				this.addListVertex(bg_g.vertices, vertexlist);
+				this.createTextBGGeometry_addFaces(bg_g, num_points, 1, true);
+			}
+			if(e.bg_type === "h") {
+				let diffx = xmax-xmin;
+				let diffy = ymax-ymin;
+				let xmed = xmin + (xmax-xmin)/2;
+				let ymed = ymin + (ymax-ymin)/2;
+
+				this.addListVertex(bg_g.vertices, [
+					[xmed-diffx, ymed, zmin - e.bg_depth+.01], [xmed, ymed-diffy, zmin - e.bg_depth+.01], [xmed+diffx, ymed, zmin - e.bg_depth+.01], [xmed, ymed+diffy, zmin - e.bg_depth+.01],
+					[xmed-diffx, ymed, zmin - e.bg_depth], [xmed, ymed-diffy, zmin - e.bg_depth], [xmed+diffx, ymed, zmin - e.bg_depth], [xmed, ymed+diffy, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(bg_g, 4, 1, true);
+			}
+			if(e.bg_type === "p") {
+				let diffy = ymax-ymin;
+				this.addListVertex(bg_g.vertices, [
+					[xmin-diffy, ymin, zmin - e.bg_depth+.01], [xmax, ymin, zmin - e.bg_depth+.01], [xmax+diffy, ymax, zmin - e.bg_depth+.01], [xmin, ymax, zmin - e.bg_depth+.01],
+					[xmin-diffy, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax+diffy, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(bg_g, 4, 1, true);
+			}
+		}
+		if(e.border_show) {
+			if(e.bg_type === "r") {
+				this.addListVertex(border_g.vertices, [
+					[xmin, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+					[xmin, ymin, zmin], [xmax, ymin, zmin], [xmax, ymax, zmin], [xmin, ymax, zmin],
+					[xmin-CB, ymin-CB, zmin+CB], [xmax+CB, ymin-CB, zmin+CB], [xmax+CB, ymax+CB, zmin+CB], [xmin-CB, ymax+CB, zmin+CB],
+					
+					[xmin+CB - e.border_width, ymin+CB - e.border_width, zmin+CB], [xmax-CB + e.border_width, ymin+CB - e.border_width, zmin+CB], 
+					[xmax-CB + e.border_width, ymax-CB + e.border_width, zmin+CB], [xmin+CB - e.border_width, ymax-CB + e.border_width, zmin+CB],
+					[xmin - e.border_width, ymin - e.border_width, zmin], [xmax + e.border_width, ymin - e.border_width, zmin], 
+					[xmax + e.border_width, ymax + e.border_width, zmin], [xmin - e.border_width, ymax + e.border_width, zmin],
+
+					[xmin - e.border_width, ymin - e.border_width, zmin - e.bg_depth], [xmax + e.border_width, ymin - e.border_width, zmin - e.bg_depth], 
+					[xmax + e.border_width, ymax + e.border_width, zmin - e.bg_depth], [xmin - e.border_width, ymax + e.border_width, zmin - e.bg_depth],
+
+					[xmin, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(border_g, 4, 6, false);
+			}
+			if(e.bg_type === "c") {
+				let vertexlist = [];
+				let xsize = (xmax-xmin)*.707;
+				let ysize = (ymax-ymin)*.707;
+				let displacex = xmax - (xmax-xmin)/2;
+				let displacey = ymax - (ymax-ymin)/2;
+				let num_points = 32;
+
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*xsize+displacex, Math.sin(angle)*ysize+displacey, zmin - e.bg_depth]);
+				}
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*xsize+displacex, Math.sin(angle)*ysize+displacey, zmin]);
+				}
+
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*(xsize+CB)+displacex, Math.sin(angle)*(ysize+CB)+displacey, zmin+CB]);
+				}
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*(xsize+e.border_width-CB)+displacex, Math.sin(angle)*(ysize+e.border_width-CB)+displacey, zmin+CB]);
+				}
+
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*(xsize+e.border_width)+displacex, Math.sin(angle)*(ysize+e.border_width)+displacey, zmin]);
+				}
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*(xsize+e.border_width)+displacex, Math.sin(angle)*(ysize+e.border_width)+displacey, zmin - e.bg_depth]);
+				}
+				for(let x = 0; x < num_points; x++) {
+					let angle = x/num_points*2*Math.PI;
+					vertexlist.push([Math.cos(angle)*xsize+displacex, Math.sin(angle)*ysize+displacey, zmin - e.bg_depth]);
+				}
+				this.addListVertex(border_g.vertices, vertexlist);				
+				this.createTextBGGeometry_addFaces(border_g, num_points, 6, false);
+			}
+			if(e.bg_type === "h") {
+				let diffx = xmax-xmin;
+				let diffy = ymax-ymin;
+				let xmed = xmin + (xmax-xmin)/2;
+				let ymed = ymin + (ymax-ymin)/2;
+				let wx = e.border_width * diffx/diffy;
+				let wy = e.border_width;
+				this.addListVertex(border_g.vertices, [
+					[xmed-diffx, ymed, zmin - e.bg_depth], [xmed, ymed-diffy, zmin - e.bg_depth], [xmed+diffx, ymed, zmin - e.bg_depth], [xmed, ymed+diffy, zmin - e.bg_depth],
+					[xmed-diffx, ymed, zmin], [xmed, ymed-diffy, zmin], [xmed+diffx, ymed, zmin], [xmed, ymed+diffy, zmin],
+					[xmed-diffx-CB, ymed, zmin+CB], [xmed, ymed-diffy-CB, zmin+CB], [xmed+diffx+CB, ymed, zmin+CB], [xmed, ymed+diffy+CB, zmin+CB],
+					
+					[xmed-diffx+CB-wx, ymed, zmin+CB], [xmed, ymed-diffy+CB-wy, zmin+CB], [xmed+diffx-CB+wx, ymed, zmin+CB], [xmed, ymed+diffy-CB+wy, zmin+CB],
+					[xmed-diffx-wx, ymed, zmin], [xmed, ymed-diffy-wy, zmin], [xmed+diffx+wx, ymed, zmin], [xmed, ymed+diffy+wy, zmin],
+					[xmed-diffx-wx, ymed, zmin-e.bg_depth], [xmed, ymed-diffy-wy, zmin-e.bg_depth], [xmed+diffx+wx, ymed, zmin-e.bg_depth], [xmed, ymed+diffy+wy, zmin-e.bg_depth],
+					[xmed-diffx, ymed, zmin - e.bg_depth], [xmed, ymed-diffy, zmin - e.bg_depth], [xmed+diffx, ymed, zmin - e.bg_depth], [xmed, ymed+diffy, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(border_g, 4, 6, false);
+			}
+			if(e.bg_type === "p") {
+				let diffy = ymax-ymin;
+				this.addListVertex(border_g.vertices, [
+					[xmin-diffy, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax+diffy, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+					[xmin-diffy, ymin, zmin], [xmax, ymin, zmin], [xmax+diffy, ymax, zmin], [xmin, ymax, zmin],
+
+					[xmin-diffy-CB*3, ymin-CB, zmin+CB], [xmax+CB, ymin-CB, zmin+CB], [xmax+diffy+CB*3, ymax+CB, zmin+CB], [xmin-CB, ymax+CB, zmin+CB],
+					
+					[xmin-diffy - (e.border_width-CB)*3, ymin + CB - e.border_width, zmin+CB], [xmax - CB + e.border_width, ymin + CB - e.border_width, zmin+CB], 
+					[xmax+diffy + (e.border_width-CB)*3, ymax - CB + e.border_width, zmin+CB], [xmin + CB - e.border_width, ymax - CB + e.border_width, zmin+CB],
+
+					[xmin-diffy - e.border_width*3, ymin - e.border_width, zmin], [xmax + e.border_width, ymin - e.border_width, zmin], 
+					[xmax+diffy + e.border_width*3, ymax + e.border_width, zmin], [xmin - e.border_width, ymax + e.border_width, zmin],
+
+					[xmin-diffy - e.border_width*3, ymin - e.border_width, zmin - e.bg_depth], [xmax + e.border_width, ymin - e.border_width, zmin - e.bg_depth], 
+					[xmax+diffy + e.border_width*3, ymax + e.border_width, zmin - e.bg_depth], [xmin - e.border_width, ymax + e.border_width, zmin - e.bg_depth],
+
+					[xmin-diffy, ymin, zmin - e.bg_depth], [xmax, ymin, zmin - e.bg_depth], [xmax+diffy, ymax, zmin - e.bg_depth], [xmin, ymax, zmin - e.bg_depth],
+				]);
+				this.createTextBGGeometry_addFaces(border_g, 4, 6, false);
+			}
+		}
+
+		return [bg_g, border_g];
 	}
 
 	addText(id, sceneid, e, alignToGrid) {
 		let base = this.findMesh("base", e.base, this.scene[sceneid]);
-		let g = this.createTextGeometry(e.text, e.height, e.depth, "center")
 
-		let material = new THREE.MeshStandardMaterial({color: e.color, side: THREE.DoubleSide});
-		let mesh = new THREE.Mesh(g, material);
-		mesh.userData.id = id;
-		mesh.userData.type = "text";
-		mesh.userData.e = e;
+		let group = new THREE.Group();
+		let g = this.createTextGeometry(e.text, e.height, e.depth, e.text_align, e.rotation_x);
+		let bg_g, border_g;
+		[bg_g, border_g] = this.createTextBGGeometry(g, e);
 
-		base.add(mesh);
+		let material = new THREE.MeshPhongMaterial({color: e.color, side: THREE.DoubleSide});
+		let bg_material = new THREE.MeshPhongMaterial({color: (e.bg_color !== undefined) ? e.bg_color : 0xffffff});
+		let border_material = new THREE.MeshPhongMaterial({color: (e.border_color !== undefined) ? e.border_color : 0xffffff});
+
+		let textMesh = new THREE.Mesh(g, material);
+		let bgMesh = new THREE.Mesh(bg_g, bg_material);
+		let borderMesh = new THREE.Mesh(border_g, border_material);
+
+		textMesh.userData.id = id;
+		textMesh.userData.type = "text";
+		textMesh.userData.subtype = "text";
+		textMesh.userData.e = e;
+		bgMesh.userData.id = id;
+		bgMesh.userData.type = "text";
+		bgMesh.userData.subtype = "bg";
+		bgMesh.userData.e = e;
+		borderMesh.userData.id = id;
+		borderMesh.userData.type = "text";
+		borderMesh.userData.subtype = "border";
+		borderMesh.userData.e = e;
+		group.userData.id = id;
+		group.userData.type = "text";
+		group.userData.e = e;
+
+		base.add(group);
+		group.add(textMesh);
+		group.add(bgMesh);
+		group.add(borderMesh);
 
 		this.moveMesh(sceneid, "text", id, e.px, e.py + base.userData.e.sy, e.pz, null, alignToGrid);
-		/*mesh.position.x = e.px;
-		mesh.position.y = e.py + base.userData.e.sy;
-		mesh.position.z = e.pz; */
-		mesh.rotation.order = "YXZ";
-		mesh.rotation.x = e.rx;
-		mesh.rotation.y = e.ry;
+		group.rotation.order = "YXZ";
+		group.rotation.x = e.rx;
+		group.rotation.y = e.ry;
 
-		mesh.castShadow = true;
-		this.draw_needed = true;
+		textMesh.castShadow = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 
-		return mesh;
+		return group;
 	}
 
 
@@ -2034,7 +2287,7 @@ class WGL {
 			m[1].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.flagcolor & 0xFF) / 256;
 		}
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	updateSymbolGeometry(meshgroup) {
@@ -2139,7 +2392,7 @@ class WGL {
 		g.computeVertexNormals();
 		//g.computeFlatVertexNormals();
 
-		this.draw_needed = true;
+		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
 	addL2Segment(id, e, alignToGrid) {

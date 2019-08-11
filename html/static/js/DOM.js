@@ -57,6 +57,10 @@ DOM = {
 		return DOM.c(parent, "input", eid, eclass, etext);
 	},
 
+	ci_ta : (parent, eid=null, eclass=null, etext=null) => {
+		return DOM.c(parent, "textarea", eid, eclass, etext);
+	},
+
 	ci_pwd : (parent, eid=null, eclass=null, etext=null) => {
 		let input = DOM.c(parent, "input", eid, eclass, etext);
 		input.type = "password";
@@ -196,6 +200,13 @@ DOM = {
 			node.style.top = "" + py + "px";
 		else
 			node.style.bottom = "" + -py + "px";
+	},
+
+	setElementSize: (node, width, height) => {
+		if(width)
+			node.style.width = "" + width + "px";
+		if(height)
+			node.style.height = "" + height + "px";
 	},
 
 	findChildrenWithClass: (node, classname) => {

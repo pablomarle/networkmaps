@@ -247,6 +247,8 @@ function process_message_move(data) {
             d.wgl.updateLinkGeometry("link", mesh, data.v);
         }
     }
+    else if(data.t === "text")
+        d.wgl.moveMesh(data.v, data.t, data.i, data.x, undefined, data.z, data.base);
     else
         d.wgl.moveMesh(data.v, data.t, data.i, data.x, data.y, data.z, data.base);
 }
@@ -275,7 +277,8 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_L2Link(data.i, data.type, data.order, data.color, data.weight, data.height);
     }
     else if(data.t == "text") {
-        d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.depth, data.color);
+        d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.depth, data.color, data.text_align,
+            data.bg_type, data.bg_show, data.bg_color, data.border_show, data.border_color, data.border_width, data.bg_depth, data.rotation_x);
     }
     else if(data.t == "symbol") {
         d.wgl.settingsMesh_Symbol(data.v, data.i, data);
@@ -744,8 +747,8 @@ function sendSettings_L2Link(view, type, id, windata) {
 }
 
 function sendSettings_Text(view, type, id, windata) {
-    if ((windata.d.text.value.length == 0) || (windata.d.text.value.length >= 64)) {
-        DOM.showError("Format Error", "Text field length must be between 1 and 63.")
+    if (windata.d.text.value.length == 0) {
+        DOM.showError("Format Error", "Empty text field not allowed.")
         return;
     }
     let message = {
@@ -760,6 +763,15 @@ function sendSettings_Text(view, type, id, windata) {
             py: parseFloat(windata.d.py.value),
             height: parseFloat(windata.d.height.value),
             depth: parseFloat(windata.d.height.value)/10,
+            text_align: windata.d.text_align.value,
+            bg_type: windata.d.bg_type.value,
+            bg_color: parseInt(windata.d.bg_color.value),
+            bg_show: windata.d.bg_show.checked,
+            border_color: parseInt(windata.d.border_color.value),
+            border_show: windata.d.border_show.checked,
+            border_width: parseFloat(windata.d.border_width.value),
+            bg_depth: parseFloat(windata.d.bg_depth.value),
+            rotation_x: parseFloat(windata.d.rotation_x.value),
         }
     }
     if(!d.ws.send(message))
@@ -812,7 +824,6 @@ function sendDeleteJoint(view, link_id, point_index) {
 }
 
 function animate() {
-    requestAnimationFrame( animate );
     let needs_redraw = false;
 
     // Animate DOM elements if needed
@@ -835,7 +846,10 @@ function animate() {
         position_elements(false);
 
     // Animate wgl if needed
-    d.wgl.draw();
+    //d.wgl.draw();
+
+    if(needs_redraw)
+        requestAnimationFrame( animate );
 }
 
 function setBoxPosition(e, px, py, sx, sy) {
@@ -903,6 +917,8 @@ function toolbox_click() {
     else {
         toolbox_activatetool(this);
     }
+
+    animate();
 }
 
 function toggle_cam_type() {
@@ -1804,14 +1820,23 @@ function init_window() {
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");
 
+
+    // Set up WGL
+    init_wgl();
+
+    // Initialize the diagram
+    init_diagram();
+
     // Menu to open tools
     d.dom.tool_camera_b = DOM.cimg(b, staticurl + "/static/img/camera.png", "tool_camera_b", "box toolbutton", null, () => {
         d.dom.tools.active_tb = d.dom.tools.active_tb == "camera" ? "" : "camera";
+        animate();
     });
     WIN_addBasicMouseDescriptionActions(d.dom.tool_camera_b, "Camera Actions. Move, rotate or zoom the view.");
     
     d.dom.tool_element_b = DOM.cimg(b, staticurl + "/static/img/element.png", "tool_element_b", "box toolbutton", null, () => {
         d.dom.tools.active_tb = d.dom.tools.active_tb == "element" ? "" : "element";
+        animate();
     });
     WIN_addBasicMouseDescriptionActions(d.dom.tool_element_b, "Element Actions. Modify the existing elements of the diagram.");
     
@@ -1820,6 +1845,7 @@ function init_window() {
             d.dom.tools.active_tb = d.dom.tools.active_tb == "new" ? "" : "new";
         else if(d.current_view == "L3")
             d.dom.tools.active_tb = d.dom.tools.active_tb == "new_l3" ? "" : "new_l3";
+        animate();
     });
     WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
 
@@ -1838,12 +1864,6 @@ function init_window() {
             tool.dom = init_window_addtool(toolbox.dom, tool, tool.s === d.dom.tools.active_t);
         }
     }
-
-    // Set up WGL
-    init_wgl();
-
-    // Initialize the diagram
-    init_diagram();
 
     // Initialize input
     Input_initialize(document.body, null, null, null);

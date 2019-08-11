@@ -25,6 +25,18 @@ WIN_data = {
 			["Platform", "radio_base_st_p.png", "p"],
 			["Floating Platform", "radio_base_st_f.png", "f"],
 		],
+		textalign_choices: [
+			["Left", "text_alignleft.png", "l"],
+			["Right", "text_alignright.png", "r"],
+			["Center", "text_aligncenter.png", "c"],
+		],
+		textbackground_choices: [
+			["No Background", "text_bg_none.png", "n"],
+			["Rectangle", "text_bg_rect.png", "r"],
+			["Circle", "text_bg_circ.png", "c"],
+			["Rhombus", "text_bg_rho.png", "h"],
+			["Parallelogram", "text_bg_para.png", "p"],
+		],
 	}
 }
 
@@ -235,6 +247,17 @@ function WIN_addTextInput(win, lpx, lpy, px, py, label, value) {
 
 	let i = DOM.ci_text(win);
 	DOM.setElementPos(i, px, py);
+	i.value = value;
+
+	return i;
+}
+
+function WIN_addTextArea(win, lpx, lpy, px, py, sx, sy, label, value) {
+	WIN_addLabel(win, lpx, lpy, label)
+
+	let i = DOM.ci_ta(win);
+	DOM.setElementPos(i, px, py);
+	DOM.setElementSize(i, sx, sy);
 	i.value = value;
 
 	return i;
@@ -1023,25 +1046,41 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 }
 
 function WIN_showTextWindow(view, type, id, e, callback) {
-	let wdata = WIN_create(view, type, id, "Text " + id, 440, 200);
+	let wdata = WIN_create(view, type, id, "Text " + id, 640, 330);
 	if(!wdata)
 		return;
 	let w = wdata.w;
 
 	// Text
-	wdata.d.text = WIN_addTextInput(w, 200, 20, 155, 35, "Text", e.text);
+	wdata.d.text = WIN_addTextArea(w, 20, 20, 20, 35, 200, 120, "Text", e.text);
 
 	// Color
-	wdata.d.color = WIN_addColorInput(w, 230, 70, "Color", e.color);
+	wdata.d.color = WIN_addColorInput(w, 230, 20, "Color", e.color);
 
 	// py
-	wdata.d.py = WIN_addSlider(w, 20, 70, 100, "Height", e.py, 0, 5, .25);
+	wdata.d.py = WIN_addSlider(w, 20, 220, 100, "Height", e.py, 0, 5, .25);
 
 	// Height
-	wdata.d.height = WIN_addSlider(w, 20, 100, 100, "Size", e.height, .1, 2, .1);
+	wdata.d.height = WIN_addSlider(w, 20, 250, 100, "Size", e.height, .1, 2, .1);
+
+	// Text align
+	wdata.d.text_align = WIN_addRadioImgInput(w, 20, 165, "Text Align", WIN_data.constants.textalign_choices, (e.text_align) ? e.text_align : "l");
+
+	// Background type
+	wdata.d.bg_type = WIN_addRadioImgInput(w, 230, 95, "Background Shape", WIN_data.constants.textbackground_choices, (e.bg_type) ? e.bg_type : "n");
+
+	// Background Color and show
+	wdata.d.bg_color = WIN_addColorInput(w, 230, 150, "BG Color", (e.bg_color !== undefined) ? e.bg_color : 0xffffff);
+	wdata.d.bg_show = WIN_addCheckBoxInput(w, 460, 170, 440, 170, "Show Background", (e.bg_show) ? e.bg_show : false);
+	// Border Color
+	wdata.d.border_color = WIN_addColorInput(w, 230, 220, "Border Color", (e.border_color !== undefined) ? e.border_color : 0x000000);
+	wdata.d.border_show = WIN_addCheckBoxInput(w, 460, 190, 440, 190, "Show Border", (e.border_show) ? e.border_show : false);
+	wdata.d.border_width = WIN_addSlider(w, 440, 210, 100, "Border Size", (e.border_width) ? e.border_width : .1, .05, .5, .05);
+	wdata.d.bg_depth = WIN_addSlider(w, 440, 245, 100, "Background Depth", (e.bg_depth) ? e.bg_depth : .1, .1, 1, .1);
+	wdata.d.rotation_x = WIN_addSlider(w, 440, 280, 100, "Rotation X", (e.rotation_x) ? e.rotation_x : 0, 0, 90, 15);
 
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 290, 310, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");	
 }
