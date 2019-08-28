@@ -164,6 +164,11 @@ function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
     	i.fireEvent("onchange");
 }
 
+function WIN_input_nopropagate(event) {
+	if (((event.target instanceof HTMLInputElement) && (event.target.type === "text")) || (event.target instanceof HTMLTextAreaElement))
+		event.stopPropagation();
+}
+
 function WIN_create(view, type, obj_id, title, width, height) {
 	let id = view + "_" + type + "_" + obj_id;
 
@@ -220,10 +225,18 @@ function WIN_create(view, type, obj_id, title, width, height) {
 	WIN_data.l.push(windata);
 
 	// Overide keypress to prevent change action when editing properties
-	w.addEventListener("keypress", (event) => {
-		if ((event.target instanceof HTMLInputElement) && (event.target.type === "text"))
-			event.stopPropagation();
-	});
+	w.addEventListener("keypress", WIN_input_nopropagate);
+	w.addEventListener("mousedown", WIN_input_nopropagate);
+	w.addEventListener("mouseup", WIN_input_nopropagate);
+	w.addEventListener("mousemove", WIN_input_nopropagate);
+	w.addEventListener("mouseout", WIN_input_nopropagate);
+	w.addEventListener("touchstart", WIN_input_nopropagate);
+	w.addEventListener("touchend", WIN_input_nopropagate);
+	w.addEventListener("touchmove", WIN_input_nopropagate);
+	w.addEventListener("touchenter", WIN_input_nopropagate);
+	w.addEventListener("touchleave", WIN_input_nopropagate);
+	w.addEventListener("touchcancel", WIN_input_nopropagate);
+	w.addEventListener("contextmenu", WIN_input_nopropagate);
 
 	return windata;
 }
