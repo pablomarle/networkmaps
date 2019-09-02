@@ -19,6 +19,17 @@ MENU = {
                 {n: "Config",   s: "EI",    i: "edit.png",      f: null, d: "View config related to a diagram element\nQuick access key: 'x'", q: "KeyX"},
                 {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram\nQuick access key: 'c'", q: "KeyC"},
                 {n: "Base",     s: null,    i: "base.png",      f: "base_change", d: "Modify Floors and walls."},
+                {n: "Format",   s: null,    i: "brush.png",     f: "format", d: "Format Elements, links, text and symbols."},
+            ]},
+        format: {
+            init_left: -142, left: -142, width: 128,
+            name: "Format Elements",
+            components: [
+                {n: "Copy",     s: "FC",    i: "palette.png",   f: null, d: "Copy format from element.\nQuick access key: 'r", q: "KeyR"},
+                {n: "Paste",    s: "FP",    i: "brush.png",     f: null, d: "Paste format to element\nQuick access key: 't'", q: "KeyT"},
+                {n: "WinColor",  s: "FW",    i: "settings.png", f: null, d: "Open format color window"},
+                {n: "WinText",   s: "FT",    i: "text.png",     f: null, d: "Open format text window"},
+                {n: "WinLink",   s: "FL",    i: "link.png",     f: null, d: "Open format link window"},
             ]},
         new: {
             init_left: -142, left: -142, width: 128,

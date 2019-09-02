@@ -130,6 +130,14 @@ function WIN_Color_mm(x, y, diffx, diffy, dom_element) {
 
 	DOM.findChildrenWithClass(dom_element.parentNode, "colorbox")[0].style.backgroundColor = HTMLcolor;
 	DOM.findChildrenWithClass(dom_element.parentNode, "color_value")[0].value = value;
+
+	if ("createEvent" in document) {
+    	var evt = document.createEvent("HTMLEvents");
+    	evt.initEvent("change", false, true);
+    	DOM.findChildrenWithClass(dom_element.parentNode, "color_value")[0].dispatchEvent(evt);
+	}
+	else
+    	DOM.findChildrenWithClass(dom_element.parentNode, "color_value")[0].fireEvent("onchange");
 }
 
 function WIN_Slider_mm(x, y, diffx, diffy, dom_element) {
@@ -786,7 +794,7 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
 	}, "Apply changes.");	
 }
 
-function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
+function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 	let vrf_options = [];
 	for(let rd in e.vrfs) {
 		vrf_options.push([e.vrfs[rd].name, rd])
@@ -863,8 +871,8 @@ function WIN_showL2DeviceConfigWindow(view, type, id, e, callback) {
 	}, "Apply changes.");	
 }
 
-function WIN_showL2LinkWindow(view, type, id, e, callback) {
-	let wdata = WIN_create(view, type, id, e.name, 440, 200);
+function WIN_showLinkWindow(view, type, id, e, callback) {
+	let wdata = WIN_create(view, type, id, "Link", 440, 200);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -895,14 +903,14 @@ function WIN_showL2LinkWindow(view, type, id, e, callback) {
 	}, "Apply changes.");	
 }
 
-function WIN_showL2LinkConfigWindow_lag(wdata) {
+function WIN_showLinkConfigWindow_lag(wdata) {
 	if(JSON.parse(wdata.d.ifbindings.value).length > 1)
 		wdata.d.lag_section.style.display = "block";
 	else
 		wdata.d.lag_section.style.display = "none";
 }
 
-function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback, callback_dev) {
+function WIN_showLinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback, callback_dev) {
 	// First a bit of cleanup (if data of interfaces of a link is not defined)
 	if(e.phy === undefined) {
 		e.phy = {
@@ -955,14 +963,14 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 		dev1: {name: dev1name, width: 120, options: dev_ifnames[0]},
 		dev2: {name: dev2name, width: 120, options: dev_ifnames[1]},
 	},
-	() => {WIN_showL2LinkConfigWindow_lag(wdata)});
+	() => {WIN_showLinkConfigWindow_lag(wdata)});
 
 	wdata.d.lag_section = WIN_addSection(w, 10, 160);
 	wdata.d.lag_name1 = WIN_addTextInput(wdata.d.lag_section, 0, 0, 0, 15, dev1name + " LAG Name", e.phy.lag_name[0]);
 	wdata.d.lag_name2 = WIN_addTextInput(wdata.d.lag_section, 0, 40, 0, 55, dev2name + " LAG Name", e.phy.lag_name[1]);
 	wdata.d.lacp = WIN_addSelect(wdata.d.lag_section, 240, 40, "LACP", [["Yes", "yes"], ["No", "no"]], (e.phy.lacp ? "yes" : "no"));
 
-	WIN_showL2LinkConfigWindow_lag(wdata);
+	WIN_showLinkConfigWindow_lag(wdata);
 
 	wdata.d.dev1 = WIN_addButton(w, 20, 250, "Edit " + dev1name, (ev) => {
 		callback_dev(0);
@@ -978,7 +986,7 @@ function WIN_showL2LinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callbac
 	}, "Apply changes.");		
 }
 
-function WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
+function WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
 	DOM.removeChilds(wdata.d.section);
 
 	if(wdata.d.function.value == "routing") {
@@ -1029,7 +1037,7 @@ function WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev)
 	}
 }
 
-function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) {
+function WIN_showLinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) {
 	// First a bit of cleanup (if data is not defined)
 	if(e.devs[dev_index].data.function_data === undefined) {
 		e.devs[dev_index].data.function_data = {};
@@ -1045,12 +1053,12 @@ function WIN_showL2LinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) 
 	let w = wdata.w;
 
 	wdata.d.function = WIN_addRadioImgInput(w, 240, 20, "Interface Type", WIN_data.constants.iffunctionchoices, e.devs[dev_index].data.function, () => {
-		WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
+		WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
 	});
 
 	wdata.d.section = WIN_addSection(w, 10, 90);
 
-	WIN_showL2LinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
+	WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 270, 200, "Apply", () => {
@@ -1085,6 +1093,7 @@ function WIN_showTextWindow(view, type, id, e, callback) {
 	// Background Color and show
 	wdata.d.bg_color = WIN_addColorInput(w, 230, 150, "BG Color", (e.bg_color !== undefined) ? e.bg_color : 0xffffff);
 	wdata.d.bg_show = WIN_addCheckBoxInput(w, 460, 170, 440, 170, "Show Background", (e.bg_show) ? e.bg_show : false);
+
 	// Border Color
 	wdata.d.border_color = WIN_addColorInput(w, 230, 220, "Border Color", (e.border_color !== undefined) ? e.border_color : 0x000000);
 	wdata.d.border_show = WIN_addCheckBoxInput(w, 460, 190, 440, 190, "Show Border", (e.border_show) ? e.border_show : false);
@@ -1114,6 +1123,37 @@ function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
 	}, "Apply changes.");	
 }
 
+function WIN_showVrfWindow(id, e, callback) {
+	let wdata = WIN_create("L3", "vrf", id, e.name, 440, 140);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Color
+	wdata.d.color1 = WIN_addColorInput(w, 20, 20, "Color 1", e.color1);	
+	wdata.d.color2 = WIN_addColorInput(w, 230, 20, "Color 2", e.color2);	
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");	
+}
+
+function WIN_showL2SegmentWindow(id, e, callback) {
+	let wdata = WIN_create("L3", "l2segment", id, e.name, 440, 140);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Color
+	wdata.d.color1 = WIN_addColorInput(w, 20, 20, "Color 1", e.color1);	
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");	
+}
+
 function WIN_showBackgroundSettings(settings, callback) {
 	let wdata = WIN_create("global", "background", "0", "Background", 240, 130);
 	if(!wdata)
@@ -1129,7 +1169,75 @@ function WIN_showBackgroundSettings(settings, callback) {
 	}, "Apply changes.");	
 }
 
+function WIN_showFormatSettingsColor(settings, callback) {
+	let wdata = WIN_create("global", "format", "color", "Format Color Settings", 450, 140);
+	if(!wdata)
+		return;
+	let w = wdata.w;	
 
+	// Colors
+	wdata.d.color1 = WIN_addColorInput(w, 20, 60, "Color 1", settings.color1);
+	wdata.d.color2 = WIN_addColorInput(w, 240, 60, "Color 2", settings.color2);
+	wdata.d.use_standard_color = WIN_addCheckBoxInput(w, 40, 20, 20, 20, "Use these settings when creating devices", !settings.use_standard_color);
 
+	for(attribute in wdata.d)
+		wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });
+}
 
+function WIN_showFormatSettingsText(settings, callback) {
+	let wdata = WIN_create("global", "format", "text", "Format Text Settings", 640, 330);
+	if(!wdata)
+		return;
+
+	let w = wdata.w;
+
+	wdata.d.use_standard_text = WIN_addCheckBoxInput(w, 40, 20, 20, 20, "Use these settings when creating text", !settings.use_standard_text);
+
+	// Color
+	wdata.d.color = WIN_addColorInput(w, 230, 20, "Color", settings.text_color);
+
+	// Height
+	wdata.d.height = WIN_addSlider(w, 20, 250, 100, "Size", settings.text_height, .1, 2, .1);
+
+	// Text align
+	wdata.d.text_align = WIN_addRadioImgInput(w, 20, 165, "Text Align", WIN_data.constants.textalign_choices, settings.text_align, () => {callback(wdata.d)});
+
+	// Background type
+	wdata.d.bg_type = WIN_addRadioImgInput(w, 230, 95, "Background Shape", WIN_data.constants.textbackground_choices, settings.text_bg_type, () => {callback(wdata.d)});
+
+	// Background Color and show
+	wdata.d.bg_color = WIN_addColorInput(w, 230, 150, "BG Color", settings.text_bg_color);
+	wdata.d.bg_show = WIN_addCheckBoxInput(w, 460, 170, 440, 170, "Show Background", settings.text_bg_show);
+
+	// Border Color
+	wdata.d.border_color = WIN_addColorInput(w, 230, 220, "Border Color", settings.text_border_color);
+	wdata.d.border_show = WIN_addCheckBoxInput(w, 460, 190, 440, 190, "Show Border", settings.text_border_show);
+	wdata.d.border_width = WIN_addSlider(w, 440, 210, 100, "Border Size", settings.text_border_width, .05, .5, .05);
+	wdata.d.bg_depth = WIN_addSlider(w, 440, 245, 100, "Background Depth", settings.text_bg_depth, .1, 1, .1);
+	wdata.d.rotation_x = WIN_addSlider(w, 440, 280, 100, "Rotation X", settings.text_rotation_x, 0, 90, 15);
+
+	for(attribute in wdata.d)
+		wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });	
+}
+
+function WIN_showFormatSettingsLink(settings, callback) {
+	let wdata = WIN_create("global", "format", "link", "Format Link Settings", 440, 140);
+	if(!wdata)
+		return;
+	let w = wdata.w;	
+
+	wdata.d.use_standard_link = WIN_addCheckBoxInput(w, 40, 20, 20, 20, "Use these settings when creating links", !settings.use_standard_link);
+
+	// Color
+	wdata.d.color = WIN_addColorInput(w, 20, 60, "Color", settings.link_color);
+
+	// Weight
+	wdata.d.weight = WIN_addSlider(w, 240, 60, 100, "Width", settings.link_weight, .025, .2, .0125);
+
+	// Height
+	wdata.d.height = WIN_addSlider(w, 240, 100, 100, "Height", settings.link_height, 0, .5, .05);
+
+	for(attribute in wdata.d)
+		wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });		
+}
 

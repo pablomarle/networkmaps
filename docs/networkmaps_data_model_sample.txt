@@ -29,9 +29,18 @@ this.diagram = {
 				px: 0, py: 0, pz: 0, 
 				rx: 0, ry: 0,
 				height: .3,
-				depth: .01,
 
 				color: 0xffffff,
+
+		        text_align: "l",
+		        rotation_x: 0,
+		        bg_color: 0xffffff,
+		        border_color: 0x000000,
+		        bg_type: "n",
+		        bg_show: false,
+		        border_show: false,
+		        border_width: .1,
+		        bg_depth: .1,
 			}
 		},
 		symbol: {
@@ -148,7 +157,6 @@ this.diagram = {
 					sx: 1, sy: 1, sz: 1,
 					rx: 0, ry: 0, rz: 0,
 					color1: 0xffffff,
-
 			}
 		}
 		l2link: {
@@ -177,8 +185,7 @@ this.diagram = {
 					l2_reference: {
 						device_id: device_id,
 						vrf_id: vrf_id
-					}			
-
+					}
 					base: 0,											-> Base element used to calculate position
 					type: "R",
 					name: "",
@@ -186,6 +193,7 @@ this.diagram = {
 					sx: 1, sy: 1, sz: 1,
 					rx: 0, ry: 0, rz: 0,
 					color1: 0xffffff,
+					color2: 0xffffff,
 			}
 		},
 		p2p_interface: {

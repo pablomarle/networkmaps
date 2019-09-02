@@ -101,6 +101,32 @@ class WGL {
         		angle: 15,
         		resize: .25,
         	},
+        	format: {
+        		use_standard_color: true,
+        		color1: 0x888888,
+        		color2: 0x444444,
+        		scale: 1,
+
+        		use_standard_link: true,
+        		link_weight: 0.025,
+        		link_height: .25,
+        		link_color: 0x888888,
+        		
+        		use_standard_text: true,
+        		text_color: 0x000000,
+        		text_rx: -Math.PI/4,
+        		text_height: .3,
+        		text_align: "l",
+        		text_rotation_x: 0,
+		        text_bg_color: 0xffffff,
+		        text_border_color: 0x000000,
+		        text_bg_type: "n",
+		        text_bg_show: false,
+		        text_border_show: false,
+		        text_border_width: .1,
+		        text_bg_depth: .1,
+		        text_rotation_x: 0,
+        	}
     	}
 
 		this.domelement = domelement;
@@ -732,7 +758,7 @@ class WGL {
 		}
 	}
 
-	settingsMesh_L2Device(id, name, color1, color2, ifnaming) {
+	settingsMesh_Device(id, name, color1, color2, ifnaming) {
 		let mesh = this.findMesh("device", id, this.scene["L2"]);
 		if(mesh) {
 			mesh.userData.e.name = name;
@@ -744,19 +770,36 @@ class WGL {
 		}
 	}
 
-	settingsMesh_L2Link(id, type, order, color, weight, height) {
-		let mesh = this.findMesh("link", id, this.scene["L2"]);
+	settingsMesh_Vrf(id, color1, color2) {
+		let mesh = this.findMesh("vrf", id, this.scene["L3"]);
 		if(mesh) {
-			mesh.userData.e.type = type;
+			mesh.userData.e.color1 = color1;
+			mesh.userData.e.color2 = color2;
+			this.updateDeviceColor("vrf", id, "L3");
+		}
+	}
+
+	settingsMesh_L2Segment(id, color1) {
+		let mesh = this.findMesh("l2segment", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.color1 = color1;
+			this.updateL2SegmentColor(id);
+		}
+	}
+
+	settingsMesh_Link(view, type, id, link_type, order, color, weight, height) {
+		let mesh = this.findMesh(type, id, this.scene[view]);
+		if(mesh) {
+			mesh.userData.e.type = link_type;
 			mesh.userData.e.order = order;
 			mesh.userData.e.linedata.color = color;
 			mesh.userData.e.linedata.weight = weight;
 			mesh.userData.e.linedata.height = height;
-			this.updateLinkGeometry("link", mesh, "L2");
+			this.updateLinkGeometry(type, mesh, view);
 		}
 	}
 
-	settingsMesh_Text(view, id, text, py, height, depth, color, text_align, bg_type, bg_show, bg_color, border_show, border_color, border_width, bg_depth, rotation_x) {
+	settingsMesh_Text(view, id, text, py, height, color, text_align, bg_type, bg_show, bg_color, border_show, border_color, border_width, bg_depth, rotation_x) {
 		let mesh = this.findMesh("text", id, this.scene[view]);
 		let textMesh = null, bgMesh = null, borderMesh = null;
 		for(let x = 0; x < mesh.children.length; x++) {
@@ -771,7 +814,6 @@ class WGL {
 			mesh.userData.e.text = text;
 			mesh.userData.e.py = py;
 			mesh.userData.e.height = height;
-			mesh.userData.e.depth = depth;
 			mesh.userData.e.color = color;
 			mesh.userData.e.text_align = text_align;
 			mesh.userData.e.bg_type = bg_type;
@@ -783,7 +825,7 @@ class WGL {
 			mesh.userData.e.bg_depth = bg_depth;
 			mesh.userData.e.rotation_x = rotation_x;
 
-			textMesh.geometry = this.createTextGeometry(text, height, depth, text_align, rotation_x);
+			textMesh.geometry = this.createTextGeometry(text, height, text_align, rotation_x);
 			[bgMesh.geometry, borderMesh.geometry] = this.createTextBGGeometry(textMesh.geometry, mesh.userData.e);
 
 			textMesh.material = new THREE.MeshPhongMaterial({color: color, side: THREE.DoubleSide});
@@ -964,6 +1006,34 @@ class WGL {
 		this.global_settings.grid.z = parseFloat(z);
 		this.global_settings.grid.angle = parseFloat(angle);
 		this.global_settings.grid.resize = parseFloat(resize);
+	}
+
+	updateFormatSettingsColor(win) {
+		this.global_settings.format.color1 = parseInt(win.color1.value);
+		this.global_settings.format.color2 = parseInt(win.color2.value);
+		this.global_settings.format.use_standard_color = !win.use_standard_color.checked;
+	}
+
+	updateFormatSettingsText(win) {
+		this.global_settings.format.use_standard_text = !win.use_standard_text.checked;
+		this.global_settings.format.text_color = parseInt(win.color.value);
+		this.global_settings.format.text_height = parseFloat(win.height.value);
+		this.global_settings.format.text_align = win.text_align.value;
+		this.global_settings.format.text_bg_type = win.bg_type.value;
+		this.global_settings.format.text_bg_color = parseInt(win.bg_color.value);
+		this.global_settings.format.text_bg_show = win.bg_show.checked;
+		this.global_settings.format.text_border_color = parseInt(win.border_color.value);
+		this.global_settings.format.text_border_show = win.border_show.checked;
+		this.global_settings.format.text_border_width = parseFloat(win.border_width.value);
+		this.global_settings.format.text_bg_depth = parseFloat(win.bg_depth.value);
+		this.global_settings.format.text_rotation_x = parseFloat(win.rotation_x.value);
+	}
+
+	updateFormatSettingsLink(win) {
+		this.global_settings.format.use_standard_link = !win.use_standard_link.checked;
+		this.global_settings.format.link_color = parseInt(win.color.value);
+		this.global_settings.format.link_height = parseFloat(win.height.value);
+		this.global_settings.format.link_weight = parseFloat(win.weight.value);
 	}
 
 	alignVectorToGrid(vector) {
@@ -1496,7 +1566,7 @@ class WGL {
 			m[x].material.uniforms.mycolor.value.b = (color[x] & 0xFF) / 256;
 		}
 		
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
 	}
 
 	getDeviceTextureByType(type, index) {
@@ -1593,7 +1663,7 @@ class WGL {
 		if(name == "")
 			return;
 
-		let g = this.createTextGeometry(name, size, .01, "c")
+		let g = this.createTextGeometry(name, size, "c")
 
 		let material = this.namematerial;
 		let mesh = new THREE.Mesh(g, material);
@@ -1860,7 +1930,7 @@ class WGL {
 		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
-	createTextGeometry(text, height, depth, alignment, rotationX) {
+	createTextGeometry(text, height, alignment, rotationX) {
 		/*
 		let g = new THREE.TextGeometry(text, {
 			font: this.font,
@@ -2093,13 +2163,13 @@ class WGL {
 		let base = this.findMesh("base", e.base, this.scene[sceneid]);
 
 		let group = new THREE.Group();
-		let g = this.createTextGeometry(e.text, e.height, e.depth, e.text_align, e.rotation_x);
+		let g = this.createTextGeometry(e.text, e.height, e.text_align, e.rotation_x);
 		let bg_g, border_g;
 		[bg_g, border_g] = this.createTextBGGeometry(g, e);
 
 		let material = new THREE.MeshPhongMaterial({color: e.color, side: THREE.DoubleSide});
 		let bg_material = new THREE.MeshPhongMaterial({color: (e.bg_color !== undefined) ? e.bg_color : 0xffffff});
-		let border_material = new THREE.MeshPhongMaterial({color: (e.border_color !== undefined) ? e.border_color : 0xffffff});
+		let border_material = new THREE.MeshPhongMaterial({color: (e.border_color !== undefined) ? e.border_color : 0x000000});
 
 		let textMesh = new THREE.Mesh(g, material);
 		let bgMesh = new THREE.Mesh(bg_g, bg_material);
@@ -2393,6 +2463,19 @@ class WGL {
 		//g.computeFlatVertexNormals();
 
 		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+	}
+
+	updateL2SegmentColor(id) {
+		let meshgroup = this.findMesh("l2segment", id, this.scene["L3"]);
+		let m = this.findMeshesOfGroup(meshgroup);
+
+		let color = meshgroup.userData.e.color1;
+
+		m[0].material.uniforms.mycolor.value.r = (color >> 16) / 256;
+		m[0].material.uniforms.mycolor.value.g = ((color >> 8) & 0xFF) / 256;
+		m[0].material.uniforms.mycolor.value.b = (color & 0xFF) / 256;
+
+		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
 	}
 
 	addL2Segment(id, e, alignToGrid) {

@@ -2,7 +2,7 @@
 	position: fixed;
 	border: 3px solid #4484CE;
 	/*border-radius: 5px; */
-	background: rgba(255, 255, 255, .5);
+	background: rgba(255, 255, 255, .8);
 	/*background-image: linear-gradient(160deg, #fff3dc 0%, #ffd586 50%, #ffa0bf 100%); */
 	font-size: 12px;
     box-shadow: 4px 4px 32px #888;
