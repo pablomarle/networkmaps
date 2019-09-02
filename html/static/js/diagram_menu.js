@@ -48,6 +48,7 @@ MENU = {
                 {n: "Base",     s: null,    i: "base.png",          f: "new_base",      d: "Add new Floors or Walls."},
                 {n: "Text",     s: null,    i: "text.png",          f: "new_text",      d: "Add text to the diagrams." },
                 {n: "Symbol",   s: null,    i: "symbol.png",        f: "new_symbol",    d: "Add symbols to the diagrams." },
+                {n: "Link",     s: null,    i: "link.png",          f: "new_l3_link",   d: "Add connections between devices." },
             ]},
         new_device: {
             init_left: -142, left: -142, width: 128,
@@ -158,9 +159,15 @@ MENU = {
             init_left: -190, left: -190, width: 170,
             name: "Add Link",
             components: [
-                {n: "Line",     s: "ALL",    i: "link_line.png",      f: null},
-                {n: "Squared",  s: "ALS",    i: "link_squared.png",      f: null},
-                {n: "Joint",    s: "AJ",     i: "link_joint.png",      f: null},
+                {n: "Line",     s: "ALL",    i: "link_line.png",      f: null, d: "Add straight link (cable) between devices."},
+                {n: "Squared",  s: "ALS",    i: "link_squared.png",   f: null, d: "Add squared link (cable)between devices."},
+                {n: "Joint",    s: "AJ",     i: "link_joint.png",     f: null, d: "Add Joint to an existing link.\nClick on the link to create the joint. After that, you can move the joint with the move tool."},
+            ]},
+        new_l3_link: {
+            init_left: -190, left: -190, width: 170,
+            name: "Add Link",
+            components: [
+                {n: "Joint",    s: "AJ",     i: "link_joint.png",     f: null, d: "Add Joint to an existing link.\nClick on the link to create the joint. After that, you can move the joint with the move tool."},
             ]},
         new_base: {
             init_left: -190, left: -190, width: 170,

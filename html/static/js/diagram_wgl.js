@@ -500,8 +500,8 @@ class WGL {
 		return linklist;
 	}
 
-	findClosestLinkJointIndex(view, linkid, x, y, z) {
-		let mesh = this.getMesh(view, "link", linkid);
+	findClosestLinkJointIndex(view, element_type, linkid, x, y, z) {
+		let mesh = this.getMesh(view, element_type, linkid);
 		let distance = 10000;
 		let index = -1;
 		for(let i = 0; i < mesh.userData.e.linedata.points.length; i++) {
@@ -915,11 +915,11 @@ class WGL {
 		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
-	deleteJoint(view, link_id, joint_index) {
-		let mesh = this.findMesh("link", link_id, this.scene[view]);
+	deleteJoint(view, element_type, link_id, joint_index) {
+		let mesh = this.findMesh(element_type, link_id, this.scene[view]);
 		if(mesh) {
 			mesh.userData.e.linedata.points.splice(joint_index, 1);
-			this.updateLinkGeometry("link", mesh, "L2");
+			this.updateLinkGeometry(element_type, mesh, view);
 		}
 	}
 

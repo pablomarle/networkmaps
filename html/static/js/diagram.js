@@ -233,8 +233,8 @@ function process_message_add(data) {
     else if((data.v == "L2") && (data.t == "link")) {
         d.wgl.addLink(data.t, data.i, "L2", data.d);
     }
-    else if((data.v == "L2") && (data.t == "joint")) {
-        d.wgl.addJoint("link", data.link_id, data.joint_index, "L2", data.px, data.py, data.pz);
+    else if(data.t == "joint") {
+        d.wgl.addJoint(data.et, data.link_id, data.joint_index, data.v, data.px, data.py, data.pz);
     }
     else if(data.t == "text") {
         let mesh = d.wgl.addText(data.i, data.v, data.d);
@@ -253,10 +253,10 @@ function process_message_add(data) {
 
 function process_message_move(data) {
     if(data.t == "joint") {
-        let mesh = d.wgl.getMesh(data.v, "link", data.i);
+        let mesh = d.wgl.getMesh(data.v, data.et, data.i);
         if(mesh) {
             mesh.userData.e.linedata.points[data.joint_index] = [data.x, data.y, data.z];
-            d.wgl.updateLinkGeometry("link", mesh, data.v);
+            d.wgl.updateLinkGeometry(data.et, mesh, data.v);
         }
     }
     else if(data.t === "text")
@@ -333,8 +333,8 @@ function process_message_delete(data) {
     else if((data.v == "L3") && (data.t == "base")) {
         d.wgl.deleteMesh("L3", data.t, data.i)
     }
-    else if ((data.v == "L2") && (data.t == "joint"))
-        d.wgl.deleteJoint("L2", data.i, data.pi);
+    else if (data.t == "joint")
+        d.wgl.deleteJoint(data.v, data.et, data.i, data.pi);
 }
 
 function process_message_l3(l3_changes) {
@@ -450,12 +450,13 @@ function sendAdd_Link(type, dev1_id, dev2_id) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendAdd_Joint(link_id, joint_index, px, py, pz) {
+function sendAdd_Joint(element_type, link_id, joint_index, px, py, pz) {
     let message = {
         m: "A",
         d: {
             v: d.current_view,
             t: "joint",
+            et: element_type,
             link_id: link_id,
             joint_index: joint_index,
             px: px, py: py, pz: pz,
@@ -536,12 +537,13 @@ function sendMove(view, type, id) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendMoveJoint(view, id, joint_index, coords) {
+function sendMoveJoint(view, element_type, id, joint_index, coords) {
     let message = {
         m: "M",
         d: {
             v: view,
             t: "joint",
+            et: element_type,
             i: id,
             joint_index: joint_index,
             x: coords[0], y: coords[1], z: coords[2],
@@ -942,12 +944,13 @@ function sendDelete(type, id) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendDeleteJoint(view, link_id, point_index) {
+function sendDeleteJoint(view, element_type, link_id, point_index) {
     let message = {
         m: "D",
         d: {
             v: view,
             t: "joint",
+            et: element_type,
             i: link_id,
             pi: point_index,
         }
@@ -1279,19 +1282,20 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if ((d.dom.tools.active_t === "AJ") && (d.current_view === "L2")) {
+    else if (d.dom.tools.active_t === "AJ") {
         // Add Joint
         for(let x = 0; x < objlist.length; x++) {
-            if ((objlist[x].mesh.userData.type === "link") && 
-                (objlist[x].mesh.userData.subtype === "segment") &&
-                (objlist[x].mesh.userData.e.type == 0)) {
-                d.mouseaction = {
-                    m: d.dom.tools.active_t,
-                    link_id: objlist[x].mesh.userData.id,
-                    joint_index: objlist[x].mesh.userData.index,
-                    px: objlist[x].p.x,
-                    py: objlist[x].p.y,
-                    pz: objlist[x].p.z,
+            if (["link", "l2link", "interface", "svi_interface", "p2p_interface"].indexOf(objlist[x].mesh.userData.type) !== -1) {
+                if((objlist[x].mesh.userData.subtype === "segment") && (objlist[x].mesh.userData.e.type == 0)) {
+                    d.mouseaction = {
+                        m: d.dom.tools.active_t,
+                        element_type: objlist[x].mesh.userData.type,
+                        link_id: objlist[x].mesh.userData.id,
+                        joint_index: objlist[x].mesh.userData.index,
+                        px: objlist[x].p.x,
+                        py: objlist[x].p.y,
+                        pz: objlist[x].p.z,
+                    }
                 }
             }
         }
@@ -1373,12 +1377,12 @@ function mousedown(x, y, dx, dy, dom_element) {
                 mesh: objlist[0].mesh.userData.id,
             }
         }
-        else if((objlist.length > 0) && (objlist[0].mesh.userData.type === "link") && 
+        else if((objlist.length > 0) && (["link", "l2link", "interface", "svi_interface", "p2p_interface"].indexOf(objlist[0].mesh.userData.type) !== -1) && 
                 (objlist[0].mesh.userData.e.type === 0)) {
-            let mesh = d.wgl.getMesh(d.current_view, "link", objlist[0].mesh.userData.id);
+            let mesh = d.wgl.getMesh(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id);
 
             // Find the closest point (if none, nothing has to be done)
-            let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, objlist[0].mesh.userData.id, 
+            let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, 
                 objlist[0].p.x, objlist[0].p.y, objlist[0].p.z);
 
             if (point_index != -1) {
@@ -1387,6 +1391,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                     mesh: objlist[0].mesh.userData.id,
                     joint_index: point_index,
                     type: "joint",
+                    element_type: objlist[0].mesh.userData.type,
                 }
             }
         }
@@ -1578,7 +1583,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if (d.dom.tools.active_t === "AJ") {
-        sendAdd_Joint(a.link_id, a.joint_index, a.px, a.py, a.pz);
+        sendAdd_Joint(a.element_type, a.link_id, a.joint_index, a.px, a.py, a.pz);
     }
     else if (d.dom.tools.active_t.startsWith("AT")) {
         let mesh = d.wgl.getMesh(d.current_view, "text", "CURSOR");
@@ -1605,8 +1610,8 @@ function mouseup(x, y, dx, dy, dom_element) {
             sendMove(d.current_view, a.type, a.mesh);
         }
         else if(a.type === "joint") {
-            let m = d.wgl.getMesh(d.current_view, "link", a.mesh)
-            sendMoveJoint(d.current_view, a.mesh, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
+            let m = d.wgl.getMesh(d.current_view, a.element_type, a.mesh)
+            sendMoveJoint(d.current_view, a.element_type, a.mesh, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
         }
     }    
     else if(d.dom.tools.active_t === "BR") {
@@ -1739,11 +1744,20 @@ function mouseup(x, y, dx, dy, dom_element) {
                     sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);       
                 }
                 else {
-                    let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, a.obj.mesh.userData.id, 
+                    let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, "link", a.obj.mesh.userData.id, 
                         a.obj.p.x, a.obj.p.y, a.obj.p.z);
 
                     if (point_index != -1)
-                        sendDeleteJoint(d.current_view, a.obj.mesh.userData.id, point_index);
+                        sendDeleteJoint(d.current_view, "link", a.obj.mesh.userData.id, point_index);
+                }
+            }
+            else if (["l2link", "interface", "svi_interface", "p2p_interface"].indexOf(a.obj.mesh.userData.type) !== -1) {
+                if (a.obj.mesh.userData.e.linedata.points.length > 0) {
+                    let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, 
+                        a.obj.p.x, a.obj.p.y, a.obj.p.z);
+
+                    if (point_index != -1)
+                        sendDeleteJoint(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, point_index);
                 }
             }
             else if (a.obj.mesh.userData.type === "text") {
@@ -1965,13 +1979,15 @@ function mousemove(x, y, dx, dy, dom_element) {
             }
         }
         else if(d.mouseaction.type === "joint") {
-            let mesh = d.wgl.getMesh(d.current_view, "link", d.mouseaction.mesh);
+            let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.element_type, d.mouseaction.mesh);
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
+                    let point_vector = new THREE.Vector3(objlist[x].p.x, objlist[x].p.y + mesh.userData.e.linedata.height , objlist[x].p.z);
+                    d.wgl.alignVectorToGrid(point_vector);
                     mesh.userData.e.linedata.points[d.mouseaction.joint_index] = [
-                        objlist[x].p.x, objlist[x].p.y + mesh.userData.e.linedata.height , objlist[x].p.z
+                        point_vector.x, point_vector.y, point_vector.z
                     ]
-                    d.wgl.updateLinkGeometry("link", mesh, d.current_view);
+                    d.wgl.updateLinkGeometry(d.mouseaction.element_type, mesh, d.current_view);
                     break;
                 }
             }
