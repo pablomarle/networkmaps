@@ -2372,6 +2372,7 @@ class WGL {
 		}
 
 		let sx_2 = e.sx/2 * sx_per/100;
+		let sx = e.sx;
 		let sz_2 = e.sz/2 * sz_per/100;
 		let py_1 = e.sy - e.sy * sy_per/100;
 		let py_2 = e.sy;
@@ -2428,18 +2429,23 @@ class WGL {
 			}
 		}
 		else if(type == "v") {
+			if(istail) {
+				sx_2 = -sx_2;
+				sx = -sx;
+			}
+
 			vertices = [
-				[e.sx/2, py_2, sz_2], [sx_2, py_2-sx_2, sz_2], [sx_2, py_1-sx_2, sz_2], [e.sx/2, py_1, sz_2], 
-				[-e.sx/2, py_1, sz_2], [-sx_2, py_1-sx_2, sz_2], [-sx_2, py_2-sx_2, sz_2], [-e.sx/2, py_2, sz_2],
+				[sx/2, py_2, sz_2], [sx_2, py_2-sx_2, sz_2], [sx_2, py_1-sx_2, sz_2], [sx/2, py_1, sz_2], 
+				[-sx/2, py_1, sz_2], [-sx_2, py_1-sx_2, sz_2], [-sx_2, py_2-sx_2, sz_2], [-sx/2, py_2, sz_2],
 
-				[e.sx/2+r*.5, py_2+r*.5, sz_2-r], [sx_2+r, py_2-sx_2, sz_2-r], [sx_2+r, py_1-sx_2-r*3, sz_2-r], [e.sx/2-r*.7, py_1-r*.7, sz_2-r], 
-				[-e.sx/2+r*.7, py_1-r*.7, sz_2-r], [-sx_2-r, py_1-sx_2-r*3, sz_2-r], [-sx_2-r, py_2-sx_2, sz_2-r], [-e.sx/2-r*.5, py_2+r*.5, sz_2-r],
+				[sx/2+r*.5, py_2+r*.5, sz_2-r], [sx_2+r, py_2-sx_2, sz_2-r], [sx_2+r, py_1-sx_2-r*3, sz_2-r], [sx/2-r*.7, py_1-r*.7, sz_2-r], 
+				[-sx/2+r*.7, py_1-r*.7, sz_2-r], [-sx_2-r, py_1-sx_2-r*3, sz_2-r], [-sx_2-r, py_2-sx_2, sz_2-r], [-sx/2-r*.5, py_2+r*.5, sz_2-r],
 
-				[e.sx/2+r*.5, py_2+r*.5, -sz_2+r], [sx_2+r, py_2-sx_2, -sz_2+r], [sx_2+r, py_1-sx_2-r*3, -sz_2+r], [e.sx/2-r*.7, py_1-r*.7, -sz_2+r], 
-				[-e.sx/2+r*.7, py_1-r*.7, -sz_2+r], [-sx_2-r, py_1-sx_2-r*3, -sz_2+r], [-sx_2-r, py_2-sx_2, -sz_2+r], [-e.sx/2-r*.5, py_2+r*.5, -sz_2+r],
+				[sx/2+r*.5, py_2+r*.5, -sz_2+r], [sx_2+r, py_2-sx_2, -sz_2+r], [sx_2+r, py_1-sx_2-r*3, -sz_2+r], [sx/2-r*.7, py_1-r*.7, -sz_2+r], 
+				[-sx/2+r*.7, py_1-r*.7, -sz_2+r], [-sx_2-r, py_1-sx_2-r*3, -sz_2+r], [-sx_2-r, py_2-sx_2, -sz_2+r], [-sx/2-r*.5, py_2+r*.5, -sz_2+r],
 
-				[e.sx/2, py_2, -sz_2], [sx_2, py_2-sx_2, -sz_2], [sx_2, py_1-sx_2, -sz_2], [e.sx/2, py_1, -sz_2],
-				[-e.sx/2, py_1, -sz_2], [-sx_2, py_1-sx_2, -sz_2], [-sx_2, py_2-sx_2, -sz_2], [-e.sx/2, py_2, -sz_2],
+				[sx/2, py_2, -sz_2], [sx_2, py_2-sx_2, -sz_2], [sx_2, py_1-sx_2, -sz_2], [sx/2, py_1, -sz_2],
+				[-sx/2, py_1, -sz_2], [-sx_2, py_1-sx_2, -sz_2], [-sx_2, py_2-sx_2, -sz_2], [-sx/2, py_2, -sz_2],
 			];
 			faces = [
 				[0,2,1], [0,3,2], [0,4,3], [0,7,4], [4,6,5], [4,7,6],
@@ -2453,10 +2459,22 @@ class WGL {
 			}
 
 			for(let x = 0; x < faces.length; x++) {
-				if(x > 5)
-					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][2]], [vertices[faces[x][1]][0],vertices[faces[x][1]][2]], [vertices[faces[x][2]][0],vertices[faces[x][2]][2]]]);
-				else
+				if(x < 12)
 					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][1]], [vertices[faces[x][1]][0],vertices[faces[x][1]][1]], [vertices[faces[x][2]][0],vertices[faces[x][2]][1]]]);
+				else if( (((x-12)%16) == 2) || (((x-12)%16) == 3) || (((x-12)%16) == 10) || (((x-12)%16) == 11))
+					fvuv.push([[vertices[faces[x][0]][1],vertices[faces[x][0]][2]], [vertices[faces[x][1]][1],vertices[faces[x][1]][2]], [vertices[faces[x][2]][1],vertices[faces[x][2]][2]]]);
+				else
+					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][2]], [vertices[faces[x][1]][0],vertices[faces[x][1]][2]], [vertices[faces[x][2]][0],vertices[faces[x][2]][2]]]);
+			}
+			if(istail) {
+				for(let x = 0; x < faces.length; x++) {
+					let temp = faces[x][1];
+					faces[x][1] = faces[x][2];
+					faces[x][2] = temp;
+					temp = fvuv[x][1];
+					fvuv[x][1] = fvuv[x][2];
+					fvuv[x][2] = temp;
+				}
 			}
 		}
 		else if(type == "p") {
