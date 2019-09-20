@@ -20,6 +20,7 @@ MENU = {
                 {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram\nQuick access key: 'c'", q: "KeyC"},
                 {n: "Base",     s: null,    i: "base.png",      f: "base_change", d: "Modify Floors and walls."},
                 {n: "Format",   s: null,    i: "brush.png",     f: "format", d: "Format Elements, links, text and symbols."},
+                {n: "V.Move",   s: "EMV",    i: "move_v.png",      f: null, d: "Move diagram elements vertically.\nCurrently only available for Symbols."},
             ]},
         format: {
             init_left: -142, left: -142, width: 128,
@@ -188,6 +189,7 @@ MENU = {
                 {n: "Flag",     s: "ASF",    i: "symbol_flag.png",      f: null},
                 {n: "X",        s: "ASX",    i: "symbol_x.png",      f: null},
                 {n: "V",        s: "ASV",    i: "symbol_v.png",      f: null},
+                {n: "Arrow",    s: "ASA",    i: "symbol_a.png",      f: null},
             ]},
         base_change: {
             init_left: -142, left: -142, width: 128,

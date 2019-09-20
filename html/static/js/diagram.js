@@ -78,7 +78,11 @@ function createDefaultSymbolFlag(x, y, z, base) {
 
 function createDefaultSymbol(type, x, y, z, base) {
     let color = d.wgl.global_settings.format.color1;
-    if(type === "X")
+    if(type === "F")
+        return createDefaultSymbolFlag(x, y, z, base);
+    else if(type === "A")
+        return createDefaultSymbolArrow(x, y, z, base);
+    else if(type === "X")
         color = d.wgl.global_settings.format.use_standard_color ? 0xff4444 : d.wgl.global_settings.format.color1;
     else if(type === "V")
         color = d.wgl.global_settings.format.use_standard_color ? 0x44ff44 : d.wgl.global_settings.format.color1;
@@ -91,6 +95,30 @@ function createDefaultSymbol(type, x, y, z, base) {
         sx: d.wgl.global_settings.format.scale, sy: d.wgl.global_settings.format.scale, sz: d.wgl.global_settings.format.scale,
         color: color,
     }
+}
+
+function createDefaultSymbolArrow(x, y, z, base) {
+    return {
+        type: "A",
+        base: base,
+        px: x, py: y, pz: z,
+        rx: -Math.PI/2, ry: 0, rz: 0,
+        sx: .2, sy: 2, sz: .2,
+        color: 0xffaa88,
+        cd: {
+            shaft_dots: 1,
+            head_color: 0xffaa88,
+            head_type: "f",
+            tail_type: "n",
+            shaft_type: "s",
+            head_sx_per: 400,
+            head_sy_per: 20,
+            head_sz_per: 100,
+            tail_sx_per: 400,
+            tail_sy_per: 20,
+            tail_sz_per: 100,
+        }
+    };
 }
 
 function check_ifnaming(value) {
@@ -930,6 +958,34 @@ function sendSettings_SymbolFlag(view, type, id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
+function sendSettings_SymbolArrow(view, type, id, windata) {
+    let message = {
+        m: "P",
+        d: {
+            v: view,
+            t: type,
+            i: id,
+
+            sx: parseFloat(windata.d.sx.value),
+            sz: parseFloat(windata.d.sz.value),
+            color: parseInt(windata.d.color.value),
+            head_color: parseInt(windata.d.head_color.value),
+            head_type: windata.d.head_type.value,
+            tail_type: windata.d.tail_type.value,
+            shaft_type: windata.d.shaft_type.value,
+            head_sx_per: parseInt(windata.d.head_sx_per.value),
+            head_sy_per: parseInt(windata.d.head_sy_per.value),
+            head_sz_per: parseInt(windata.d.head_sz_per.value),
+            tail_sx_per: parseInt(windata.d.tail_sx_per.value),
+            tail_sy_per: parseInt(windata.d.tail_sy_per.value),
+            tail_sz_per: parseInt(windata.d.tail_sz_per.value),
+            shaft_dots: parseInt(windata.d.shaft_dots.value),
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
 function sendDelete(type, id) {
     let message = {
         m: "D",
@@ -1325,24 +1381,13 @@ function mousedown(x, y, dx, dy, dom_element) {
                 let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
                     objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
                 let symboltype = d.dom.tools.active_t.substring(2);
-                if(symboltype == "F") {
-                    d.mouseaction = {
-                        m: d.dom.tools.active_t,
-                        mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbolFlag(
-                            newcoords.x, newcoords.y, newcoords.z, 
-                            objlist[x].mesh.userData.id
-                        ), true)
-                    }
-                }
-                else {
-                    d.mouseaction = {
-                        m: d.dom.tools.active_t,
-                        mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbol(
-                            symboltype,
-                            newcoords.x, newcoords.y, newcoords.z, 
-                            objlist[x].mesh.userData.id
-                        ), true)
-                    }
+                d.mouseaction = {
+                    m: d.dom.tools.active_t,
+                    mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbol(
+                        symboltype,
+                        newcoords.x, newcoords.y, newcoords.z, 
+                        objlist[x].mesh.userData.id
+                    ), true)
                 }
                 break;
             }
@@ -1396,6 +1441,20 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
+    else if (d.dom.tools.active_t === "EMV") {
+        // Move Element
+        if((objlist.length > 0) && (
+            (objlist[0].mesh.userData.type === "symbol")
+            ))  {
+            let mesh = d.wgl.findMesh(objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, d.wgl.scene[d.current_view]);
+            d.mouseaction = {
+                m: "EMV",
+                mesh: mesh,
+                base_y: mesh.position.y,
+                py: y,
+            }
+        }
+    }
     else if (d.dom.tools.active_t === "BR") {
         // Rotate base
         if((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
@@ -1423,6 +1482,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 type: objlist[0].mesh.userData.type,
                 rx: v.x, ry: v.y, rz: v.z
             }
+            if(objlist[0].mesh.userData.type === "symbol")
+                d.mouseaction.subtype = objlist[0].mesh.userData.e.type;            
         }
     }
     else if (d.dom.tools.active_t  === "BX") {
@@ -1450,6 +1511,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 type: objlist[0].mesh.userData.type,
                 y: d.wgl.getMesh(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id).parent.userData.e.sy,
             }
+            if(objlist[0].mesh.userData.type === "symbol")
+                d.mouseaction.subtype = objlist[0].mesh.userData.e.type;
         }
     }
 
@@ -1614,6 +1677,9 @@ function mouseup(x, y, dx, dy, dom_element) {
             sendMoveJoint(d.current_view, a.element_type, a.mesh, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
         }
     }    
+    else if(d.dom.tools.active_t === "EMV") {
+        sendMove(d.current_view, a.mesh.userData.type, a.mesh.userData.id);
+    }    
     else if(d.dom.tools.active_t === "BR") {
         sendRotate(d.current_view, "base", a.id);
     }
@@ -1692,16 +1758,18 @@ function mouseup(x, y, dx, dy, dom_element) {
             }
             else if (a.obj.mesh.userData.type == "symbol") {
                 if(a.obj.mesh.userData.e.type == "F") {
-                    if(d.current_view === "L2")
-                        WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                            (windata) => {
-                                sendSettings_SymbolFlag("L2", "symbol", a.obj.mesh.userData.id, windata);
-                            });
-                    else if(d.current_view === "L3")
-                        WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                            (windata) => {
-                                sendSettings_SymbolFlag("L3", "symbol", a.obj.mesh.userData.id, windata);
-                            });
+                    let view = d.current_view;
+                    WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                        (windata) => {
+                            sendSettings_SymbolFlag(view, "symbol", a.obj.mesh.userData.id, windata);
+                        });
+                }
+                else if(a.obj.mesh.userData.e.type == "A") {
+                    let view = d.current_view;
+                    WIN_showSymbolArrowWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                        (windata) => {
+                            sendSettings_SymbolArrow(view, "symbol", a.obj.mesh.userData.id, windata);
+                        });
                 }
             }
         }
@@ -1959,7 +2027,7 @@ function mousemove(x, y, dx, dy, dom_element) {
                     let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
                         objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
                     d.wgl.moveMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh,
-                        newcoords.x, newcoords.y, newcoords.z, 
+                        newcoords.x, undefined, newcoords.z, 
                         objlist[x].mesh.userData.id, true);
                     break;
                 }
@@ -1993,11 +2061,28 @@ function mousemove(x, y, dx, dy, dom_element) {
             }
         }
     }
+    else if(d.dom.tools.active_t === "EMV") {
+        if(d.mouseaction.mesh.userData.type === "symbol") {
+            
+            d.wgl.moveMesh(d.current_view, d.mouseaction.mesh.userData.type, d.mouseaction.mesh.userData.id, 
+                undefined, d.mouseaction.base_y + (d.mouseaction.py - y) * .05, undefined, null, true);
+
+        }
+    }
     else if(d.dom.tools.active_t === "BR") {
         d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
         d.wgl.rotateMesh(d.current_view, "base", d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
     }
     else if(d.dom.tools.active_t === "ER") {
+        if((d.mouseaction.type == "symbol") && (d.mouseaction.subtype == "A")) {
+            d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 1);
+            d.mouseaction.rx = d.mouseaction.rx - (dy * 2 * Math.PI/360 * 1);
+            if(d.mouseaction.rx < -Math.PI/2)
+                d.mouseaction.rx = -Math.PI/2;
+            if(d.mouseaction.rx > 0)
+                d.mouseaction.rx = 0;
+            d.wgl.rotateMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
+        }
         if((d.mouseaction.type == "device") || (d.mouseaction.type == "symbol") || (d.mouseaction.type == "l2segment") || (d.mouseaction.type == "vrf")) {
             d.mouseaction.ry = d.mouseaction.ry + (dx * 2 * Math.PI/360 * 5);
             d.wgl.rotateMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, d.mouseaction.rx, d.mouseaction.ry, d.mouseaction.rz, true);
@@ -2020,7 +2105,7 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "EX") {
         p = d.wgl.pickLevel(x, y, d.mouseaction.y);
-        p = d.wgl.convertWorld2MeshCoordinates(d.current_view, d.mouseaction.type, d.mouseaction.id, p.x, p.y, p.z)
+        p = d.wgl.convertWorld2MeshCoordinates(d.current_view, d.mouseaction.type, d.mouseaction.id, p.x, p.y, p.z);
         let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.type, d.mouseaction.id);
         let newscale = Math.abs(2*p.x*mesh.scale.x);
         if (Math.abs(p.z) > Math.abs(p.x))
@@ -2028,6 +2113,10 @@ function mousemove(x, y, dx, dy, dom_element) {
         if(d.mouseaction.type === "l2segment")
             d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
                 newscale, null, null, true);
+        else if((d.mouseaction.type == "symbol") && (d.mouseaction.subtype == "A")) {
+            d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
+                null, Math.abs(2*p.y*mesh.scale.y)*.5, null, true);
+        }
         else
             d.wgl.resizeMesh(d.current_view, d.mouseaction.type, d.mouseaction.id, 
                 newscale, newscale, newscale, true);

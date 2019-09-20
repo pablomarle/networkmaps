@@ -37,6 +37,18 @@ WIN_data = {
 			["Rhombus", "text_bg_rho.png", "h"],
 			["Parallelogram", "text_bg_para.png", "p"],
 		],
+		arrowheadtype_choices: [
+			["No Head", "radio_arrow_nohead.png", "n"],
+			["Flat", "radio_arrow_flat.png", "f"],
+			["V Shape", "radio_arrow_v.png", "v"],
+			["Point", "radio_arrow_point.png", "p"],
+			["Round", "radio_arrow_round.png", "r"],
+			["Square", "radio_arrow_square.png", "s"],
+		],
+		arrowshafttype_choices: [
+			["Round", "radio_shaft_round.png", "r"],
+			["Square", "radio_shaft_square.png", "s"],
+		],
 	}
 }
 
@@ -1108,7 +1120,7 @@ function WIN_showTextWindow(view, type, id, e, callback) {
 }
 
 function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
-	let wdata = WIN_create(view, type, id, "Symbol " + id, 440, 140);
+	let wdata = WIN_create(view, type, id, "Flag " + id, 440, 140);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -1119,6 +1131,38 @@ function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
+}
+
+function WIN_showSymbolArrowWindow(view, type, id, e, callback) {
+	let wdata = WIN_create(view, type, id, "Arrow " + id, 540, 370);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Color
+	wdata.d.color = WIN_addColorInput(w, 20, 20, "Color Shaft", e.color);
+	wdata.d.head_color = WIN_addColorInput(w, 230, 20, "Color Head", e.cd.head_color);
+
+	wdata.d.head_type = WIN_addRadioImgInput(w, 20, 100, "Head Type", WIN_data.constants.arrowheadtype_choices, e.cd.head_type);
+	wdata.d.tail_type = WIN_addRadioImgInput(w, 20, 160, "Tail Type", WIN_data.constants.arrowheadtype_choices, e.cd.tail_type);
+	wdata.d.shaft_type = WIN_addRadioImgInput(w, 320, 100, "Shaft Type", WIN_data.constants.arrowshafttype_choices, e.cd.shaft_type);
+
+	wdata.d.sx = WIN_addSlider(w, 20, 220, 100, "Width", e.sx, .02, 1, .02);
+	wdata.d.sz = WIN_addSlider(w, 190, 220, 100, "Depth", e.sz, .02, 1, .02);
+
+	wdata.d.shaft_dots = WIN_addSlider(w, 360, 220, 100, "Num dots", e.cd.shaft_dots, 1, 10, 1);
+
+	wdata.d.head_sx_per = WIN_addSlider(w, 20, 260, 100, "Head Width Percentage", e.cd.head_sx_per, 100, 800, 10);
+	wdata.d.head_sz_per = WIN_addSlider(w, 190, 260, 100, "Head Depth Percentage", e.cd.head_sz_per, 100, 800, 10);
+	wdata.d.head_sy_per = WIN_addSlider(w, 360, 260, 100, "Head Length Percentage", e.cd.head_sy_per, 1, 50, 1);
+	wdata.d.tail_sx_per = WIN_addSlider(w, 20, 300, 100, "Tail Width Percentage", e.cd.tail_sx_per, 100, 800, 10);
+	wdata.d.tail_sz_per = WIN_addSlider(w, 190, 300, 100, "Tail Depth Percentage", e.cd.tail_sz_per, 100, 800, 10);
+	wdata.d.tail_sy_per = WIN_addSlider(w, 360, 300, 100, "Tail Length Percentage", e.cd.tail_sy_per, 1, 50, 1);
+	
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 230, 340, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");	
 }

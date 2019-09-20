@@ -54,7 +54,18 @@ this.diagram = {
 				color: 0xff0000,
 
 				cd: {											-> data specific to the type
+					// Flag specific
 					flagcolor: 0x00ff00,
+
+					// Arrow specific
+					shaft_dots: 1,
+					head_color: 0xffffff,						-> Color of the arror
+					head_type: 									-> Type of head: "n": none, "f": flat, "v": v shaped, "p": pyramid, "r": round, "s": squared
+					tail_type:									-> Type of tail: same as head
+					shaft_type:									-> "s": squared, "r": round
+					head_sx_per, head_sy_per, head_sz_per,		-> size of head/tail relative to size of arrow
+					tail_sx_per, tail_sy_per, tail_sz_per,		-> size of head/tail relative to size of arrow
+
 				}
 				data: [],
 			}

@@ -550,6 +550,13 @@ class WGL {
 			}
 			if(y !== undefined) {
 				mesh.position.y = y;
+
+				// Make sure y is never below base of element
+				if(mesh.userData.e.base !== undefined) {
+					let basemesh = this.findMesh("base", mesh.userData.e.base, this.scene[view]);
+					if(y < basemesh.userData.e.sy)
+						mesh.position.y = basemesh.userData.e.sy;
+				}
 			}
 			if(z !== undefined) {
 				mesh.position.z = z;
@@ -686,8 +693,9 @@ class WGL {
 				this.updateDeviceGeometry(type, id, view);
 				this.addDeviceName(mesh);
 			}
-			else if(type == "symbol")
+			else if(type == "symbol") {
 				this.updateSymbolGeometry(mesh);
+			}
 			else if(type == "l2segment")
 				this.updateL2SegmentGeometry(mesh);
 
@@ -845,7 +853,24 @@ class WGL {
 				mesh.userData.e.color = data.color;
 				mesh.userData.e.cd.flagcolor = data.flagcolor;
 				this.updateSymbolColor("symbol", id, view);
-				//this.updateSymbolGeometryFlag(mesh);
+			}
+			else if(mesh.userData.e.type == "A") {
+				mesh.userData.e.color = data.color;
+				mesh.userData.e.sx = data.sx;
+				mesh.userData.e.sz = data.sz;
+				mesh.userData.e.cd.head_color = data.head_color;
+				mesh.userData.e.cd.head_type = data.head_type;
+				mesh.userData.e.cd.tail_type = data.tail_type;
+				mesh.userData.e.cd.shaft_type = data.shaft_type;
+				mesh.userData.e.cd.head_sx_per = data.head_sx_per;
+				mesh.userData.e.cd.head_sy_per = data.head_sy_per;
+				mesh.userData.e.cd.head_sz_per = data.head_sz_per;
+				mesh.userData.e.cd.tail_sx_per = data.tail_sx_per;
+				mesh.userData.e.cd.tail_sy_per = data.tail_sy_per;
+				mesh.userData.e.cd.tail_sz_per = data.tail_sz_per;
+				mesh.userData.e.cd.shaft_dots = data.shaft_dots;
+				this.updateSymbolColor("symbol", id, view);
+				this.updateSymbolGeometry(mesh);
 			}
 		}
 	}
@@ -2207,142 +2232,6 @@ class WGL {
 		return group;
 	}
 
-
-	updateSymbolGeometryFlag(meshgroup) {
-		return;
-		let e = meshgroup.userData.e;
-
-		let g1 = new THREE.Geometry();
-		let g2 = new THREE.Geometry();
-
-		let m1 = new THREE.MeshPhongMaterial({color: e.color});
-		let m2 = new THREE.MeshPhongMaterial({color: e.cd.flagcolor});
-
-		let WB = .2, WT = .07, HM = .1, H = 1, HP = 1.2, WF = 1, DF = .05, HF = .5;
-		let fvuv = []
-		for(let x = 0; x < 26; x++)
-			fvuv.push([[0,0],[0,0],[0,0]]);
-		this.addListVertex(g1.vertices, [
-			[0,0,WB], [WB,0,0], [0,0,-WB], [-WB,0,0],
-			[0,HM,WT], [WT,HM,0], [0,HM,-WT], [-WT,HM,0],
-			[0,H,WT], [WT,H,0], [0,H,-WT], [-WT,H,0],
-			[0,HP,0]
-		]);
-		this.addListFaces(g1.faces, g1.faceVertexUvs[0], [
-			[0,2,1], [0,3,2],
-			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
-			[4,5,9], [4,9,8], [5,6,10],[5,10,9], [6,7,11],[6,11,10], [7,4,8],[7,8,11],
-			[8,9,12], [9,10,12],[10,11,12], [11,8,12],
-		], fvuv);
-
-		let mesh1 = new THREE.Mesh(g1, m1);
-		meshgroup.add(mesh1);
-
-		this.addListVertex(g2.vertices, [
-			[WT,H,DF], [WF, H, DF], [WF, HF, DF], [WT, HF, DF],
-			[WT,H,-DF], [WF, H, -DF], [WF, HF, -DF], [WT, HF, -DF],
-			])
-		this.addListFaces(g2.faces, g2.faceVertexUvs[0], [
-			[0,2,1], [0,3,2],
-			[4,5,6], [4,6,7],
-			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
-		], fvuv);
-
-		let mesh2 = new THREE.Mesh(g2, m2);
-		meshgroup.add(mesh2);
-
-		mesh1.userData.id = meshgroup.userData.id;
-		mesh1.userData.type = meshgroup.userData.type;
-		mesh1.userData.e = meshgroup.userData.e
-		mesh2.userData.id = meshgroup.userData.id;
-		mesh2.userData.type = meshgroup.userData.type;
-		mesh2.userData.e = meshgroup.userData.e
-
-		mesh1.castShadow = true;
-		mesh2.castShadow = true;
-
-		this.setGeometryUpdated([g1, g2], true);
-	}
-
-	getDummyFVUVs(faces) {
-		let fvuvs = []
-		for(let x = 0; x < faces.length; x++)
-			fvuvs.push([[0,0],[0,0],[0,0]]);
-
-		return fvuvs;
-	}
-
-	getDataSymbolFlag(meshgroup) {
-		let data = [{color: meshgroup.userData.e.color}, {color: meshgroup.userData.e.cd.flagcolor}]
-
-		let WB = .2, WT = .07, HM = .1, H = 1, HP = 1.2, WF = 1, DF = .05, HF = .5;
-
-		data[0].vertices = [
-			[0,0,WB], [WB,0,0], [0,0,-WB], [-WB,0,0],
-			[0,HM,WT], [WT,HM,0], [0,HM,-WT], [-WT,HM,0],
-			[0,H,WT], [WT,H,0], [0,H,-WT], [-WT,H,0],
-			[0,HP,0]
-		];
-
-		data[0].faces = [
-			[0,2,1], [0,3,2],
-			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
-			[4,5,9], [4,9,8], [5,6,10],[5,10,9], [6,7,11],[6,11,10], [7,4,8],[7,8,11],
-			[8,9,12], [9,10,12],[10,11,12], [11,8,12],
-		];
-
-		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
-
-		data[1].vertices = [
-			[WT,H,DF], [WF, H, DF], [WF, HF, DF], [WT, HF, DF],
-			[WT,H,-DF], [WF, H, -DF], [WF, HF, -DF], [WT, HF, -DF],
-			]
-		
-		data[1].faces = [
-			[0,2,1], [0,3,2],
-			[4,5,6], [4,6,7],
-			[0,1,5], [0,5,4], [1,2,6],[1,6,5], [2,3,7],[2,7,6], [3,0,4],[3,4,7],
-		];
-
-		data[1].fvuvs = this.getDummyFVUVs(data[1].faces);
-
-		return data;
-	}
-
-	getDataSymbolX(meshgroup) {
-		let data = [{color: meshgroup.userData.e.color}];
-		data[0].vertices = [ 
-			[-.5,.9,.1],  [-.4,1,.1],  [.4,1,.1],  [.5,.9,.1],  [.5,.1,.1],  [.4,0,.1],  [-.4,0,.1],  [-.5,.1,.1],
-			[-.5,.9,-.1], [-.4,1,-.1], [.4,1,-.1], [.5,.9,-.1], [.5,.1,-.1], [.4,0,-.1], [-.4,0,-.1], [-.5,.1,-.1],
-		]
-		data[0].faces = [
-			[0,4,1], [0,5,4], [2,6,3], [2,7,6],
-			[8,9,12], [8,12,13], [10,11,14], [10,14,15],
-			[0,9,8], [0,1,9], [1,4,12], [1,12,9], [4,5,13], [4,13,12], [5,0,8], [5,8,13],
-			[2,11,10], [2,3,11], [3,6,14], [3,14,11], [6,7,15], [6,15,14], [7,2,10], [7,10,15]
-		];
-		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
-
-		return data;
-	}
-
-	getDataSymbolV(meshgroup) {
-		let data = [{color: meshgroup.userData.e.color}];
-		data[0].vertices = [ 
-			[-.5,.6,.1],  [-.3,.6,.1],  [.3,1,.1],  [.5,1,.1],  [.1,0,.1],  [-.1,0,.1],  [.1,0,.1],  [-.1,0,.1],
-			[-.5,.6,-.1], [-.3,.6,-.1], [.3,1,-.1], [.5,1,-.1], [.1,0,-.1], [-.1,0,-.1], [.1,0,-.1], [-.1,0,-.1],
-		]
-		data[0].faces = [
-			[0,4,1], [0,5,4], [2,6,3], [2,7,6],
-			[8,9,12], [8,12,13], [10,11,14], [10,14,15],
-			[0,9,8], [0,1,9], [1,4,12], [1,12,9], [4,5,13], [4,13,12], [5,0,8], [5,8,13],
-			[2,11,10], [2,3,11], [3,6,14], [3,14,11], [6,7,15], [6,15,14], [7,2,10], [7,10,15]
-		];
-		data[0].fvuvs = this.getDummyFVUVs(data[0].faces);
-
-		return data;
-	}
-
 	updateSymbolColor(type, id, sceneid) {
 		let meshgroup = this.findMesh(type, id, this.scene[sceneid]);
 		let m = this.findMeshesOfGroup(meshgroup);
@@ -2356,12 +2245,335 @@ class WGL {
 			m[1].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.cd.flagcolor >> 8) & 0xFF) / 256;
 			m[1].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.flagcolor & 0xFF) / 256;
 		}
+		else if(meshgroup.userData.e.type === "A") {
+			m[1].material.uniforms.mycolor.value.r = (meshgroup.userData.e.cd.head_color >> 16) / 256;
+			m[1].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.cd.head_color >> 8) & 0xFF) / 256;
+			m[1].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.head_color & 0xFF) / 256;
+		}
 
 		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
+	updateSymbolGeometryArrow_Shaft(g, e) {
+		g.vertices = [];
+		g.faces = [];
+		g.faceVertexUvs[0] = [];
+
+		let height_min = 0;
+		let height_max = e.sy;
+		if(e.cd.head_type !== "n") {
+			height_max = height_max - height_max * e.cd.head_sy_per/100;
+		}
+		if(e.cd.tail_type !== "n") {
+			height_min = e.sy * e.cd.tail_sy_per/100;
+		}
+		let sx_2 = e.sx/2;
+		let sz_2 = e.sz/2;
+		let r = sx_2/5;
+		if(sz_2 < sx_2)
+			r = sz_2/5;
+
+		let vertices = [];
+		let faces = [];
+		let fvuv = [];
+		let flat = false;
+
+		let num_spaces = e.cd.shaft_dots*2-1;
+		let len_space = (height_max-height_min)/num_spaces;
+
+		if(e.cd.shaft_type === "s") {
+			for(let dot_index = 0; dot_index < e.cd.shaft_dots; dot_index++) {
+				let dot_y_min = height_min + dot_index*2*len_space;
+				let dot_y_max = dot_y_min + len_space;
+				vertices = [
+					[-sx_2, dot_y_min, sz_2], [sx_2, dot_y_min, sz_2], [sx_2+r, dot_y_min, sz_2-r], [sx_2+r, dot_y_min, -sz_2+r], [sx_2, dot_y_min, -sz_2], [-sx_2, dot_y_min, -sz_2], [-sx_2-r, dot_y_min, -sz_2+r], [-sx_2-r, dot_y_min, +sz_2-r],
+					[-sx_2, dot_y_max, sz_2], [sx_2, dot_y_max, sz_2], [sx_2+r, dot_y_max, sz_2-r], [sx_2+r, dot_y_max, -sz_2+r], [sx_2, dot_y_max, -sz_2], [-sx_2, dot_y_max, -sz_2], [-sx_2-r, dot_y_max, -sz_2+r], [-sx_2-r, dot_y_max, +sz_2-r],
+				];
+				flat = true;
+				let u = 0;
+
+				let base_face = dot_index * 16;
+				for(let x = 0; x < 8; x++) {
+					faces.push([base_face+x, base_face+ (x+1)%8, base_face + 8 + ((x+1)%8)]);
+					faces.push([base_face + x, base_face + 8 + ((x+1)%8), base_face + 8 + x]);
+					let type = x%4;
+					let delta = r;
+					if(type == 0)
+						delta = e.sx;
+					else if(type == 2)
+						delta = e.sz;
+					fvuv.push([[u, 0], [u+delta, 0], [u+delta, len_space]]);
+					fvuv.push([[u, 0], [u+delta, len_space], [u, len_space]]);
+					u += delta;
+				}
+				// Add top and bottom faces
+				for(let x = 1; x < 7; x++) {
+					faces.push([base_face + 0, base_face + x+1, base_face + x]);
+					fvuv.push([[vertices[0][0], vertices[0][2]], [vertices[x+1][0], vertices[x+1][2]], [vertices[x][0], vertices[x][2]]])
+					faces.push([base_face + 8, base_face + 8+x, base_face + 8+x+1]);
+					fvuv.push([[vertices[0][0], vertices[0][2]], [vertices[x][0], vertices[x][2]], [vertices[x+1][0], vertices[x+1][2]]])
+				}
+
+				this.addListVertex(g.vertices, vertices);
+				this.addListFaces(g.faces, g.faceVertexUvs[0], faces, fvuv);
+			}
+		}
+		else if(e.cd.shaft_type === "r") {
+			for(let dot_index = 0; dot_index < e.cd.shaft_dots; dot_index++) {
+				vertices = [];
+				faces = [];
+				fvuv = [];
+				let dot_y_min = height_min + dot_index*2*len_space;
+				let dot_y_max = dot_y_min + len_space;
+				let num_points = 24;
+				for(let y = 0; y < 2; y++) {
+					for(let x = 0; x < num_points+1; x++) {
+						let angle = x/num_points * 2 * Math.PI;
+						vertices.push([sx_2 * Math.cos(angle), dot_y_min, sz_2 * Math.sin(angle)]);
+						vertices.push([sx_2 * Math.cos(angle), dot_y_max, sz_2 * Math.sin(angle)]);
+					}
+				}
+				let base_face = dot_index * (num_points+1) * 2 * 2;
+				// Side faces
+				for(let x = 0; x < num_points; x++) {
+					faces.push([base_face + x*2, base_face + x * 2 + 1, base_face + (x+1) * 2 + 1]);
+					fvuv.push([[x*sx_2, dot_y_min], [x*sx_2, dot_y_max], [(x+1) * sx_2, dot_y_max]]);
+					faces.push([base_face + x*2, base_face + (x+1) * 2 + 1, base_face + (x+1) * 2]);
+					fvuv.push([[x*sx_2, dot_y_min], [(x+1) * sx_2, dot_y_max], [(x+1) * sx_2, dot_y_min]]);
+				}
+				// Front and back faces
+				for(let x = 1; x < num_points-1; x++) {
+					faces.push([base_face + (num_points+1)*2, base_face + (num_points+1)*2 + x*2, base_face + (num_points+1)*2 + x*2 + 2]);
+					fvuv.push([[vertices[(num_points+1)*2][0], vertices[(num_points+1)*2][2]], [vertices[(num_points+1)*2 + x*2][0], vertices[(num_points+1)*2 + x*2][2]], [vertices[(num_points+1)*2 + x*2 + 2][0], vertices[(num_points+1)*2 + x*2 + 2][2]]])
+					faces.push([base_face + (num_points+1)*2+1, base_face + (num_points+1)*2 + x*2 + 3, base_face + (num_points+1)*2 + x*2 + 1]);
+					fvuv.push([[vertices[(num_points+1)*2][0], vertices[(num_points+1)*2][2]], [vertices[(num_points+1)*2 + x*2 + 2][0], vertices[(num_points+1)*2 + x*2 + 2][2]], [vertices[(num_points+1)*2 + x*2][0], vertices[(num_points+1)*2 + x*2][2]]])
+				}
+
+				this.addListVertex(g.vertices, vertices);
+				this.addListFaces(g.faces, g.faceVertexUvs[0], faces, fvuv);
+			}
+		}
+
+		this.setGeometryUpdated([g], flat);
+	}
+
+	updateSymbolGeometryArrow_Head(g, e, istail) {
+		g.vertices = [];
+		g.faces = [];
+		g.faceVertexUvs[0] = [];
+		let sx_per = e.cd.head_sx_per;
+		let sy_per = e.cd.head_sy_per;
+		let sz_per = e.cd.head_sz_per;
+
+		if(istail) {
+			sx_per = e.cd.tail_sx_per;
+			sy_per = e.cd.tail_sy_per;
+			sz_per = e.cd.tail_sz_per;
+		}
+
+		let sx_2 = e.sx/2 * sx_per/100;
+		let sz_2 = e.sz/2 * sz_per/100;
+		let py_1 = e.sy - e.sy * sy_per/100;
+		let py_2 = e.sy;
+		let r = e.sx/10;
+		let type = e.cd.head_type;
+		if(e.sz < e.sx)
+			r = e.sz/10;
+		let r_x = r;
+
+		if(istail) {
+			py_2 = 0;
+			py_1 = e.sy * sy_per/100;
+			type = e.cd.tail_type;
+			sz_2 = -sz_2;
+			r = -r;
+		}
+
+		let vertices = [];
+		let faces = [];
+		let fvuv = [];
+		let flat = true;
+
+		if(type == "f") {
+			vertices = [
+				[0, py_2, -sz_2], [-sx_2, py_1, -sz_2], [sx_2, py_1, -sz_2],
+				[0, py_2+r, -sz_2+r], [-sx_2-r*(sx_2/(py_2-py_1))*2, py_1-r, -sz_2+r], [sx_2+r*(sx_2/(py_2-py_1))*2, py_1-r, -sz_2+r],
+				[0, py_2+r,  sz_2-r], [-sx_2-r*(sx_2/(py_2-py_1))*2, py_1-r,  sz_2-r], [sx_2+r*(sx_2/(py_2-py_1))*2, py_1-r,  sz_2-r],
+				[0, py_2, sz_2], [-sx_2, py_1, sz_2], [sx_2, py_1, sz_2],
+			]
+			faces = [
+				[0,2,1], [9,10,11],
+				[0,1,4], [0,4,3], [1,2,5], [1,5,4], [2,0,3], [2,3,5],
+				[3,4,7], [3,7,6], [4,5,8], [4,8,7], [5,3,6], [5,6,8],
+				[6,7,10], [6,10,9], [7,8,11], [7,11,10], [8,6,9], [8,9,11],
+			];
+			fvuv = [
+				[[vertices[0][0],vertices[0][1]], [vertices[2][0],vertices[2][1]], [vertices[1][0],vertices[1][1]]],
+				[[vertices[9][0],vertices[9][1]], [vertices[10][0],vertices[10][1]], [vertices[11][0],vertices[11][1]]],
+			];
+			let len_side = Math.sqrt(sx_2*sx_2 + (py_2=py_1) * (py_2=py_1))
+			for(let y = 0; y < 3; y++) {
+				for(let z = 0; z < 3; z++) {
+					let x = 2+y*6+z*2;
+					let height = r*1.7;
+					let len = len_side/2;
+					if(y == 1)
+						height = sx_2*2;
+					if(z == 1)
+						len = sx_2*2;
+					fvuv.push([[0,0], [len, 0], [len, height]]);
+					x++;
+					fvuv.push([[0,0], [len, height], [0, height]]);
+				}
+			}
+		}
+		else if(type == "v") {
+			vertices = [
+				[e.sx/2, py_2, sz_2], [sx_2, py_2-sx_2, sz_2], [sx_2, py_1-sx_2, sz_2], [e.sx/2, py_1, sz_2], 
+				[-e.sx/2, py_1, sz_2], [-sx_2, py_1-sx_2, sz_2], [-sx_2, py_2-sx_2, sz_2], [-e.sx/2, py_2, sz_2],
+
+				[e.sx/2+r*.5, py_2+r*.5, sz_2-r], [sx_2+r, py_2-sx_2, sz_2-r], [sx_2+r, py_1-sx_2-r*3, sz_2-r], [e.sx/2-r*.7, py_1-r*.7, sz_2-r], 
+				[-e.sx/2+r*.7, py_1-r*.7, sz_2-r], [-sx_2-r, py_1-sx_2-r*3, sz_2-r], [-sx_2-r, py_2-sx_2, sz_2-r], [-e.sx/2-r*.5, py_2+r*.5, sz_2-r],
+
+				[e.sx/2+r*.5, py_2+r*.5, -sz_2+r], [sx_2+r, py_2-sx_2, -sz_2+r], [sx_2+r, py_1-sx_2-r*3, -sz_2+r], [e.sx/2-r*.7, py_1-r*.7, -sz_2+r], 
+				[-e.sx/2+r*.7, py_1-r*.7, -sz_2+r], [-sx_2-r, py_1-sx_2-r*3, -sz_2+r], [-sx_2-r, py_2-sx_2, -sz_2+r], [-e.sx/2-r*.5, py_2+r*.5, -sz_2+r],
+
+				[e.sx/2, py_2, -sz_2], [sx_2, py_2-sx_2, -sz_2], [sx_2, py_1-sx_2, -sz_2], [e.sx/2, py_1, -sz_2],
+				[-e.sx/2, py_1, -sz_2], [-sx_2, py_1-sx_2, -sz_2], [-sx_2, py_2-sx_2, -sz_2], [-e.sx/2, py_2, -sz_2],
+			];
+			faces = [
+				[0,2,1], [0,3,2], [0,4,3], [0,7,4], [4,6,5], [4,7,6],
+				[0+24,1+24,2+24], [0+24,2+24,3+24], [0+24,3+24,4+24], [0+24,4+24,7+24], [4+24,5+24,6+24], [4+24,6+24,7+24]
+			];
+			for(let y = 0; y < 3; y++) {
+				for(let x = 0; x <8; x++) {
+					faces.push([y*8+x, y * 8 + (x+1)%8, (y+1)*8 + (x+1)%8]);
+					faces.push([y*8+x, (y+1)*8 + (x+1)%8, (y+1)*8 + x]);
+				}
+			}
+
+			for(let x = 0; x < faces.length; x++) {
+				if(x > 5)
+					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][2]], [vertices[faces[x][1]][0],vertices[faces[x][1]][2]], [vertices[faces[x][2]][0],vertices[faces[x][2]][2]]]);
+				else
+					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][1]], [vertices[faces[x][1]][0],vertices[faces[x][1]][1]], [vertices[faces[x][2]][0],vertices[faces[x][2]][1]]]);
+			}
+		}
+		else if(type == "p") {
+			vertices = [
+				[0, py_2, 0], [-sx_2, py_1, -sz_2], [sx_2, py_1, -sz_2], [sx_2, py_1, sz_2], [-sx_2, py_1, sz_2],
+			];
+			faces = [[0,2,1], [0,3,2], [0,4,3], [0,1,4], [1,2,3], [1,3,4]];
+			for(let x = 0; x < faces.length; x++) {
+				if((x > 2) || (x === 1))
+					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][2]], [vertices[faces[x][1]][0],vertices[faces[x][1]][2]], [vertices[faces[x][2]][0],vertices[faces[x][2]][2]]]);
+				else
+					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][1]], [vertices[faces[x][1]][0],vertices[faces[x][1]][1]], [vertices[faces[x][2]][0],vertices[faces[x][2]][1]]]);
+			}
+		}
+		else if(type == "r") {
+			for(let x = 0; x < 17; x++) {
+				let angle = x/16*Math.PI;
+				vertices.push([sx_2*Math.cos(angle), py_1 + (py_2-py_1)*Math.sin(angle), -sz_2]);
+				if((x == 0) || (x == 16)) {
+					vertices.push([(sx_2+r_x)*Math.cos(angle), py_1 + (py_2-py_1+r)*Math.sin(angle)-r, -sz_2+r]);
+					vertices.push([(sx_2+r_x)*Math.cos(angle), py_1 + (py_2-py_1+r)*Math.sin(angle)-r, sz_2-r]);
+				}
+				else {
+					vertices.push([(sx_2+r_x)*Math.cos(angle), py_1 + (py_2-py_1+r)*Math.sin(angle), -sz_2+r]);
+					vertices.push([(sx_2+r_x)*Math.cos(angle), py_1 + (py_2-py_1+r)*Math.sin(angle), sz_2-r]);
+				}
+				vertices.push([sx_2*Math.cos(angle), py_1 + (py_2-py_1)*Math.sin(angle), sz_2]);
+			}
+			for(let x = 1; x < 16; x++) {
+				faces.push([0, x*4+4, x*4]);
+				faces.push([3, x*4+3, x*4+7]);
+				fvuv.push([[vertices[0][0],vertices[0][1]], [vertices[x*4+4][0],vertices[x*4+4][1]], [vertices[x*4][0],vertices[x*4][1]]]);
+				fvuv.push([[vertices[3][0],vertices[3][1]], [vertices[x*4+3][0],vertices[x*4+3][1]], [vertices[x*4+7][0],vertices[x*4+7][1]]]);
+			}
+			let tl = sx_2*2*Math.PI/16;
+			for(let y = 0; y < 3; y++) {
+				for(let x = 0; x < 16; x++) {
+					faces.push([x*4+y, x*4 + y + 4, x*4 + y + 5]);
+					faces.push([x*4+y, x*4 + y + 5, x*4 + y + 1]);
+					let depth = r*1.7;
+					if(y == 1)
+						depth = sz_2*2;
+					fvuv.push([[x*tl,0], [(x+1)*tl,0], [(x+1)*tl,depth]]);
+					fvuv.push([[x*tl,0], [(x+1)*tl,depth], [x*tl,depth]]);
+				}
+			}
+			faces.push([0,1,65]); faces.push([0,65,64]);
+			faces.push([1,2,66]); faces.push([1,66,65]);
+			faces.push([2,3,67]); faces.push([2,67,66]);
+			fvuv.push([[0,0], [0,r*1.7], [sx_2*2,r*1.7]]);
+			fvuv.push([[0,0], [sx_2*2,r*1.7], [sx_2*2,0]]);
+			fvuv.push([[0,0], [0,sz_2*2], [sx_2*2,sz_2*2]]);
+			fvuv.push([[0,0], [sx_2*2,sz_2*2], [sx_2*2,0]]);
+			fvuv.push([[0,0], [0,r*1.7], [sx_2*2,r*1.7]]);
+			fvuv.push([[0,0], [sx_2*2,r*1.7], [sx_2*2,0]]);
+			//flat = false;
+		}
+		else if(type == "s") {
+			vertices = [
+				[-sx_2, py_1, -sz_2], [sx_2, py_1, -sz_2], [sx_2, py_2, -sz_2], [-sx_2, py_2, -sz_2],
+				[-sx_2-r_x, py_1-r, -sz_2+r], [sx_2+r_x, py_1-r, -sz_2+r], [sx_2+r_x, py_2+r, -sz_2+r], [-sx_2-r_x, py_2+r, -sz_2+r],
+				[-sx_2-r_x, py_1-r, sz_2-r], [sx_2+r_x, py_1-r, sz_2-r], [sx_2+r_x, py_2+r, sz_2-r], [-sx_2-r_x, py_2+r, sz_2-r],
+				[-sx_2, py_1, sz_2], [sx_2, py_1, sz_2], [sx_2, py_2, sz_2], [-sx_2, py_2, sz_2],
+			];
+			faces = [[0,2,1], [0,3,2], [12,13,14], [12,14,15]];
+			fvuv.push([[vertices[0][0],vertices[0][1]], [vertices[2][0],vertices[2][1]], [vertices[1][0],vertices[1][1]]]);
+			fvuv.push([[vertices[0][0],vertices[0][1]], [vertices[3][0],vertices[3][1]], [vertices[2][0],vertices[2][1]]]);
+			fvuv.push([[vertices[12][0],vertices[12][1]], [vertices[13][0],vertices[13][1]], [vertices[14][0],vertices[14][1]]]);
+			fvuv.push([[vertices[12][0],vertices[12][1]], [vertices[14][0],vertices[14][1]], [vertices[15][0],vertices[15][1]]]);
+			for(let y = 0; y < 3; y++) {
+				for(let x = 0; x < 4; x++) {
+					faces.push([y*4+x, y*4+(x+1)%4, (y+1)*4+(x+1)%4]);
+					faces.push([y*4+x, (y+1)*4+(x+1)%4, (y+1)*4+x]);
+					let depth = r*1.7;
+					if(y == 1)
+						depth = sz_2*2;
+					if(x%2 === 0) {
+						fvuv.push([[0,0], [sx_2*2,0], [sx_2*2,depth]]);
+						fvuv.push([[0,0], [sx_2*2,depth], [0,depth]]);
+					}
+					else {
+						fvuv.push([[0,0], [(py_2-py_1),0], [(py_2-py_1),depth]]);
+						fvuv.push([[0,0], [(py_2-py_1),depth], [0,depth]]);
+					}
+				}
+			}
+		}
+
+		this.addListVertex(g.vertices, vertices);
+		this.addListFaces(g.faces, g.faceVertexUvs[0], faces, fvuv);
+		this.setGeometryUpdated([g], flat);
+	}
+
+	updateSymbolGeometryArrow(meshgroup) {
+		let mesh_shaft = null;
+		let mesh_head = null;
+		let mesh_tail = null;
+		meshgroup.children.forEach((element) => { 
+			if(element.userData.submesh == 1)
+				mesh_shaft = element;
+			if(element.userData.submesh == 2)
+				mesh_head = element;
+			if(element.userData.submesh == 3)
+				mesh_tail = element;
+		});
+		
+		this.updateSymbolGeometryArrow_Shaft(mesh_shaft.geometry, meshgroup.userData.e);
+		this.updateSymbolGeometryArrow_Head(mesh_head.geometry, meshgroup.userData.e, false);
+		this.updateSymbolGeometryArrow_Head(mesh_tail.geometry, meshgroup.userData.e, true);
+	}
+
 	updateSymbolGeometry(meshgroup) {
-		this.updateStandardGeometry(meshgroup, "SYMBOL");
+		if(meshgroup.userData.e.type == "A")
+			this.updateSymbolGeometryArrow(meshgroup);
+		else
+			this.updateStandardGeometry(meshgroup, "SYMBOL");
+
 		return;
 	}
 
@@ -2377,8 +2589,8 @@ class WGL {
 		let geometry2 = new THREE.Geometry();
 		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
 		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 1), (t) => {this.processLoadedTexture(t)} );		
-		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1})
-		let material2 = WGL_createDeviceMaterial({map: texture2, mycolor: e.color2})
+		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color})
+		let material2 = WGL_createDeviceMaterial({map: texture2, mycolor: 0x000000})
 
 		let mesh1 = new THREE.Mesh( geometry1, material1 );
 		mesh1.userData.submesh = 1;
@@ -2386,6 +2598,7 @@ class WGL {
 		mesh2.userData.submesh = 2;
 
 		let group = new THREE.Group();
+		group.rotation.order="YXZ"
 
 		group.add(mesh1);
 		group.add(mesh2);
@@ -2400,13 +2613,24 @@ class WGL {
 		group.userData.type = "symbol";
 		group.userData.e = e
 
+		if(e.type === "A") { // Arrows have 3 geometries
+			let geometry3 = new THREE.Geometry();
+			let mesh3 = new THREE.Mesh( geometry3, material2 );
+			mesh3.userData.submesh = 3;
+			group.add(mesh3);
+			mesh3.userData.id = id;
+			mesh3.userData.type = "symbol";
+			mesh3.userData.e = e
+			mesh3.castShadow = true;
+		}
+
 		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
 		basemesh.add(group);
 
 		this.updateSymbolGeometry(group);
 		this.updateSymbolColor("symbol", id, sceneid);
 
-		this.moveMesh(sceneid, "symbol", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		this.moveMesh(sceneid, "symbol", id, e.px, e.py, e.pz, null, alignToGrid);
 		group.rotation.x = e.rx;
 		group.rotation.y = e.ry;
 		group.rotation.z = e.rz;
