@@ -2428,24 +2428,44 @@ class WGL {
 				}
 			}
 		}
-		else if(type == "v") {
+		else if((type === "v") || (type === "i")) {
 			if(istail) {
 				sx_2 = -sx_2;
 				sx = -sx;
 			}
+			let delta_y = sx_2;
+			
+			if(istail && (type === "i")) {
+				sx_2 = -sx_2;
+				sx = -sx;
+				delta_y = -delta_y;
+				sz_2 = -sz_2;
+				r = -r;
+				py_1 = 0;
+				py_2 = e.sy * sy_per/100;				
+			}
+			else if(!istail && (type === "i")) {
+				sx_2 = -sx_2;
+				sx = -sx;
+				delta_y = -delta_y;
+				sz_2 = -sz_2;
+				r = -r;
+				py_2 = e.sy - e.sy * sy_per/100;
+				py_1 = e.sy;
+			}
 
 			vertices = [
-				[sx/2, py_2, sz_2], [sx_2, py_2-sx_2, sz_2], [sx_2, py_1-sx_2, sz_2], [sx/2, py_1, sz_2], 
-				[-sx/2, py_1, sz_2], [-sx_2, py_1-sx_2, sz_2], [-sx_2, py_2-sx_2, sz_2], [-sx/2, py_2, sz_2],
+				[sx/2, py_2, sz_2], [sx_2, py_2-delta_y, sz_2], [sx_2, py_1-delta_y, sz_2], [sx/2, py_1, sz_2], 
+				[-sx/2, py_1, sz_2], [-sx_2, py_1-delta_y, sz_2], [-sx_2, py_2-delta_y, sz_2], [-sx/2, py_2, sz_2],
 
-				[sx/2+r*.5, py_2+r*.5, sz_2-r], [sx_2+r, py_2-sx_2, sz_2-r], [sx_2+r, py_1-sx_2-r*3, sz_2-r], [sx/2-r*.7, py_1-r*.7, sz_2-r], 
-				[-sx/2+r*.7, py_1-r*.7, sz_2-r], [-sx_2-r, py_1-sx_2-r*3, sz_2-r], [-sx_2-r, py_2-sx_2, sz_2-r], [-sx/2-r*.5, py_2+r*.5, sz_2-r],
+				[sx/2+r*.5, py_2+r*.5, sz_2-r], [sx_2+r, py_2-delta_y, sz_2-r], [sx_2+r, py_1-delta_y-r*3, sz_2-r], [sx/2-r*.7, py_1-r*.7, sz_2-r], 
+				[-sx/2+r*.7, py_1-r*.7, sz_2-r], [-sx_2-r, py_1-delta_y-r*3, sz_2-r], [-sx_2-r, py_2-delta_y, sz_2-r], [-sx/2-r*.5, py_2+r*.5, sz_2-r],
 
-				[sx/2+r*.5, py_2+r*.5, -sz_2+r], [sx_2+r, py_2-sx_2, -sz_2+r], [sx_2+r, py_1-sx_2-r*3, -sz_2+r], [sx/2-r*.7, py_1-r*.7, -sz_2+r], 
-				[-sx/2+r*.7, py_1-r*.7, -sz_2+r], [-sx_2-r, py_1-sx_2-r*3, -sz_2+r], [-sx_2-r, py_2-sx_2, -sz_2+r], [-sx/2-r*.5, py_2+r*.5, -sz_2+r],
+				[sx/2+r*.5, py_2+r*.5, -sz_2+r], [sx_2+r, py_2-delta_y, -sz_2+r], [sx_2+r, py_1-delta_y-r*3, -sz_2+r], [sx/2-r*.7, py_1-r*.7, -sz_2+r], 
+				[-sx/2+r*.7, py_1-r*.7, -sz_2+r], [-sx_2-r, py_1-delta_y-r*3, -sz_2+r], [-sx_2-r, py_2-delta_y, -sz_2+r], [-sx/2-r*.5, py_2+r*.5, -sz_2+r],
 
-				[sx/2, py_2, -sz_2], [sx_2, py_2-sx_2, -sz_2], [sx_2, py_1-sx_2, -sz_2], [sx/2, py_1, -sz_2],
-				[-sx/2, py_1, -sz_2], [-sx_2, py_1-sx_2, -sz_2], [-sx_2, py_2-sx_2, -sz_2], [-sx/2, py_2, -sz_2],
+				[sx/2, py_2, -sz_2], [sx_2, py_2-delta_y, -sz_2], [sx_2, py_1-delta_y, -sz_2], [sx/2, py_1, -sz_2],
+				[-sx/2, py_1, -sz_2], [-sx_2, py_1-delta_y, -sz_2], [-sx_2, py_2-delta_y, -sz_2], [-sx/2, py_2, -sz_2],
 			];
 			faces = [
 				[0,2,1], [0,3,2], [0,4,3], [0,7,4], [4,6,5], [4,7,6],
@@ -2466,7 +2486,7 @@ class WGL {
 				else
 					fvuv.push([[vertices[faces[x][0]][0],vertices[faces[x][0]][2]], [vertices[faces[x][1]][0],vertices[faces[x][1]][2]], [vertices[faces[x][2]][0],vertices[faces[x][2]][2]]]);
 			}
-			if(istail) {
+			if((istail && (type == "v")) || (!istail && (type === "i"))){
 				for(let x = 0; x < faces.length; x++) {
 					let temp = faces[x][1];
 					faces[x][1] = faces[x][2];

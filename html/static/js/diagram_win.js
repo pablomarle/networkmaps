@@ -41,6 +41,7 @@ WIN_data = {
 			["No Head", "radio_arrow_nohead.png", "n"],
 			["Flat", "radio_arrow_flat.png", "f"],
 			["V Shape", "radio_arrow_v.png", "v"],
+			["V Inv", "radio_arrow_i.png", "i"],
 			["Point", "radio_arrow_point.png", "p"],
 			["Round", "radio_arrow_round.png", "r"],
 			["Square", "radio_arrow_square.png", "s"],
@@ -1147,7 +1148,7 @@ function WIN_showSymbolArrowWindow(view, type, id, e, callback) {
 
 	wdata.d.head_type = WIN_addRadioImgInput(w, 20, 100, "Head Type", WIN_data.constants.arrowheadtype_choices, e.cd.head_type);
 	wdata.d.tail_type = WIN_addRadioImgInput(w, 20, 160, "Tail Type", WIN_data.constants.arrowheadtype_choices, e.cd.tail_type);
-	wdata.d.shaft_type = WIN_addRadioImgInput(w, 320, 100, "Shaft Type", WIN_data.constants.arrowshafttype_choices, e.cd.shaft_type);
+	wdata.d.shaft_type = WIN_addRadioImgInput(w, 360, 100, "Shaft Type", WIN_data.constants.arrowshafttype_choices, e.cd.shaft_type);
 
 	wdata.d.sx = WIN_addSlider(w, 20, 220, 100, "Width", e.sx, .02, 1, .02);
 	wdata.d.sz = WIN_addSlider(w, 190, 220, 100, "Depth", e.sz, .02, 1, .02);
