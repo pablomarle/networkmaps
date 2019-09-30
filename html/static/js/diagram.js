@@ -1443,9 +1443,7 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
     else if (d.dom.tools.active_t === "EMV") {
         // Move Element
-        if((objlist.length > 0) && (
-            (objlist[0].mesh.userData.type === "symbol")
-            ))  {
+        if((objlist.length > 0) && (["symbol", "device", "vrf", "l2segment"].indexOf(objlist[0].mesh.userData.type) !== -1)) {
             let mesh = d.wgl.findMesh(objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, d.wgl.scene[d.current_view]);
             d.mouseaction = {
                 m: "EMV",
@@ -2062,11 +2060,9 @@ function mousemove(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "EMV") {
-        if(d.mouseaction.mesh.userData.type === "symbol") {
-            
+        if(["symbol", "device", "vrf", "l2segment"].indexOf(d.mouseaction.mesh.userData.type) !== -1) {
             d.wgl.moveMesh(d.current_view, d.mouseaction.mesh.userData.type, d.mouseaction.mesh.userData.id, 
                 undefined, d.mouseaction.base_y + (d.mouseaction.py - y) * .05, undefined, null, true);
-
         }
     }
     else if(d.dom.tools.active_t === "BR") {
@@ -2174,7 +2170,7 @@ function init_window() {
     d.dom.global_settings = DOM.cimg(b, staticurl + "/static/img/settings_w.png", "global_settings", "box toolbutton", null, () => {
         WIN_showGlobalSettingsWindow(d.wgl.global_settings, {
             show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); },
-            grid_change: (active, x, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, z, angle, resize); }
+            grid_change: (active, x, y, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, y, z, angle, resize); }
         });
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");

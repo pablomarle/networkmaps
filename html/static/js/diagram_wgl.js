@@ -97,6 +97,7 @@ class WGL {
         	grid: {
         		active: true,
         		x: .5,
+        		y: .5,
         		z: .5,
         		angle: 15,
         		resize: .25,
@@ -544,18 +545,24 @@ class WGL {
 
 	moveMesh(view, type, id, x, y, z, base, alignToGrid) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
+		let base_y = undefined;
+
 		if(mesh) {
 			if(x !== undefined) {
 				mesh.position.x = x;
 			}
 			if(y !== undefined) {
+				base_y = 0;
+
 				mesh.position.y = y;
 
 				// Make sure y is never below base of element
 				if(mesh.userData.e.base !== undefined) {
-					let basemesh = this.findMesh("base", mesh.userData.e.base, this.scene[view]);
-					if(y < basemesh.userData.e.sy)
+					let basemesh = this.findMesh("base", (base != null) ? base : mesh.userData.e.base, this.scene[view]);
+					if(y < basemesh.userData.e.sy) {
 						mesh.position.y = basemesh.userData.e.sy;
+					}
+					base_y = basemesh.userData.e.sy;
 				}
 			}
 			if(z !== undefined) {
@@ -563,7 +570,7 @@ class WGL {
 			}
 
 			if(alignToGrid) {
-				this.alignVectorToGrid(mesh.position);
+				this.alignVectorToGrid(mesh.position, base_y);
 			}
 
 			if(x !== undefined)
@@ -580,11 +587,17 @@ class WGL {
 				mesh.userData.e.pz = mesh.position.z;
 
 			if(base != null) {
+				let old_base = mesh.userData.e.base;
 				mesh.userData.e.base = base;
 				let basemesh = this.findMesh("base", base, this.scene[view]);
 				basemesh.add(mesh);
 				if(type == "text")
 					mesh.position.y = basemesh.userData.e.sy + mesh.userData.e.py;
+				else if(old_base !== base) {
+					mesh.position.y = basemesh.userData.e.sy;
+					mesh.userData.e.py = mesh.position.y;
+				}
+
 			}
 
 			mesh.updateMatrixWorld();
@@ -734,6 +747,7 @@ class WGL {
 		let mesh = this.findMesh("base", id, this.scene[view]);
 
 		if (mesh) {
+			let old_sy = mesh.userData.e.sy;
 			mesh.userData.e.name = name;
 			mesh.userData.e.subtype = subtype;
 			mesh.userData.e.color1 = color1;
@@ -748,13 +762,32 @@ class WGL {
 			this.updateCubeFloorTextures(id, view);
 
 			for(let x = 0; x < mesh.children.length; x++) {
-				if(mesh.children[x].userData.type == "device") {
-					mesh.children[x].position.y = sy;
+				if(["device", "symbol", "l2segment", "vrf"].indexOf(mesh.children[x].userData.type) !== -1) {
+					mesh.children[x].position.y = mesh.children[x].position.y - old_sy + sy;
 
-					let listlinks = this.findLinksOfDevice(mesh.children[x].userData.id, this.scene[view]);
-					for (let x = 0; x < listlinks.length; x++) {
-						this.updateLinkGeometry("link", listlinks[x], view);
+					if(mesh.children[x].userData.type === "device") {
+						let listlinks = this.findLinksOfDevice(mesh.children[x].userData.id, this.scene[view]);
+						for (let x = 0; x < listlinks.length; x++) {
+							this.updateLinkGeometry("link", listlinks[x], view);
+						}
 					}
+					else if(mesh.children[x].userData.type === "l2segment") {
+						let links = this.findLinksOfL2Segment(mesh.children[x].userData.id);
+						for(let link_type in links) {
+							for(let link_id in links[link_type]) {
+								this.updateLinkGeometry(link_type, links[link_type][link_id], view);
+							}
+						}
+					}
+					else if(mesh.children[x].userData.type === "vrf") {
+						let links = this.findLinksOfVrf(mesh.children[x].userData.id);
+						for(let link_type in links) {
+							for(let link_id in links[link_type]) {
+								this.updateLinkGeometry(link_type, links[link_type][link_id], view);
+							}
+						}
+					}
+					
 				}
 				else if(mesh.children[x].userData.type == "text") {
 					mesh.children[x].position.y = sy + mesh.children[x].userData.e.py;
@@ -1025,9 +1058,10 @@ class WGL {
 		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 	}
 
-	updateGlobalSettings_grid(active, x, z, angle, resize) {
+	updateGlobalSettings_grid(active, x, y, z, angle, resize) {
 		this.global_settings.grid.active = active;
 		this.global_settings.grid.x = parseFloat(x);
+		this.global_settings.grid.y = parseFloat(y);
 		this.global_settings.grid.z = parseFloat(z);
 		this.global_settings.grid.angle = parseFloat(angle);
 		this.global_settings.grid.resize = parseFloat(resize);
@@ -1061,10 +1095,16 @@ class WGL {
 		this.global_settings.format.link_weight = parseFloat(win.weight.value);
 	}
 
-	alignVectorToGrid(vector) {
+	alignVectorToGrid(vector, base_y) {
 		if(this.global_settings.grid.active) {
 			vector.x = Math.round(vector.x / this.global_settings.grid.x) * this.global_settings.grid.x;
 			vector.z = Math.round(vector.z / this.global_settings.grid.z) * this.global_settings.grid.z;
+
+			if(base_y !== undefined) {
+				let temp_y = vector.y - base_y;
+				temp_y = Math.round(temp_y / this.global_settings.grid.y) * this.global_settings.grid.y;
+				vector.y = temp_y + base_y;
+			}
 		}
 	}
 
@@ -1641,7 +1681,7 @@ class WGL {
 		this.updateDeviceGeometry(type, id, sceneid);
 		this.updateDeviceColor(type, id, sceneid);
 
-		this.moveMesh(sceneid, type, id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		this.moveMesh(sceneid, type, id, e.px, e.py, e.pz, null, alignToGrid);
 		group.rotation.x = e.rx;
 		group.rotation.y = e.ry;
 		group.rotation.z = e.rz;
@@ -2765,7 +2805,7 @@ class WGL {
 
 		this.updateL2SegmentGeometry(group);
 
-		this.moveMesh("L3", "l2segment", id, e.px, basemesh.userData.e.sy, e.pz, null, alignToGrid);
+		this.moveMesh("L3", "l2segment", id, e.px, e.py, e.pz, null, alignToGrid);
 		group.rotation.x = e.rx;
 		group.rotation.y = e.ry;
 		group.rotation.z = e.rz;
