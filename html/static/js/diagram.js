@@ -362,7 +362,7 @@ function process_message_delete(data) {
         d.wgl.deleteMesh("L3", data.t, data.i)
     }
     else if (data.t == "joint")
-        d.wgl.deleteJoint(data.v, data.et, data.i, data.pi);
+        d.wgl.deleteJoint(data.v, data.et, data.i, data.joint_index);
 }
 
 function process_message_l3(l3_changes) {
@@ -1000,7 +1000,7 @@ function sendDelete(type, id) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendDeleteJoint(view, element_type, link_id, point_index) {
+function sendDeleteJoint(view, element_type, link_id, joint_index) {
     let message = {
         m: "D",
         d: {
@@ -1008,7 +1008,7 @@ function sendDeleteJoint(view, element_type, link_id, point_index) {
             t: "joint",
             et: element_type,
             i: link_id,
-            pi: point_index,
+            joint_index: joint_index,
         }
     }
 
@@ -2119,6 +2119,28 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
 }
 
+function mouseover(x, y, dom_element) {
+    let p = d.wgl.pickObject(x, y);
+    if(p.length > 0) {
+        let obj = p[0].mesh;
+        if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
+            if(d.mouseover !== null)
+                console.log("Deselected " + d.mouseover.id)
+            d.mouseover = {
+                view: d.current_view,
+                type: obj.userData.type,
+                id: obj.userData.id,
+            }
+            console.log("Selected " + obj.userData.type + " " + obj.userData.id);
+        }
+        return;
+    }
+    else if(d.mouseover !== null) {
+        console.log("Deselected " + d.mouseover.id)
+        d.mouseover = null;
+    }
+}
+
 function keypress(ev) {
     // Check if the request is to change the camera type
     if(ev.code == "Digit1") {
@@ -2222,8 +2244,13 @@ function init_window() {
 
     // Initialize input
     Input_initialize(document.body, null, null, null);
-    Input_registerid("page", mousedown, mouseup, mousemove);
+    Input_registerid("page", mousedown, mouseup, mousemove, mouseover);
     WIN_initialize();
+    d.mouseaction = {
+        m: "INVALID"
+    }
+    d.mouseover = null;
+
     
     // Rest of functions
     window.addEventListener("resize", position_elements);

@@ -1,6 +1,6 @@
 let INPUT = {}
 
-function Input_initialize(domelement, md_callback, mu_callback, mm_callback) {
+function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_callback) {
 	INPUT.dom = domelement;
 	INPUT.px = 0;
 	INPUT.py = 0;
@@ -10,6 +10,7 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback) {
 	INPUT.md_callback = md_callback;
 	INPUT.mu_callback = mu_callback;
 	INPUT.mm_callback = mm_callback;
+	INPUT.mo_callback = mo_callback;
 	INPUT.actionrunning = "";
 	INPUT.domclass = {};
 	INPUT.domid = {};
@@ -29,19 +30,21 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback) {
 	domelement.addEventListener("contextmenu", Input_contextmenu, {passive: false});
 }
 
-function Input_registerclass(classname, callback_md, callback_mu, callback_mm) {
+function Input_registerclass(classname, callback_md, callback_mu, callback_mm, callback_mo) {
 	INPUT.domclass[classname] = {
 		"md": callback_md,
 		"mu": callback_mu,
 		"mm": callback_mm,
+		"mo": callback_mo,
 	}
 }
 
-function Input_registerid(id, callback_md, callback_mu, callback_mm) {
+function Input_registerid(id, callback_md, callback_mu, callback_mm, callback_mo) {
 	INPUT.domid[id] = {
 		"md": callback_md,
 		"mu": callback_mu,
 		"mm": callback_mm,
+		"mo": callback_mo,
 	}
 }
 
@@ -54,6 +57,7 @@ function Input_findtarget(path) {
 			INPUT.click_dom_md = INPUT.domid[id]["md"];
 			INPUT.click_dom_mu = INPUT.domid[id]["mu"];
 			INPUT.click_dom_mm = INPUT.domid[id]["mm"];
+			INPUT.click_dom_mo = INPUT.domid[id]["mo"];
 			return true;
 		}
 
@@ -65,6 +69,7 @@ function Input_findtarget(path) {
 				INPUT.click_dom_md = INPUT.domclass[cl]["md"];
 				INPUT.click_dom_mu = INPUT.domclass[cl]["mu"];
 				INPUT.click_dom_mm = INPUT.domclass[cl]["mm"];
+				INPUT.click_dom_mo = INPUT.domclass[cl]["mo"];
 				return true;
 			}
 		}
@@ -74,6 +79,7 @@ function Input_findtarget(path) {
 			INPUT.click_dom_md = INPUT.md_callback;
 			INPUT.click_dom_mu = INPUT.mu_callback;
 			INPUT.click_dom_mm = INPUT.mm_callback;
+			INPUT.click_dom_mo = INPUT.mo_callback;
 			return false;			
 		}
 	}
@@ -93,6 +99,8 @@ function Input_callback(event_type) {
 		INPUT.click_dom_mu(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom);
 	else if ((event_type == "mm") && (INPUT.click_dom_mm != null))
 		INPUT.click_dom_mm(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom);
+	else if ((event_type == "mo") && (INPUT.click_dom_mo != null))
+		INPUT.click_dom_mo(INPUT.px, INPUT.py, INPUT.click_dom);
 }
 
 function Input_getComposedPath(ev) {
@@ -156,6 +164,18 @@ function Input_mousemove(ev) {
 		INPUT.py = ev.pageY;
 
 		Input_callback("mm");
+	}
+	else {
+		INPUT.diffx = 0;
+		INPUT.diffy = 0;
+		INPUT.px = ev.pageX;
+		INPUT.py = ev.pageY;
+		let composedPath = Input_getComposedPath(ev);
+
+		if(Input_findtarget(composedPath))
+			ev.preventDefault();
+
+		Input_callback("mo");
 	}
 
 	return false
