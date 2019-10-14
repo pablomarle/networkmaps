@@ -29,8 +29,6 @@ class Diagram {
 
         this.ws.on("message", (data) => {
             let jdata = JSON.parse(data);
-            console.log("msg_received");
-            console.log(jdata);
             // The I message is never a broadcast, and I use it to get the conn_id that will be used to
             // identify replies to my messages (as usually replies are broadcasted to all clients).
             if(jdata.m === "I") {
@@ -105,9 +103,6 @@ class Diagram {
         }
 
         message.msg_id = this.msg_id++;
-
-            console.log("msg_sent");
-            console.log(message);
 
         this.callbacks[message.msg_id] = callback;
         this.ws.send(JSON.stringify(message));
@@ -768,14 +763,16 @@ class NetworkMapsLib {
      *                                      verify_cert: Define if in the connection we want to
      *                                                                      verify the server certificate (default true).
      * @param {Function}    ready_callback  Function to call once the user connection to the server has been established
+     * @param {Function}    close_callback  Function to call if the socket is closed
      */
-    constructor(use_ssl, hostname, port, options, ready_callback) {
+    constructor(use_ssl, hostname, port, options, ready_callback, close_callback) {
         this.conn = {};
 
         this.conn.hostname = hostname;
         this.conn.port = port;
         this.conn.use_ssl = use_ssl;
         this.conn.ready_callback = ready_callback;
+        this.conn.close_callback = close_callback;
         this.callbacks = {};
         this.connected = false;
         this.authenticated = false;
@@ -822,6 +819,8 @@ class NetworkMapsLib {
         })
         this.user_ws.on('close', () => {
             this.connected = false;
+            if(this.conn.close_callback)
+                this.conn.close_callback();
         });
         this.user_ws.on('message', (data) => {
             this.process_message(data)
