@@ -707,6 +707,10 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
 	wdata.d.show_device_name = WIN_addCheckBoxInput(w, 40, 30, 20, 30, "Show Device Names", gs.show_device_name);
 	wdata.d.show_device_name.addEventListener("change", () => {callbacks.show_device_name(wdata.d.show_device_name.checked)} );
 
+	// Checkbox to cast shadows
+	wdata.d.cast_shadow = WIN_addCheckBoxInput(w, 240, 30, 220, 30, "Cast Shadow", gs.cast_shadow);
+	wdata.d.cast_shadow.addEventListener("change", () => {callbacks.cast_shadow(wdata.d.cast_shadow.checked)} );
+
 	// Checkbox to activate grid
 	wdata.d.grid_active = WIN_addCheckBoxInput(w, 40, 60, 20, 60, "Align to Grid", gs.grid.active);
 	wdata.d.grid_x = WIN_addSlider(w, 20, 80, 100, "Grid Size X", gs.grid.x, .05, 1, .05);

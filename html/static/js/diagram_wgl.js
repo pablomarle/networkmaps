@@ -94,6 +94,7 @@ class WGL {
 	constructor(domelement) {
 		this.global_settings = {
         	show_device_name: true,
+        	cast_shadow: true,
         	grid: {
         		active: true,
         		x: .5,
@@ -184,7 +185,7 @@ class WGL {
 		// Lighting
 		this.ambientlightL2 = new THREE.AmbientLight(0xFFFFFF, 0.7);
 		this.directionallightL2 = new THREE.DirectionalLight(0xFFFFFF, .4);
-		this.directionallightL2.castShadow = true;
+		this.directionallightL2.castShadow = this.global_settings.cast_shadow;
 		this.directionallightL2.position.set(40,100,60);
 		this.directionallightL2.shadow.camera.left = -50;
 		this.directionallightL2.shadow.camera.right = 50;
@@ -198,7 +199,7 @@ class WGL {
 		
 		this.ambientlightL3 = new THREE.AmbientLight(0xFFFFFF, 0.7);
 		this.directionallightL3 = new THREE.DirectionalLight(0xFFFFFF, .4);
-		this.directionallightL3.castShadow = true;
+		this.directionallightL3.castShadow = this.global_settings.cast_shadow;
 		this.directionallightL3.position.set(40,100,60);
 		this.directionallightL3.shadow.camera.left = -50;
 		this.directionallightL3.shadow.camera.right = 50;
@@ -222,13 +223,20 @@ class WGL {
 
 		//var helper = new THREE.CameraHelper( this.directionallightL2.shadow.camera );
 		//this.scene.L2.add(helper);
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
 	}
 
 	setBGColor(color) {
 		this.renderer.setClearColor(color);
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
-	} 
+		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+	}
+
+	setCastShadow(cast_shadow) {
+		this.global_settings.cast_shadow = cast_shadow;
+		this.directionallightL2.castShadow = cast_shadow;
+		this.directionallightL3.castShadow = cast_shadow;
+		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+	}
 
 	resize() {
 		let cam_ratio = this.domelement.clientWidth / this.domelement.clientHeight;

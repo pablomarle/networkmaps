@@ -173,6 +173,14 @@ DOM = {
 		}, 50);
 	},
 
+	hide: (node) => {
+		node.style.display = "none";
+	},
+
+	show: (node) => {
+		node.style.display = "block";
+	},
+
 	showError: (errortitle, errortext, is_critical) => {
 		let body = document. getElementsByTagName("body")[0];
 		let div= DOM.cdiv(body, null, "error");

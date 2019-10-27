@@ -1045,8 +1045,196 @@ function animate() {
         requestAnimationFrame( animate );
 }
 
+/*
+    This function will clear the contents of the infobox and will hide it
+*/
+function infobox_clear() {
+    DOM.removeChilds(d.dom.infobox, true);
+    DOM.hide(d.dom.infobox);
+}
+
+function infobox_show(text) {
+    DOM.show(d.dom.infobox);
+    if(text.title) DOM.cdiv(d.dom.infobox, null, "box_info_title", text.title);
+    if(text.content) text.content.forEach((p) => {
+        if(p.type === "head")
+            DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", p.text);
+        else if(p.type === "text")
+            DOM.cdiv(d.dom.infobox, null, "box_info_text", p.text);
+    })
+}
+
+function infobox_show_element(obj) {
+    if(obj.userData.type === "device") {
+        infobox_show_device(obj);
+    }
+    else if(obj.userData.type === "link") {
+        infobox_show_link(obj);
+    }
+    else if(obj.userData.type === "text")
+        infobox_show({title: "Text"});
+    else if(obj.userData.type === "symbol")
+        infobox_show({title: "Symbol"});
+    else if(obj.userData.type === "l2segment")
+        infobox_show({title: "L2 Segment"});
+    else if(obj.userData.type === "l2link")
+        infobox_show({title: "L2 Link"});
+    else if(obj.userData.type === "vrf")
+        infobox_show({title: "Vrf"});
+    else if(obj.userData.type === "interface")
+        infobox_show({title: "Interface"});
+    else if(obj.userData.type === "p2p_interface")
+        infobox_show({title: "P2P"});
+    else if(obj.userData.type === "svi_interface")
+        infobox_show({title: "SVI"});
+}
+
+function infobox_show_device(obj) {
+    let infobox_data = {
+        title: (obj.userData.e.name !== "") ? obj.userData.e.name : "Device",
+        content: [],
+    };
+    // Add vlans to the infobox
+    let hasvlan = false;
+    for(let vlan_tag in obj.userData.e.vlans) {
+        if(!hasvlan) {
+            hasvlan = true;
+            infobox_data.content.push({type: "head", text: "Vlans"});
+        }
+        infobox_data.content.push({type: "text", text: vlan_tag + ": " + obj.userData.e.vlans[vlan_tag].name});
+    }
+    // Add vrfs to the infobox
+    let hasvrf = false;
+    for(let rd in obj.userData.e.vrfs) {
+        if(!hasvrf) {
+            hasvrf = true;
+            infobox_data.content.push({type: "head", text: "VRFs"});
+        }
+        infobox_data.content.push({type: "text", text: rd + ": " + obj.userData.e.vrfs[rd].name});
+    }
+
+    // Add links to the infobox
+    let hasinterface = false;
+    let linklist = d.wgl.findLinksOfDevice(obj.userData.id, d.wgl.scene.L2);
+    for(let x = 0; x < linklist.length; x++) {
+        // For each link:
+
+        // Add Interfaces label if it hasn't been added
+        if(!hasinterface) {
+            hasinterface = true;
+            infobox_data.content.push({type: "head", text: "Interfaces"});
+        }
+
+        // Find the index of the device (0 or 1) on this link
+        let dev_index = 0;
+        if(linklist[x].userData.e.devs[1].id === obj.userData.id)
+            dev_index = 1;
+
+        // Check if interface names have been defined
+        if(linklist[x].userData.e.phy && linklist[x].userData.e.phy.ifbindings && (linklist[x].userData.e.phy.ifbindings.length > 0)) {
+            // If they have been defined, go through each interface and add it to the infobox
+            let po_data = "";
+            if(linklist[x].userData.e.phy.ifbindings.length > 1)
+                po_data = " (" + linklist[x].userData.e.phy.lag_name[dev_index] + ")";
+            let function_data = "";
+            if(linklist[x].userData.e.devs[dev_index].data.function === "switching")
+                function_data = " (L2. Vlans: " + linklist[x].userData.e.devs[dev_index].data.function_data.vlans.join(",") + ")";
+            else if(linklist[x].userData.e.devs[dev_index].data.function === "routing")
+                function_data = " (L3)";
+
+            for(let y = 0; y < linklist[x].userData.e.phy.ifbindings.length; y++) {
+                infobox_data.content.push({type: "text", text: linklist[x].userData.e.phy.ifbindings[y][dev_index] + po_data + function_data});
+            }
+        }
+        else {
+            // If interface names haven't been defined, we show an unnamend interface
+            let function_data = "";
+            if(linklist[x].userData.e.devs[dev_index].data.function === "switching")
+                function_data = " (L2. Vlans: " + linklist[x].userData.e.devs[dev_index].data.function_data.vlans.join(",") + ")";
+            else if(linklist[x].userData.e.devs[dev_index].data.function === "routing")
+                function_data = " (L3)";
+
+            infobox_data.content.push({type: "text", text: "Unnamed" + function_data});
+        }
+    }
+    // Add loopback and svi interfaces
+    ["svis", "los"].forEach((iftype) => {
+        hasinterface = false;
+        for(let id in obj.userData.e[iftype]) {
+            if(!hasinterface) {
+                hasinterface = true;
+                if(iftype === "los")
+                    infobox_data.content.push({type: "head", text: "Loopbacks"});
+                else
+                    infobox_data.content.push({type: "head", text: "SVIs"});
+            }
+            infobox_data.content.push({type: "text", text: id + ": " + obj.userData.e[iftype][id].name + " (vrf " + obj.userData.e[iftype][id].vrf + ")"});
+        }
+    });
+
+    // Show the infobox
+    infobox_show(infobox_data);
+}
+
+function infobox_show_link(obj) {
+    let infobox_data = {
+        title: "Link",
+        content: []
+    };
+
+    let dev0 = d.wgl.getMesh("L2", "device", obj.userData.e.devs[0].id);
+    let dev1 = d.wgl.getMesh("L2", "device", obj.userData.e.devs[1].id);
+    let devnames = ["Device 1", "Device 2"];
+    if(dev0.userData.e.name !== "")
+        devnames[0] = dev0.userData.e.name;
+    if(dev1.userData.e.name !== "")
+        devnames[1] = dev1.userData.e.name;
+    infobox_data.title = devnames[0] + " <-> " + devnames[1];
+
+    // Physical settings:
+    if(obj.userData.e.phy) {
+        if(obj.userData.e.phy.transceiver) {
+            infobox_data.content.push({type: "head", text: "Link type."});
+            infobox_data.content.push({type: "text", text: obj.userData.e.phy.transceiver});
+        }
+
+        if(obj.userData.e.phy.ifbindings && (obj.userData.e.phy.ifbindings.length > 0))
+            for(let dev_index in devnames) {
+                infobox_data.content.push({type: "head", text: devnames[dev_index] + " interfaces."});
+                obj.userData.e.phy.ifbindings.forEach((ifset) => {
+                    infobox_data.content.push({type: "text", text: ifset[dev_index]});
+                });
+            }
+    }
+    // Config settings
+    for(let dev_index in devnames) {
+        if(obj.userData.e.devs[dev_index].data.function === "switching") {
+            infobox_data.content.push({type: "head", text: devnames[dev_index] + " is L2. VLANs:"});
+            infobox_data.content.push({type: "text", text: obj.userData.e.devs[dev_index].data.function_data.vlans.join(",")});
+        }
+        else if(obj.userData.e.devs[dev_index].data.function === "routing") {
+            infobox_data.content.push({type: "head", text: devnames[dev_index] + " is L3. Subinterfaces:"});
+            for(let subifindex in obj.userData.e.devs[dev_index].data.function_data.subinterfaces) {
+                let subif = obj.userData.e.devs[dev_index].data.function_data.subinterfaces[subifindex];
+                if(subif.vlan_tag === "-1")
+                    infobox_data.content.push({type: "text", text: "Untagged (vrf: " + subif.vrf + ")"});
+                else
+                    infobox_data.content.push({type: "text", text: subif.vlan_tag + " (vrf: " + subif.vrf + ")"});
+            }
+        }
+    }
+    infobox_show(infobox_data);
+}
+
 function setBoxPosition(e, px, py, sx, sy) {
     e.style.left = "" + px + "px";
+    e.style.top = "" + py + "px";
+    if(sx) e.style.width = "" + sx + "px";
+    if(sy) e.style.height = "" + sy + "px";
+}
+
+function setBoxPositionRight(e, px, py, sx, sy) {
+    e.style.right = "" + px + "px";
     e.style.top = "" + py + "px";
     if(sx) e.style.width = "" + sx + "px";
     if(sy) e.style.height = "" + sy + "px";
@@ -1081,6 +1269,10 @@ function position_elements(wglneeded=true) {
     setBoxPosition(d.dom.tab_l2, 6, sy-20, 100, 16);
     setBoxPosition(d.dom.tab_l3, 110, sy-20, 100, 16);
     setBoxPosition(d.dom.title, sx-208, sy-36, 200, 16);
+
+    // Info box
+    setBoxPositionRight(d.dom.infobox, 10, 60);
+    infobox_clear();
 
     // Redraw webgl
     if(wglneeded)
@@ -1240,7 +1432,7 @@ function init_window_addtool(toolbox, tooldesc, isactive = false) {
     let newtoolbox = tooldesc.f;
     let name = tooldesc.n;
 
-    if(newtoolbox){
+    if(newtoolbox) {
         tool = DOM.cdiv(toolbox, null, "tool tool-menu");
         tool.setAttribute("data-newtoolbox", newtoolbox);
     }
@@ -2125,18 +2317,20 @@ function mouseover(x, y, dom_element) {
         let obj = p[0].mesh;
         if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
             if(d.mouseover !== null)
-                console.log("Deselected " + d.mouseover.id)
+                infobox_clear();
+                //console.log("Deselected " + d.mouseover.type + " " + d.mouseover.id)
             d.mouseover = {
                 view: d.current_view,
                 type: obj.userData.type,
                 id: obj.userData.id,
             }
-            console.log("Selected " + obj.userData.type + " " + obj.userData.id);
+            infobox_show_element(obj);
         }
         return;
     }
     else if(d.mouseover !== null) {
-        console.log("Deselected " + d.mouseover.id)
+        infobox_clear();
+        //console.log("Deselected " + d.mouseover.type + " " + d.mouseover.id)
         d.mouseover = null;
     }
 }
@@ -2192,7 +2386,8 @@ function init_window() {
     d.dom.global_settings = DOM.cimg(b, staticurl + "/static/img/settings_w.png", "global_settings", "box toolbutton", null, () => {
         WIN_showGlobalSettingsWindow(d.wgl.global_settings, {
             show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); },
-            grid_change: (active, x, y, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, y, z, angle, resize); }
+            grid_change: (active, x, y, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, y, z, angle, resize); },
+            cast_shadow: (cast_shadow) => { d.wgl.setCastShadow(cast_shadow)},
         });
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");
@@ -2225,6 +2420,9 @@ function init_window() {
         animate();
     });
     WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
+
+    // Info box.
+    d.dom.infobox = DOM.cdiv(b, "id", "box_info", "tralalala");
 
     // Toolbox states and dom elements
     d.dom.tools = {
