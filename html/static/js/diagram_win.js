@@ -843,8 +843,6 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 		list_svis.push({
 			tag: svi_tag, 
 			name: e.svis[svi_tag].name, 
-			ipv4: (e.svis[svi_tag].ipv4.length > 0) ? e.svis[svi_tag].ipv4[0] : "",
-			ipv6: (e.svis[svi_tag].ipv6.length > 0) ? e.svis[svi_tag].ipv6[0] : "",
 			vrf: (e.svis[svi_tag].vrf === undefined) ? default_vrf : e.svis[svi_tag].vrf,
 		})
 	}
@@ -873,8 +871,6 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 	wdata.d.svis = WIN_addDictList(w, 20, 150, 620, 120, "SVI List", list_svis, {
 		"tag":   { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)." },
 		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Vlan100)." },
-		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
-		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
 		"vrf": { name: "VRF", width: 80, "descripion": "VRF this interface belongs to.", options: vrf_options },
 	});
 
@@ -1008,7 +1004,7 @@ function WIN_showLinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback,
 }
 
 function WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
-	DOM.removeChilds(wdata.d.section);
+	DOM.removeChilds(wdata.d.section, true);
 
 	if(wdata.d.function.value == "routing") {
 		let vrf_options = [];
@@ -1021,15 +1017,11 @@ function WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
 			let subif = e.devs[dev_index].data.function_data.subinterfaces[x];
 			values.push({
 				vlan_tag: subif.vlan_tag,
-				ipv4: (subif.ipv4.length > 0) ? subif.ipv4[0] : "",
-				ipv6: (subif.ipv6.length > 0) ? subif.ipv6[0] : "",
 				vrf: subif.vrf,
 			})
 		}
-		wdata.d.subinterfaces = WIN_addDictList(wdata.d.section, 0, 0, 580, 90, "Sub-Interfaces", values, {
+		wdata.d.subinterfaces = WIN_addDictList(wdata.d.section, 20, 0, 200, 90, "Sub-Interfaces", values, {
 			vlan_tag: {name: "VTag", width: 35, "description": "Vlan Tag for this subinterface. -1 if no tag."},
-			ipv4: {name: "IPv4", width: 110, "description": "Interface IPv4 (e: 10.196.64.2/24). Leave empty if none."},
-			ipv6: {name: "IPv6", width: 255, "description": "Interface IPv6 (e: 2a01:ffff:a433:4332::1/64. Leave empty if none."},
 			vrf: {name: "VRF", width: 70, options: vrf_options, "description": "VRF of this interface. VRFs are defined on Device Configs."}
 		})
 	}
@@ -1051,7 +1043,7 @@ function WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev) {
 			}
 		}
 
-		wdata.d.vlans = WIN_addDictList(wdata.d.section, 150, 0, 260, 90, "Vlan Members", values, {
+		wdata.d.vlans = WIN_addDictList(wdata.d.section, 20, 0, 280, 90, "Vlan Members", values, {
 			vlan_id: {name: "Vlan", width: 80, options: vlan_options},
 			tagged: {name: "Tagged", width: 80, options: [["No", "no"], ["Yes", "yes"]]},
 		})
@@ -1067,13 +1059,13 @@ function WIN_showLinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) {
 
 	// Create the window
 	let devname = (dev.name == "" ? "unnamed" : dev.name);
-	let wdata = WIN_create("L2", "link-dev-"+ dev_index, link_id, "Dev " + devname + " interface config.", 600, 230);
+	let wdata = WIN_create("L2", "link-dev-"+ dev_index, link_id, "Dev " + devname + " interface config.", 300, 230);
 	if(!wdata)
 		return;
 
 	let w = wdata.w;
 
-	wdata.d.function = WIN_addRadioImgInput(w, 240, 20, "Interface Type", WIN_data.constants.iffunctionchoices, e.devs[dev_index].data.function, () => {
+	wdata.d.function = WIN_addRadioImgInput(w, 100, 20, "Interface Type", WIN_data.constants.iffunctionchoices, e.devs[dev_index].data.function, () => {
 		WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
 	});
 
@@ -1082,9 +1074,100 @@ function WIN_showLinkConfigDeviceWindow(dev_index, link_id, e, dev, callback) {
 	WIN_showLinkConfigDeviceWindow_drawfunction(wdata, e, dev_index, dev);
 
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 270, 200, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 120, 200, "Apply", () => {
 		callback(wdata);
-	}, "Apply changes.");	
+	}, "Apply changes.");
+}
+
+function WIN_showInterfaceConfigWindow(id, e, callback) {
+	// First a bit of cleanup (if data is not defined)
+	if(e.ip === undefined)
+		e.ip = {address: {ipv4: [], ipv6: []}};
+
+	// Create the window
+	let wdata = WIN_create("L3", "interface-config", id, "Interface Config", 490, 180);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	let list_ipv4 = [];
+	let list_ipv6 = [];
+	e.ip.address.ipv4.forEach((ip) => { list_ipv4.push({ipv4: ip }) });
+	e.ip.address.ipv6.forEach((ip) => { list_ipv6.push({ipv6: ip }) });
+
+	wdata.d.ipv4_address = WIN_addDictList(w, 20, 20, 210, 120, "IPv4", list_ipv4, {
+		"ipv4": { name: "", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
+	});
+	wdata.d.ipv6_address = WIN_addDictList(w, 240, 20, 250, 120, "IPv6", list_ipv6, {
+		"ipv6": { name: "", width: 160, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 210, 140, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
+}
+
+function WIN_showSVIInterfaceConfigWindow(id, e, callback) {
+	// First a bit of cleanup (if data is not defined)
+	if(e.ip === undefined)
+		e.ip = {address: {ipv4: [], ipv6: []}};
+
+	// Create the window
+	let wdata = WIN_create("L3", "svi_interface-config", id, "SVI Interface Config", 490, 180);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	let list_ipv4 = [];
+	let list_ipv6 = [];
+	e.ip.address.ipv4.forEach((ip) => { list_ipv4.push({ipv4: ip }) });
+	e.ip.address.ipv6.forEach((ip) => { list_ipv6.push({ipv6: ip }) });
+
+	wdata.d.ipv4_address = WIN_addDictList(w, 20, 20, 210, 120, "IPv4", list_ipv4, {
+		"ipv4": { name: "", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
+	});
+	wdata.d.ipv6_address = WIN_addDictList(w, 240, 20, 250, 120, "IPv6", list_ipv6, {
+		"ipv6": { name: "", width: 160, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 210, 140, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
+}
+
+function WIN_showP2PInterfaceConfigWindow(id, e, vrf1, vrf2, callback) {
+	// First a bit of cleanup (if data is not defined)
+	if(e.ip === undefined)
+		e.ip = [{address: {ipv4: [], ipv6: []}}, {address: {ipv4: [], ipv6: []}}];
+
+	let vrf_name = [(vrf1.name === "") ? "vrf_1" : vrf1.name, (vrf2.name === "") ? "vrf_2" : vrf2.name];
+
+	// Create the window
+	let wdata = WIN_create("L3", "p2p_interface-config", id, "P2P Interface Config", 490, 320);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	for(let x = 0; x < 2; x++) {
+		let list_ipv4 = [];
+		let list_ipv6 = [];
+		e.ip[x].address.ipv4.forEach((ip) => { list_ipv4.push({ipv4: ip }) });
+		e.ip[x].address.ipv6.forEach((ip) => { list_ipv6.push({ipv6: ip }) });
+
+		wdata.d["ipv4_address_"+x] = WIN_addDictList(w, 20, 20+120*x, 210, 120, vrf_name[x] + " IPv4", list_ipv4, {
+			"ipv4": { name: "", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
+		});
+		wdata.d["ipv6_address_"+x] = WIN_addDictList(w, 240, 20+120*x, 250, 120, vrf_name[x] + " IPv6", list_ipv6, {
+			"ipv6": { name: "", width: 160, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
+		});
+	}
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 210, 280, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
 }
 
 function WIN_showTextWindow(view, type, id, e, callback) {

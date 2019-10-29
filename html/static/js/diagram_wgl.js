@@ -965,6 +965,27 @@ class WGL {
 		}		
 	}
 
+	configMesh_Interface(id, ip) {
+		let mesh = this.findMesh("interface", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.ip = ip;
+		}
+	}
+
+	configMesh_SVIInterface(id, ip) {
+		let mesh = this.findMesh("svi_interface", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.ip = ip;
+		}
+	}
+
+	configMesh_P2PInterface(id, ip) {
+		let mesh = this.findMesh("p2p_interface", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.ip = ip;
+		}
+	}
+
 	deleteMesh(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		while(mesh) {

@@ -346,6 +346,17 @@ function process_message_config(data) {
             d.wgl.configMesh_L2LinkDevice(data.i, data.dev_index, data.function, data.vlans, data.native_vlan, data.subinterfaces);
         }
     }
+    else if(data.v == "L3") {
+        if(data.t == "interface") {
+            d.wgl.configMesh_Interface(data.i, data.ip);
+        }
+        if(data.t == "svi_interface") {
+            d.wgl.configMesh_SVIInterface(data.i, data.ip);
+        }
+        if(data.t == "p2p_interface") {
+            d.wgl.configMesh_P2PInterface(data.i, data.ip);
+        }
+    }
 }
 
 function process_message_delete(data) {
@@ -698,9 +709,7 @@ function sendConfig_Device(id, windata) {
     for(let x = 0; x < vrfs.length; x++)
         message.d.vrfs[vrfs[x].rd] = { name: vrfs[x].name };
     for(let x = 0; x < svis.length; x++) {
-        let ipv4 = (svis[x].ipv4 === "") ? [] : [svis[x].ipv4];
-        let ipv6 = (svis[x].ipv6 === "") ? [] : [svis[x].ipv6];
-        message.d.svis[svis[x].tag] = { name: svis[x].name, ipv4: ipv4, ipv6: ipv6, vrf: svis[x].vrf };
+        message.d.svis[svis[x].tag] = { name: svis[x].name, vrf: svis[x].vrf };
     }
     for(let x = 0; x < los.length; x++) {
         let ipv4 = (los[x].ipv4 === "") ? [] : [los[x].ipv4];
@@ -757,14 +766,8 @@ function sendConfig_LinkDevice(id, dev_index, windata) {
             if((subifs[x].vlan_tag != "") && (subifs[x].vrf != "")) {
                 let subif = {
                     vlan_tag: subifs[x].vlan_tag,
-                    ipv4: [],
-                    ipv6: [],
                     vrf: subifs[x].vrf,
                 }
-                if(subifs[x].ipv4 != "")
-                    subif.ipv4.push(subifs[x].ipv4);
-                if(subifs[x].ipv6 != "")
-                    subif.ipv6.push(subifs[x].ipv6);
 
                 message.d.subinterfaces.push(subif);
             }
@@ -789,6 +792,86 @@ function sendConfig_LinkDevice(id, dev_index, windata) {
 
             }
         }
+    }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_Interface(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L3",
+            t: "interface",
+            i: id,
+            ip: { address: { ipv4: [], ipv6: []}}
+        }
+    }
+
+    // Parse ipv4 and ipv6 address from the data
+    let ipv4 = JSON.parse(windata.d.ipv4_address.value);
+    let ipv6 = JSON.parse(windata.d.ipv6_address.value);
+
+    ipv4.forEach((ip) => {
+        if(ip.ipv4 !== "") message.d.ip.address.ipv4.push(ip.ipv4);
+    });
+    ipv6.forEach((ip) => {
+        if(ip.ipv6 !== "") message.d.ip.address.ipv6.push(ip.ipv6);
+    });
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_SVIInterface(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L3",
+            t: "svi_interface",
+            i: id,
+            ip: { address: { ipv4: [], ipv6: []}}
+        }
+    }
+
+    // Parse ipv4 and ipv6 address from the data
+    let ipv4 = JSON.parse(windata.d.ipv4_address.value);
+    let ipv6 = JSON.parse(windata.d.ipv6_address.value);
+
+    ipv4.forEach((ip) => {
+        if(ip.ipv4 !== "") message.d.ip.address.ipv4.push(ip.ipv4);
+    });
+    ipv6.forEach((ip) => {
+        if(ip.ipv6 !== "") message.d.ip.address.ipv6.push(ip.ipv6);
+    });
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_P2PInterface(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L3",
+            t: "p2p_interface",
+            i: id,
+            ip: [{ address: { ipv4: [], ipv6: []}}, { address: { ipv4: [], ipv6: []}}]
+        }
+    }
+
+    // Parse ipv4 and ipv6 address from the data
+    let ipv4 = [JSON.parse(windata.d.ipv4_address_0.value), JSON.parse(windata.d.ipv4_address_1.value)];
+    let ipv6 = [JSON.parse(windata.d.ipv6_address_0.value), JSON.parse(windata.d.ipv6_address_1.value)];
+
+    for(let x = 0; x < 2; x++) {
+        ipv4[x].forEach((ip) => {
+            if(ip.ipv4 !== "") message.d.ip[x].address.ipv4.push(ip.ipv4);
+        });
+        ipv6[x].forEach((ip) => {
+            if(ip.ipv6 !== "") message.d.ip[x].address.ipv6.push(ip.ipv6);
+        });
     }
 
     if(!d.ws.send(message))
@@ -1754,7 +1837,8 @@ function mousedown(x, y, dx, dy, dom_element) {
     else if (
         (
             (d.dom.tools.active_t === "ED") ||
-            (d.dom.tools.active_t === "EC")
+            (d.dom.tools.active_t === "EC") ||
+            (d.dom.tools.active_t === "EI")
         ) && (d.current_view === "L3")
         ) {
         // L3 Element Delete, settings
@@ -1984,6 +2068,26 @@ function mouseup(x, y, dx, dy, dom_element) {
                             (windata) => {
                                 sendConfig_LinkDevice(a.obj.mesh.userData.id, index, windata);
                             });
+                    });
+            }
+            else if(a.obj.mesh.userData.type == "interface") {
+                WIN_showInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendConfig_Interface(a.obj.mesh.userData.id, windata);
+                    });
+            }
+            else if(a.obj.mesh.userData.type == "svi_interface") {
+                WIN_showSVIInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendConfig_SVIInterface(a.obj.mesh.userData.id, windata);
+                    });
+            }
+            else if(a.obj.mesh.userData.type == "p2p_interface") {
+                let vrf1 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.src_vrf_id);
+                let vrf2 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
+                WIN_showP2PInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, vrf1.userData.e, vrf2.userData.e,
+                    (windata) => {
+                        sendConfig_P2PInterface(a.obj.mesh.userData.id, windata);
                     });
             }
         }

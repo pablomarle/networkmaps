@@ -98,8 +98,6 @@ this.diagram = {
 				svis: {
 					5: {
 						name: "vlan5",
-						ipv4: [],
-						ipv6: [],
 						vrf: "<vrf rd>"
 					}
 				},
@@ -228,7 +226,22 @@ this.diagram = {
 					points: [										-> Aditional points. Only valid for type 0.
 						[0,0,0],
 					],
-				}
+				},
+				
+				ip: [  												-> List, one entry per device of the p2p interface
+					{
+						address: {
+							ipv4: [],
+							ipv6: [],
+						}
+					},
+					{
+						address: {
+							ipv4: [],
+							ipv6: [],
+						}					
+					}
+				]
 			}
 		}
 		interface: {
@@ -252,6 +265,12 @@ this.diagram = {
 					points: [										-> Aditional points. Only valid for type 0.
 						[0,0,0],
 					],
+				},
+				ip: {
+				 	address: {
+						ipv4: [],
+						ipv6: [],
+					}
 				}
 			}
 		},
@@ -277,6 +296,12 @@ this.diagram = {
 						[0,0,0],
 					],
 				}
+				ip: {
+				 	address: {
+						ipv4: [],
+						ipv6: [],
+					}
+				}
 			}
 		},
 		symbol: {} -> Same as L2
@@ -300,14 +325,10 @@ PHYSICAL INTERFACES DATA OPTIONS
 							subinterfaces: [
 								0: {
 									vlan_tag: -1, (native)
-									ipv4: ["100.0.0.1/24", ...]
-									ipv6: [],
 									vrf: "65001:1"					-> this is the rd
 								}
 								1: {
 									vlan_tag: 2,
-									ipv4: [],
-									ipv6: [],
 									vrf: "1"
 								}
 							]

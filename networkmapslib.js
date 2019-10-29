@@ -672,11 +672,14 @@ class Diagram {
      *                                          ej: {"10:1": {name:"default"}, "20:1": {name: "VRF_CORP"}}
      * @param {Object}      svis            List of svis of this device. The key will be the vlan tag. Value should be an object containint:
      *                                          name: string with name of interface
+     *                                          vrf: vrf this svi belongs to (route distinguiser).
+     *                                          ej: {1: {name: "vlan100", vrf: "10:1"}}
+     * @param {Object}      los             List of loopbacks of this device. The key is the index of this lo. Value should be an Object containing:
+     *                                          name: string with name of interface
      *                                          ipv4: list with strings, each one an ipv4 in cidr format
      *                                          ipv6: list with strings, each one an ipv6 in cidr format
      *                                          vrf: vrf this svi belongs to (route distinguiser).
-     *                                          ej: {1: {name: "vlan100", ipv4: ["10.10.10.1/24"], ipv6: ["2a01::1/64"], vrf: "10:1"}}
-     * @param {Object}      los             List of loopbacks of this device. The key is the index of this lo. Uses the same format as svis.
+     *                                          ej: {1: {name: "lo0", ipv4: ["10.10.10.1/24"], ipv6: ["2a01::1/64"], vrf: "10:1"}}
      * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
      */
     config_device(id, vlans, vrfs, svis, los, callback) {
