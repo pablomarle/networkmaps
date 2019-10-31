@@ -726,8 +726,6 @@ class Diagram {
      * @param {string}      native_vlan     (function switching) Vlan that is not tagged on this interface.
      * @param {Object[]}    subinterfaces   (function routing) List of l3 subinterfaces on this interface. Each member will have:
      *                                          vlan_tag: if not tagged: -1.
-     *                                          ipv4: list of strings containing the ipv4 addresses in cidr (ej 10.10.10.1/24)
-     *                                          ipv6: list of strings containing the ipv6 addresses in cidr (ej 10.10.10.1/24)
      *                                          vrf: vrf (identified by RD) this interface belongs to (vrf should exist on the device)
      * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
      */
@@ -742,6 +740,90 @@ class Diagram {
                 vlans: vlans,
                 native_vlan: native_vlan,
                 subinterfaces: subinterfaces,
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to configure a L3 interface.
+     * @param {string}      id              ID of the interface.
+     * @param {string[]}    ipv4_list       ipv4 address list of this interface
+     * @param {string[]}    ipv6_list       ipv6 address list of this interface
+     * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    config_interface(id, ipv4_list, ipv6_list, callback) {
+        let message = {
+            m: "C",
+            d: {
+                v: "L3",
+                t: "interface",
+                i: id,
+                ip: {
+                    address: {
+                        ipv4: ipv4_list,
+                        ipv6: ipv6_list,
+                    }
+                }
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to configure a L3 svi_interface.
+     * @param {string}      id              ID of the interface.
+     * @param {string[]}    ipv4_list       ipv4 address list of this interface
+     * @param {string[]}    ipv6_list       ipv6 address list of this interface
+     * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    config_sviinterface(id, ipv4_list, ipv6_list, callback) {
+        let message = {
+            m: "C",
+            d: {
+                v: "L3",
+                t: "svi_interface",
+                i: id,
+                ip: {
+                    address: {
+                        ipv4: ipv4_list,
+                        ipv6: ipv6_list,
+                    }
+                }
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to configure a L3 p2p_interface.
+     * @param {string}      id              ID of the interface.
+     * @param {string[]}    dev1_ipv4_list       ipv4 address list of dev1 in this interface
+     * @param {string[]}    dev1_ipv6_list       ipv6 address list of dev1 in this interface
+     * @param {string[]}    dev2_ipv4_list       ipv4 address list of dev2 in this interface
+     * @param {string[]}    dev2_ipv6_list       ipv6 address list of dev2 in this interface
+     * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    config_p2pinterface(id, dev1_ipv4_list, dev1_ipv6_list, dev2_ipv4_list, dev2_ipv6_list, callback) {
+        let message = {
+            m: "C",
+            d: {
+                v: "L3",
+                t: "svi_interface",
+                i: id,
+                ip: [
+                    {
+                        address: {
+                            ipv4: dev1_ipv4_list,
+                            ipv6: dev1_ipv6_list,
+                        }
+                    },
+                    {
+                        address: {
+                            ipv4: dev2_ipv4_list,
+                            ipv6: dev2_ipv6_list,
+                        }
+                    },                    
             },
         };
         this.send_message(message, callback);
