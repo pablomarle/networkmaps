@@ -1142,34 +1142,36 @@ function infobox_show(text) {
     if(text.content) text.content.forEach((p) => {
         if(p.type === "head")
             DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", p.text);
+        else if(p.type === "head2")
+            DOM.cdiv(d.dom.infobox, null, "box_info_subtitle2", p.text);
         else if(p.type === "text")
             DOM.cdiv(d.dom.infobox, null, "box_info_text", p.text);
+        else if(p.type === "text2")
+            DOM.cdiv(d.dom.infobox, null, "box_info_text2", p.text);
     })
 }
 
 function infobox_show_element(obj) {
-    if(obj.userData.type === "device") {
+    if(obj.userData.type === "device")
         infobox_show_device(obj);
-    }
-    else if(obj.userData.type === "link") {
+    else if(obj.userData.type === "link")
         infobox_show_link(obj);
-    }
     else if(obj.userData.type === "text")
         infobox_show({title: "Text"});
     else if(obj.userData.type === "symbol")
         infobox_show({title: "Symbol"});
     else if(obj.userData.type === "l2segment")
-        infobox_show({title: "L2 Segment"});
+        infobox_show_l2segment(obj);
     else if(obj.userData.type === "l2link")
         infobox_show({title: "L2 Link"});
     else if(obj.userData.type === "vrf")
-        infobox_show({title: "Vrf"});
+        infobox_show_vrf(obj);
     else if(obj.userData.type === "interface")
-        infobox_show({title: "Interface"});
+        infobox_show_interface(obj);
     else if(obj.userData.type === "p2p_interface")
-        infobox_show({title: "P2P"});
+        infobox_show_p2pinterface(obj);
     else if(obj.userData.type === "svi_interface")
-        infobox_show({title: "SVI"});
+        infobox_show_sviinterface(obj);
 }
 
 function infobox_show_device(obj) {
@@ -1306,6 +1308,198 @@ function infobox_show_link(obj) {
             }
         }
     }
+    infobox_show(infobox_data);
+}
+
+function infobox_show_vrf(obj) {
+    let infobox_data = {
+        title: "Vrf " + obj.userData.e.name,
+        content: [{type: "head", text: "Interfaces"}]
+    };
+
+    let interfaces = d.wgl.findLinksOfVrf(obj.userData.id);
+
+    // SVI Interfaces
+    for(let id in interfaces.svi_interface) {
+        let iface = interfaces.svi_interface[id].userData.e;
+        let device = d.wgl.findMesh("device", iface.l2_reference.device_id, d.wgl.scene["L2"]);
+        let name = device.userData.e.svis[iface.l2_reference.svi_id].name;
+        let ipv4 = "";
+        let ipv6 = "";
+        if(iface.ip) {
+            if(iface.ip.address.ipv4.length > 0)
+                ipv4 = iface.ip.address.ipv4[0] + " ";
+            if(iface.ip.address.ipv6.length > 0)
+                ipv6 = iface.ip.address.ipv6[0] + " ";
+        }
+        infobox_data.content.push({type: "text", text: name + " " + ipv4 + ipv6});
+    }
+
+    // Interfaces
+    for(let id in interfaces.interface) {
+        let iface = interfaces.interface[id].userData.e;
+        let link = d.wgl.findMesh("link", iface.l2_reference.link_id, d.wgl.scene["L2"]);
+        let dev_index = 0;
+        if(link.userData.e.devs[1].data.function == "routing")
+            dev_index = 1;
+        let name = "unnamed";
+        if(link.userData.e.phy) {
+            if(link.userData.e.phy.ifbindings.length > 1)
+                name = link.userData.e.phy.lag_name[dev_index];
+            else if(link.userData.e.phy.ifbindings.length == 1)
+                name = link.userData.e.phy.ifbindings[0][dev_index];
+        }
+        name += (iface.l2_reference.vlan_tag !== "-1") ? "." + iface.l2_reference.vlan_tag : "";
+
+        let ipv4 = "";
+        let ipv6 = "";
+        if(iface.ip) {
+            if(iface.ip.address.ipv4.length > 0)
+                ipv4 = iface.ip.address.ipv4[0] + " ";
+            if(iface.ip.address.ipv6.length > 0)
+                ipv6 = iface.ip.address.ipv6[0] + " ";
+        }
+        infobox_data.content.push({type: "text", text: name + " " + ipv4 + ipv6});
+    }
+
+    // P2P Interfaces
+    for(let id in interfaces.p2p_interface) {
+        let iface = interfaces.p2p_interface[id].userData.e;
+        let link = d.wgl.findMesh("link", iface.l2_reference.link_id, d.wgl.scene["L2"]);
+        let dev_index = 0;
+        if(link.userData.e.devs[1].id === obj.userData.e.l2_reference.device_id)
+            dev_index = 1;
+        let name = "unnamed";
+        if(link.userData.e.phy) {
+            if(link.userData.e.phy.ifbindings.length > 1)
+                name = link.userData.e.phy.lag_name[dev_index];
+            else if(link.userData.e.phy.ifbindings.length == 1)
+                name = link.userData.e.phy.ifbindings[0][dev_index];
+        }
+        name += (iface.l2_reference.vlan_tag !== "-1") ? "." + iface.l2_reference.vlan_tag : "";
+
+        let ipv4 = "";
+        let ipv6 = "";
+        if(iface.ip) {
+            if(iface.ip[dev_index].address.ipv4.length > 0)
+                ipv4 = iface.ip[dev_index].address.ipv4[0] + " ";
+            if(iface.ip[dev_index].address.ipv6.length > 0)
+                ipv6 = iface.ip[dev_index].address.ipv6[0] + " ";
+        }
+        infobox_data.content.push({type: "text", text: name + " " + ipv4 + ipv6});
+    }
+
+    infobox_show(infobox_data);
+}
+
+function infobox_show_interface(obj) {
+    let infobox_data = {
+        title: "Interface",
+        content: []
+    };
+
+    let link = d.wgl.findMesh("link", obj.userData.e.l2_reference.link_id, d.wgl.scene["L2"]);
+    let dev_index  = 0;
+    if(link.userData.e.devs[1].data.function === "routing")
+        dev_index = 1;
+
+    let device = d.wgl.findMesh("device", link.userData.e.devs[dev_index].id, d.wgl.scene["L2"]);
+    let name = "unnamed";
+    if(link.userData.e.phy) {
+        if(link.userData.e.phy.ifbindings.length > 1)
+            name = link.userData.e.phy.lag_name[dev_index];
+        else if(link.userData.e.phy.ifbindings.length == 1)
+            name = link.userData.e.phy.ifbindings[0][dev_index];
+    }
+    name += (obj.userData.e.l2_reference.vlan_tag !== "-1") ? "." + obj.userData.e.l2_reference.vlan_tag : "";
+
+    infobox_data.title = device.userData.e.name + " " + name;
+
+    if(obj.userData.e.ip) {
+        if(obj.userData.e.ip.address.ipv4.length > 0) {
+            infobox_data.content.push({type: "head", text: "IPv4"});
+            obj.userData.e.ip.address.ipv4.forEach((ip) => {infobox_data.content.push({type: "text", text: ip})});
+        }
+        if(obj.userData.e.ip.address.ipv6.length > 0) {
+            infobox_data.content.push({type: "head", text: "IPv6"});
+            obj.userData.e.ip.address.ipv6.forEach((ip) => {infobox_data.content.push({type: "text", text: ip})});
+        }
+    }
+
+    infobox_show(infobox_data);
+}
+
+function infobox_show_sviinterface(obj) {
+    let infobox_data = {
+        title: "SVI Interface",
+        content: []
+    };
+
+    let device = d.wgl.findMesh("device", obj.userData.e.l2_reference.device_id, d.wgl.scene["L2"]);
+    let name = device.userData.e.svis[obj.userData.e.l2_reference.svi_id].name;
+
+    infobox_data.title = device.userData.e.name + " " + name;
+    
+    if(obj.userData.e.ip) {
+        if(obj.userData.e.ip.address.ipv4.length > 0) {
+            infobox_data.content.push({type: "head", text: "IPv4"});
+            obj.userData.e.ip.address.ipv4.forEach((ip) => {infobox_data.content.push({type: "text", text: ip})});
+        }
+        if(obj.userData.e.ip.address.ipv6.length > 0) {
+            infobox_data.content.push({type: "head", text: "IPv6"});
+            obj.userData.e.ip.address.ipv6.forEach((ip) => {infobox_data.content.push({type: "text", text: ip})});
+        }
+    }
+
+    infobox_show(infobox_data);
+}
+
+function infobox_show_p2pinterface(obj) {
+    let infobox_data = {
+        title: "P2P Interface",
+        content: []
+    };
+
+    let link = d.wgl.findMesh("link", obj.userData.e.l2_reference.link_id, d.wgl.scene["L2"]);
+
+    for(let dev_index = 0; dev_index < 2; dev_index++) {
+        let device = d.wgl.findMesh("device", link.userData.e.devs[dev_index].id, d.wgl.scene["L2"]);
+
+        let name = "unnamed";
+        if(link.userData.e.phy) {
+            if(link.userData.e.phy.ifbindings.length > 1)
+                name = link.userData.e.phy.lag_name[dev_index];
+            else if(link.userData.e.phy.ifbindings.length == 1)
+                name = link.userData.e.phy.ifbindings[0][dev_index];
+        }
+        name += (obj.userData.e.l2_reference.vlan_tag !== "-1") ? "." + obj.userData.e.l2_reference.vlan_tag : "";
+
+        infobox_data.content.push({type: "head", text: device.userData.e.name + " " + name});
+        if(obj.userData.e.ip) {
+            if(obj.userData.e.ip[dev_index].address.ipv4.length > 0) {
+                infobox_data.content.push({type: "head2", text: "IPv4"});
+                obj.userData.e.ip[dev_index].address.ipv4.forEach((ip) => {infobox_data.content.push({type: "text2", text: ip})});
+            }
+            if(obj.userData.e.ip[dev_index].address.ipv6.length > 0) {
+                infobox_data.content.push({type: "head2", text: "IPv6"});
+                obj.userData.e.ip[dev_index].address.ipv6.forEach((ip) => {infobox_data.content.push({type: "text2", text: ip})});
+            }
+        }
+    }
+
+    infobox_show(infobox_data);
+}
+
+function infobox_show_l2segment(obj) {
+    let device = d.wgl.findMesh("device", obj.userData.e.l2_reference.device_id, d.wgl.scene["L2"]);
+
+    let interfaces = d.wgl.findLinksOfVrf(obj.userData.id);
+
+    let infobox_data = {
+        title: device.userData.e.vlans[obj.userData.e.l2_reference.vlan_id].name + " @ " + device.userData.e.name,
+        content: [],
+    };
+
     infobox_show(infobox_data);
 }
 
@@ -2526,7 +2720,7 @@ function init_window() {
     WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
 
     // Info box.
-    d.dom.infobox = DOM.cdiv(b, "id", "box_info", "tralalala");
+    d.dom.infobox = DOM.cdiv(b, "id", "box_info", "");
 
     // Toolbox states and dom elements
     d.dom.tools = {
