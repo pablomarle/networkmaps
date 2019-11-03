@@ -17,7 +17,8 @@ this.diagram = {
 						t2name: "b2_t1",
 						tsx: 1,
 						tsy: 1,
-						data: [],
+						infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+						data: [],									-> see at the end format of data
 			},
 		},
 		text: {
@@ -41,6 +42,8 @@ this.diagram = {
 		        border_show: false,
 		        border_width: .1,
 		        bg_depth: .1,
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		symbol: {
@@ -67,7 +70,8 @@ this.diagram = {
 					tail_sx_per, tail_sy_per, tail_sz_per,		-> size of head/tail relative to size of arrow
 
 				}
-				data: [],
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		device: {
@@ -109,8 +113,8 @@ this.diagram = {
 						vrf: "<vrf rd>"
 					}
 				},
-				data: [
-				],
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		link: {
@@ -143,7 +147,8 @@ this.diagram = {
 						[0,0,0],
 					],
 				}
-				
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 	},
@@ -155,17 +160,19 @@ this.diagram = {
 
 		l2segment: {
 			0: {
-					l2_reference: {
-						device_id: device_id,
-						vlan_id: vlan_id
-					}
-					base: 0,											-> Base element used to calculate position
-					type: "VLAN",										-> For now, only type vlan will exist. determines the shape of this element
-					name: "A name",
-					px: 0, py: 0, pz: 0,
-					sx: 1, sy: 1, sz: 1,
-					rx: 0, ry: 0, rz: 0,
-					color1: 0xffffff,
+				l2_reference: {
+					device_id: device_id,
+					vlan_id: vlan_id
+				}
+				base: 0,											-> Base element used to calculate position
+				type: "VLAN",										-> For now, only type vlan will exist. determines the shape of this element
+				name: "A name",
+				px: 0, py: 0, pz: 0,
+				sx: 1, sy: 1, sz: 1,
+				rx: 0, ry: 0, rz: 0,
+				color1: 0xffffff,
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		}
 		l2link: {
@@ -187,22 +194,26 @@ this.diagram = {
 						[0,0,0],
 					],
 				}
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		}
 		vrf: {
 			0: {
-					l2_reference: {
-						device_id: device_id,
-						vrf_id: vrf_id
-					}
-					base: 0,											-> Base element used to calculate position
-					type: "R",
-					name: "",
-					px: 0, py: 0, pz: 0,
-					sx: 1, sy: 1, sz: 1,
-					rx: 0, ry: 0, rz: 0,
-					color1: 0xffffff,
-					color2: 0xffffff,
+				l2_reference: {
+					device_id: device_id,
+					vrf_id: vrf_id
+				}
+				base: 0,											-> Base element used to calculate position
+				type: "R",
+				name: "",
+				px: 0, py: 0, pz: 0,
+				sx: 1, sy: 1, sz: 1,
+				rx: 0, ry: 0, rz: 0,
+				color1: 0xffffff,
+				color2: 0xffffff,
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		p2p_interface: {
@@ -242,6 +253,8 @@ this.diagram = {
 						}					
 					}
 				]
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		}
 		interface: {
@@ -272,6 +285,8 @@ this.diagram = {
 						ipv6: [],
 					}
 				}
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		svi_interface: {
@@ -302,6 +317,8 @@ this.diagram = {
 						ipv6: [],
 					}
 				}
+				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				data: [],									-> see at the end format of data
 			}
 		},
 		symbol: {} -> Same as L2
@@ -336,3 +353,13 @@ PHYSICAL INTERFACES DATA OPTIONS
 	UNCONFIGURED INTERFACE
 						function: "none",
 						function_data: {}
+
+
+ELEMENT DATA ENTRY FORMAT:
+	{
+		title: "this is the title",					-> single line
+		text: [										->
+			"text line 1",
+			"text line 2",
+		]
+	}

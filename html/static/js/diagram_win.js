@@ -6,7 +6,46 @@ WIN_data = {
 	constants: {
 		transceiver_options: [
 			["Undefined", ""],
+			["400GBASE-CR8", "400GBASE-CR8"],
+			["400GBASE-2FR4", "400GBASE-2FR4"],
+			["400GBASE-FR4", "400GBASE-FR4"],
+			["400GBASE-XDR4", "400GBASE-XDR4"],
+			["400GBASE-DR4", "400GBASE-DR4"],
+			["400GBASE-SR8", "400GBASE-SR8"],
+			["400GBASE-AOC", "400GBASE-AOC"],
+			["100GBASE-CR4", "100GBASE-CR4"],
+			["100GBASE-ERL4", "100GBASE-ERL4"],
+			["100GBASE-LRL4", "100GBASE-LRL4"],
+			["100GBASE-LR4", "100GBASE-LR4"],
+			["100GBASE-CWDM4", "100GBASE-CWDM4"],
+			["100GBASE-PSM4", "100GBASE-PSM4"],
+			["100GBASE-BIDI", "100GBASE-BIDI"],
+			["100GBASE-SWDM4", "100GBASE-SWDM4"],
+			["100GBASE-XSR4", "100GBASE-XSR4"],
+			["100GBASE-SR4", "100GBASE-SR4"],
+			["100GBASE-AOC", "100GBASE-AOC"],
+			["40GBASE-CR4", "40GBASE-CR4"],
+			["40GBASE-AOC", "40GBASE-AOC"],
+			["40GBASE-ER4", "40GBASE-ER4"],
+			["40GBASE-PLRL4", "40GBASE-PLRL4"],
+			["40GBASE-PLR4", "40GBASE-PLR4"],
+			["40GBASE-LRL4", "40GBASE-LRL4"],
+			["40GBASE-LR4", "40GBASE-LR4"],
+			["40GBASE-UNIV", "40GBASE-UNIV"],
+			["40GBASE-BIDI", "40GBASE-BIDI"],
+			["40GBASE-XSR4", "40GBASE-XSR4"],
+			["40GBASE-SR4", "40GBASE-SR4"],
+			["25GBASE-CR", "25GBASE-CR"],
+			["25GBASE-AOC", "25GBASE-AOC"],
+			["25GBASE-LR", "25GBASE-LR"],
+			["25GBASE-SR", "25GBASE-SR"],
 			["10GBASE-SR", "10GBASE-SR"],
+			["10GBASE-CR", "10GBASE-SR"],
+			["10GBASE-LR", "10GBASE-LR"],
+			["10GBASE-ER", "10GBASE-ER"],
+			["10GBASE-ZR", "10GBASE-ZR"],
+			["10GBASE-DWDM", "10GBASE-DWDM"],
+			["10GBASE-AOC", "10GBASE-AOC"],
 			["10GBASE-T", "10GBASE-T"],
 			["1000BASE-T", "1000BASE-T"],
 			["1000BASE-SX", "1000BASE-SX"],
@@ -49,6 +88,10 @@ WIN_data = {
 		arrowshafttype_choices: [
 			["Round", "radio_shaft_round.png", "r"],
 			["Square", "radio_shaft_square.png", "s"],
+		],
+		infobox_type_choices: [
+			["L2/L3 Info", "radio_infobox_l2l3.png", "l"],
+			["Data", "radio_infobox_data.png", "d"],
 		],
 	}
 }
@@ -1272,7 +1315,7 @@ function WIN_showVrfWindow(id, e, callback) {
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
 		callback(wdata);
-	}, "Apply changes.");	
+	}, "Apply changes.");
 }
 
 function WIN_showL2SegmentWindow(id, e, callback) {
@@ -1377,3 +1420,31 @@ function WIN_showFormatSettingsLink(settings, callback) {
 		wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });		
 }
 
+function WIN_showData(view, type, id, e, callback) {
+	let wdata = WIN_create(view, type, id, "Data", 520, 280);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Infobox_type
+	wdata.d.infobox_type = WIN_addRadioImgInput(w, 220, 20, "Mouse Over:", WIN_data.constants.infobox_type_choices, (e.infobox_type) ? e.infobox_type : "l");
+	
+	// Data. First convert element data to dictlist format, then add the window dictlist
+	let data_dl = [];
+	if(e.data) {
+		e.data.forEach((entry) => {
+			data_dl.push({title: entry.title, text: (entry.text.length > 0) ? entry.text[0] : ""});
+			for(let x = 1; x < entry.text.length; x++)
+				data_dl.push({title: "", text: entry.text[x]});
+		})
+	}
+	wdata.d.data = WIN_addDictList(w, 20, 90, 480, 140, "Data", data_dl, {
+		"title": { name: "Section Title", width: 100, "description": "Leave empty if data belongs to previous section.\nFirst entry must have title." },
+		"text": { name: "Data", width: 280, "description": "Text or Data." },
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 230, 250, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");	
+}

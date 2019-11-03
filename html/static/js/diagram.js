@@ -240,10 +240,12 @@ function process_message(message) {
         case "BG":
             d.wgl.settingsBackground(message.d.bg_color)
             break;
+        case "DT":
+            d.wgl.dataMesh(message.d.v, message.d.t, message.d.i, message.d.infobox_type, message.d.data);
+            break;
         case "E":
             DOM.showError("Error Received", message.d)
             break;
-
     }
 
     if("l3_changes" in message) {
@@ -1069,6 +1071,39 @@ function sendSettings_SymbolArrow(view, type, id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
+function sendData(windata) {
+    let message = {
+        m: "DT",
+        d: {
+            v: windata.obj.view,
+            t: windata.obj.type,
+            i: windata.obj.id,
+
+            infobox_type: windata.d.infobox_type.value,
+            data: [],
+        }
+    }
+
+    let data_dl = JSON.parse(windata.d.data.value);
+
+    if(data_dl.length > 0) {
+        let current = {title: data_dl[0].title, text: [data_dl[0].text]};
+        message.d.data.push(current);
+
+        for(let x = 1; x < data_dl.length; x++) {
+            if(data_dl[x].title == "") {
+                current.text.push(data_dl[x].text);
+            }
+            else {
+                current = {title: data_dl[x].title, text: [data_dl[x].text]};
+                message.d.data.push(current);
+            }
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);    
+}
+
 function sendDelete(type, id) {
     let message = {
         m: "D",
@@ -1152,6 +1187,10 @@ function infobox_show(text) {
 }
 
 function infobox_show_element(obj) {
+    if(obj.userData.e && (obj.userData.e.infobox_type === "d")) {
+        infobox_show_element_data(obj);
+        return;
+    }
     if(obj.userData.type === "device")
         infobox_show_device(obj);
     else if(obj.userData.type === "link")
@@ -1172,6 +1211,25 @@ function infobox_show_element(obj) {
         infobox_show_p2pinterface(obj);
     else if(obj.userData.type === "svi_interface")
         infobox_show_sviinterface(obj);
+}
+
+function infobox_show_element_data(obj) {
+    if(obj.userData.e.data) {
+        let infobox_data = {
+            title: "Data",
+            content: [],
+        }
+
+        obj.userData.e.data.forEach((entry) => {
+            if(entry.title !== "")
+                infobox_data.content.push({type: "head", text: entry.title});
+            entry.text.forEach((text) => {
+                infobox_data.content.push({type: "text", text: text});
+            })
+        })
+        // Show the infobox
+        infobox_show(infobox_data);
+    }
 }
 
 function infobox_show_device(obj) {
@@ -2054,6 +2112,29 @@ function mousedown(x, y, dx, dy, dom_element) {
             }
         }
     }
+    else if(
+            (d.dom.tools.active_t === "EDT") && 
+            (objlist.length > 0) &&
+            (
+                (objlist[0].mesh.userData.type === "symbol") || 
+                (objlist[0].mesh.userData.type === "text") ||
+                (objlist[0].mesh.userData.type === "vrf") ||
+                (objlist[0].mesh.userData.type === "l2segment") ||
+                (objlist[0].mesh.userData.type === "l2link") ||
+                (objlist[0].mesh.userData.type === "interface") ||
+                (objlist[0].mesh.userData.type === "p2p_interface") ||
+                (objlist[0].mesh.userData.type === "svi_interface") ||
+                (objlist[0].mesh.userData.type === "device") ||
+                (objlist[0].mesh.userData.type === "link") ||
+                (objlist[0].mesh.userData.type === "base")
+            )) {
+        d.mouseaction = {
+            m: d.dom.tools.active_t,
+            obj: objlist[0],
+            x: x,
+            y: y,
+        }        
+    }
     else if ((objlist.length > 0) && ((d.dom.tools.active_t === "FC") || (d.dom.tools.active_t === "FP"))) {
         d.mouseaction = {
             m: d.dom.tools.active_t,
@@ -2240,6 +2321,15 @@ function mouseup(x, y, dx, dy, dom_element) {
                         });
                 }
             }
+        }
+    }
+    else if(d.dom.tools.active_t === "EDT") {
+        if ((x == a.x) && (y == a.y)) {
+            WIN_showData(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendData(windata);
+                }
+            );
         }
     }
     else if(d.dom.tools.active_t === "EI") {

@@ -823,7 +823,37 @@ class Diagram {
                             ipv4: dev2_ipv4_list,
                             ipv6: dev2_ipv6_list,
                         }
-                    },                    
+                    },
+                ],
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to configure data on any element.
+     * @param {string}      view            L2 or L3 depending on which view the element is.
+     * @param {string}      type            device, link, base, text, symbol, text, vrf, l2segment, l2_link, interface, svi_interface or p2p_interface.
+     * @param {string}      id              ID of the element.
+     * @param {string}      infobox_type    What information will be displayed on mouse over: 
+     *                                          "l": l2/l3 info.
+     *                                          "d": data.
+     * @param {Object[]}      data          data to be stored. a list of objects that follow this format:
+     *                                          {
+     *                                              title: "this is the title",
+     *                                              text: [
+     *                                                  "text line 1",
+     *                                                  "text line 2",
+     *                                              ]
+     *                                          }
+     */
+    data(view, type, id, infobox_type, data) {
+        let message = {
+            m: "DT",
+            d: {
+                v: view,
+                t: type,
+                i: id,
             },
         };
         this.send_message(message, callback);

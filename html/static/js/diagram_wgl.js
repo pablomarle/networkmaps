@@ -986,6 +986,16 @@ class WGL {
 		}
 	}
 
+	dataMesh(view, type, id, infobox_type, data) {
+		let mesh = this.findMesh(type, id, this.scene[view]);
+		if(mesh) {
+			if(infobox_type !== undefined)
+				mesh.userData.e.infobox_type = infobox_type;
+			if(data !== undefined)
+				mesh.userData.e.data = data;
+		}
+	}
+
 	deleteMesh(view, type, id) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		while(mesh) {
