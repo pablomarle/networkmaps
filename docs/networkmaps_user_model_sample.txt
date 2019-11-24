@@ -18,6 +18,7 @@ user_struct:
             activation_code:
             activation_date:
             diagrams: [<list of all diagrams, this user has access to>]
+            mark_delete: bool,
         }
     }
 

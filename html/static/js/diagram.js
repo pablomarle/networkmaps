@@ -213,6 +213,7 @@ function process_message(message) {
         case "I":
             d.diagram = message.d.d;
             d.name = message.d.n;
+            d.permission = message.d.p;
             
             init_window();
             break;
@@ -1588,8 +1589,10 @@ function position_elements(wglneeded=true) {
     
     // Tool buttons
     setBoxPosition(d.dom.tool_camera_b,     10+48*0, 10, 32, 32);
-    setBoxPosition(d.dom.tool_element_b,    10+48*1, 10, 32, 32);
-    setBoxPosition(d.dom.tool_new_b,        10+48*2, 10, 32, 32);
+    if(d.permission !== "RO") {
+        setBoxPosition(d.dom.tool_element_b,    10+48*1, 10, 32, 32);
+        setBoxPosition(d.dom.tool_new_b,        10+48*2, 10, 32, 32);
+    }
 
     // Tools
     for(toolboxname in d.dom.tools.toolboxes) {
@@ -1814,7 +1817,10 @@ function mousedown(x, y, dx, dy, dom_element) {
             d.mouseaction = {
                 m: d.dom.tools.active_t,
             };
-        }
+    }
+    else if(d.permission === "RO") {
+        // Do nothings
+    }
     else if (d.dom.tools.active_t === "ABF") {
         // Add Floor
         let p = d.wgl.pickLevel(x, y, 0);
@@ -2794,20 +2800,22 @@ function init_window() {
     });
     WIN_addBasicMouseDescriptionActions(d.dom.tool_camera_b, "Camera Actions. Move, rotate or zoom the view.");
     
-    d.dom.tool_element_b = DOM.cimg(b, staticurl + "/static/img/element.png", "tool_element_b", "box toolbutton", null, () => {
-        d.dom.tools.active_tb = d.dom.tools.active_tb == "element" ? "" : "element";
-        animate();
-    });
-    WIN_addBasicMouseDescriptionActions(d.dom.tool_element_b, "Element Actions. Modify the existing elements of the diagram.");
-    
-    d.dom.tool_new_b = DOM.cimg(b, staticurl + "/static/img/new.png", "tool_new_b", "box toolbutton", null, () => {
-        if(d.current_view == "L2")
-            d.dom.tools.active_tb = d.dom.tools.active_tb == "new" ? "" : "new";
-        else if(d.current_view == "L3")
-            d.dom.tools.active_tb = d.dom.tools.active_tb == "new_l3" ? "" : "new_l3";
-        animate();
-    });
-    WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
+    if(d.permission !== "RO") {
+        d.dom.tool_element_b = DOM.cimg(b, staticurl + "/static/img/element.png", "tool_element_b", "box toolbutton", null, () => {
+            d.dom.tools.active_tb = d.dom.tools.active_tb == "element" ? "" : "element";
+            animate();
+        });
+        WIN_addBasicMouseDescriptionActions(d.dom.tool_element_b, "Element Actions. Modify the existing elements of the diagram.");
+        
+        d.dom.tool_new_b = DOM.cimg(b, staticurl + "/static/img/new.png", "tool_new_b", "box toolbutton", null, () => {
+            if(d.current_view == "L2")
+                d.dom.tools.active_tb = d.dom.tools.active_tb == "new" ? "" : "new";
+            else if(d.current_view == "L3")
+                d.dom.tools.active_tb = d.dom.tools.active_tb == "new_l3" ? "" : "new_l3";
+            animate();
+        });
+        WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
+    }
 
     // Info box.
     d.dom.infobox = DOM.cdiv(b, "id", "box_info", "");
