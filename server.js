@@ -8,13 +8,11 @@ const ws = require('./lib/ws');
 const sendmail = require("./lib/sendmail");
 const staticcontent = require("./lib/staticcontent");
 const usermgt = new UserMGT(
-	config.users.path,
 	config.timers.usertimeout,
 	config.timers.usersavetimeout,
-	config.users.register_self,
-	config.users.admin_username,
-	config.users.admin_password,
-	config.users.allowed_domains);
+	config.timers.ldap_grouprefresh,
+	config.users
+);
 const fs = require('fs');
 
 function sendMail(to, subject, content) {

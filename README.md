@@ -19,9 +19,6 @@ We have a live demo running the latest code here:
 
 All the documentation can be found here: [Networkmaps Documentation](https://www.networkmaps.org/documentation)
 
-## Special note for already existing installations
-For administrators who deployed Networkmaps before June 2019, on newer releases, Networkmaps does not use the mysql database anymore to store user information. 
-Check https://www.networkmaps.org/doc_installation.html for instructions on how to migrate.
 ## Credits
 
 We are using some 3rd party software:
