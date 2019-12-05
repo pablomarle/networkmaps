@@ -39,6 +39,7 @@ user_struct:
             permissions: {
                 user: permission
             }
+            link_sharing: false,
         }
     }
 

@@ -95,10 +95,10 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 		// Access a diagram. Gets the client that will be used to edit a diagram
 		else if (url.startsWith("/diagram/") && (method == "GET"))  {
 			// If the user is not logged in, redirect him to /
-			if(!session.data.user) {
-				sendresponse(302, "text/html", "", session.sessionid, "/");
-				return;
-			}
+			//if(!session.data.user) {
+			//	sendresponse(302, "text/html", "", session.sessionid, "/");
+			//	return;
+			//}
 			let surl = url.split("/");
 			if(surl.length != 3) {
 				sendresponse(404, "text/html", html.not_found(config), session.sessionid);

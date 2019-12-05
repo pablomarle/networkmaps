@@ -116,6 +116,17 @@ function process_message(message) {
 			set_state("DSD");
 		}
 	}
+	else if(message.m == "DW") {
+		if(message.d.error) {
+			DOM.showError("Error", message.d.error);
+		}
+		else {
+			if(message.d.ls)
+				set_state("DWDS");
+			else
+				set_state("DWDN");
+		}
+	}
 	else if(message.m == "PD") {
 		if(message.d.error) {
 			DOM.showError("Error", message.d.error);
@@ -226,6 +237,15 @@ function share() {
 		d: {uuid: uuid, e:email, p:permission}
 	})	
 	
+}
+
+function linkshare() {
+	let uuid = this.getAttribute("data-uuid");
+	let linksharing = (this.getAttribute("data-linksharing") === "1")
+	send({
+		m: "DW",
+		d: {uuid: uuid, ls: linksharing}
+	});
 }
 
 function login() {
@@ -610,9 +630,20 @@ function screen_main_updatelistdiagrams(list_diagrams) {
 						DOM.cimg(i, staticurl + "/static/img/share.png", null, "diagram_button_img");
 					i.addEventListener("click", (e) => { 
 						index_data.current_diagram.uuid = e.currentTarget.getAttribute("data-uuid");
-						set_state("DS")
+						set_state("DS");
 					});
 					i.setAttribute("data-uuid", list_diagrams[x].uuid);
+
+					i = DOM.cdiv(t, null, "diagram_button");
+					set_node_infobox(i, "Link Sharing");
+						DOM.cimg(i, staticurl + "/static/img/linksharing.png", null, "diagram_button_img");
+					i.addEventListener("click", (e) => { 
+						index_data.current_diagram.uuid = e.currentTarget.getAttribute("data-uuid");
+						index_data.current_diagram.linksharing = (e.currentTarget.getAttribute("data-linksharing") === "1");
+						set_state("DW");
+					});
+					i.setAttribute("data-uuid", list_diagrams[x].uuid);
+					i.setAttribute("data-linksharing", (list_diagrams[x].ls) ? "1" : "0");
 				}
 	}
 }
@@ -858,6 +889,63 @@ function screen_diagram_share_done(old_state) {
 		DOM.cbutton(t, null, "button", "Return", null, () => {set_state("P")});
 }
 
+function screen_diagram_linksharing(old_state) {
+	let div, body, t, tr, td, i, form;
+	let uuid = index_data.current_diagram.uuid;
+	let linksharing = index_data.current_diagram.linksharing;
+	body = document. getElementsByTagName("body")[0];
+
+	div = add_message_box("Link Sharing")
+
+	if(linksharing)
+		DOM.cdiv(div, null, "paragraph", "Diagram shared with whoever has the link (Read Only).");
+	else
+		DOM.cdiv(div, null, "paragraph", "Link Sharing is disabled.");
+
+	//DOM.cdiv(div, null, "paragraph", "Link: " + appserver + "/diagram/" + index_data.current_diagram.uuid);
+
+	t = DOM.ctable(div, null, "t_center");
+	tr = DOM.ctr(t);
+		td = DOM.ctd(tr, null, null, "Link");
+		td = DOM.ctd(tr);
+			index_data.share_link = DOM.ci_text(td, null, "input");
+			index_data.share_link.value = appserver + "/diagram/" + index_data.current_diagram.uuid;
+			index_data.share_link.style.width = "230px";
+		td = DOM.ctd(tr);
+			DOM.cbutton(td, null, "button", "Copy to Clipboard", {"uuid": uuid, "linksharing": "0"}, () => {
+				index_data.share_link.select();
+				index_data.share_link.setSelectionRange(0,9999);
+				document.execCommand("copy");
+			});
+
+	tr = DOM.ctr(t);
+		td = DOM.ctd(tr);
+		if(linksharing)
+			DOM.cbutton(td, null, "button", "Stop Sharing", {"uuid": uuid, "linksharing": "0"}, linkshare);
+		else
+			DOM.cbutton(td, null, "button", "Share", {"uuid": uuid, "linksharing": "1"}, linkshare);
+		DOM.cbutton(td, null, "button", "Cancel", null, () => { set_state("P") });
+		td.colSpan = "3";
+}
+
+function screen_diagram_linksharing_done_share(old_state) {
+	let div, body, t, tr, td, i, form;
+
+	div = add_message_box("Diagram Shared")
+		DOM.cdiv(div, null, "paragraph", "Diagram shared with whoever has the link!!!");
+		t = DOM.cdiv(div, null, "t_center");
+		DOM.cbutton(t, null, "button", "Return", null, () => {set_state("P")});
+}
+
+function screen_diagram_linksharing_done_noshare(old_state) {
+	let div, body, t, tr, td, i, form;
+
+	div = add_message_box("Diagram Not Shared")
+		DOM.cdiv(div, null, "paragraph", "Stopped sharing diagram with whoever has the link!!!");
+		t = DOM.cdiv(div, null, "t_center");
+		DOM.cbutton(t, null, "button", "Return", null, () => {set_state("P")});
+}
+
 function screen_diagram_renamed(old_state) {
 	let div, body, t, tr, td, i, form;
 
@@ -935,6 +1023,15 @@ function set_state(new_state, data) {
 	}
 	else if(new_state == "DSD") { // Share diagram Done
 		screen_diagram_share_done(old_state);
+	}
+	else if(new_state == "DW") { // Link Sharing diagram
+		screen_diagram_linksharing(old_state);
+	}
+	else if(new_state == "DWDS") { // Link Sharing diagram done with sharing
+		screen_diagram_linksharing_done_share(old_state);
+	}
+	else if(new_state == "DWDN") { // Link Sharing diagram done without sharing
+		screen_diagram_linksharing_done_noshare(old_state);
 	}
 	else if(new_state == "DC") { // Config diagram
 		screen_diagram_config(old_state);
