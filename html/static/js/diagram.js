@@ -245,7 +245,14 @@ function process_message(message) {
             d.wgl.dataMesh(message.d.v, message.d.t, message.d.i, message.d.infobox_type, message.d.data);
             break;
         case "E":
-            DOM.showError("Error Received", message.d)
+            DOM.showError("Error Received", message.d.error);
+            if(message.d.fatal) {
+                DOM.showError("Fatal Error", message.d.error, true);
+                d.ws.clear_close_event();
+            }
+            else {
+                DOM.showError("Error Received", message.d.error);
+            }
             break;
     }
 

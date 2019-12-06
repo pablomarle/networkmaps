@@ -1,5 +1,10 @@
 class WS {
 	constructor(call_message, call_close) {
+		if(diagram_uuid == 'notdefined') {
+			call_close();
+			return;
+		}
+
 		this.connected = false;
 		this.call_message = call_message;
 		this.call_close = call_close;
@@ -22,7 +27,8 @@ class WS {
 
 	close_event() {
 		this.obj.connected = false;
-		this.obj.call_close();
+		if(this.obj.call_close)
+			this.obj.call_close();
 	}
 
 	message_event(event) {
@@ -36,5 +42,9 @@ class WS {
 
 		this.socket.send(JSON.stringify(data));
 		return true;
+	}
+
+	clear_close_event() {
+		this.call_close = null;
 	}
 }
