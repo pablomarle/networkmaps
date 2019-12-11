@@ -1145,6 +1145,28 @@ function sendDeleteJoint(view, element_type, link_id, joint_index) {
 function animate() {
     let needs_redraw = false;
 
+    // Infobox
+    if(d.dom.infobox_data.show && (d.dom.infobox_data.transparency < .05)) {
+        DOM.show(d.dom.infobox);
+        d.dom.infobox_data.transparency = .05;
+        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
+        needs_redraw = true;
+    }
+    else if(d.dom.infobox_data.show && (d.dom.infobox_data.transparency < 1)) {
+        d.dom.infobox_data.transparency += .05;
+        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
+        needs_redraw = true;
+    }
+    else if((!d.dom.infobox_data.show) && (d.dom.infobox_data.transparency < .05)) {
+        DOM.hide(d.dom.infobox);
+        d.dom.infobox_data.transparency = 0;
+    }
+    else if((!d.dom.infobox_data.show) && (d.dom.infobox_data.transparency > 0)) {
+        d.dom.infobox_data.transparency -= .05;
+        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
+        needs_redraw = true;
+    }
+
     // Animate DOM elements if needed
     for(toolboxname in d.dom.tools.toolboxes) {
         let toolbox = d.dom.tools.toolboxes[toolboxname];
@@ -1175,12 +1197,13 @@ function animate() {
     This function will clear the contents of the infobox and will hide it
 */
 function infobox_clear() {
-    DOM.removeChilds(d.dom.infobox, true);
-    DOM.hide(d.dom.infobox);
+    d.dom.infobox_data.show = false;
+    console.log("CLEAR");
+    animate();
 }
 
 function infobox_show(text) {
-    DOM.show(d.dom.infobox);
+    DOM.removeChilds(d.dom.infobox, true);
     if(text.title) DOM.cdiv(d.dom.infobox, null, "box_info_title", text.title);
     if(text.content) text.content.forEach((p) => {
         if(p.type === "head")
@@ -1192,6 +1215,9 @@ function infobox_show(text) {
         else if(p.type === "text2")
             DOM.cdiv(d.dom.infobox, null, "box_info_text2", p.text);
     })
+    d.dom.infobox_data.show = true;
+    console.log("Show");
+    animate();
 }
 
 function infobox_show_element(obj) {
@@ -1617,7 +1643,7 @@ function position_elements(wglneeded=true) {
 
     // Info box
     setBoxPositionRight(d.dom.infobox, 10, 60);
-    infobox_clear();
+    //infobox_clear();
 
     // Redraw webgl
     if(wglneeded)
@@ -2825,7 +2851,8 @@ function init_window() {
     }
 
     // Info box.
-    d.dom.infobox = DOM.cdiv(b, "id", "box_info", "");
+    d.dom.infobox = DOM.cdiv(b, null, "box_info", "");
+    d.dom.infobox_data = {transparency: 0, show: false};
 
     // Toolbox states and dom elements
     d.dom.tools = {
