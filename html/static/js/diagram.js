@@ -1198,7 +1198,6 @@ function animate() {
 */
 function infobox_clear() {
     d.dom.infobox_data.show = false;
-    console.log("CLEAR");
     animate();
 }
 
@@ -1216,7 +1215,6 @@ function infobox_show(text) {
             DOM.cdiv(d.dom.infobox, null, "box_info_text2", p.text);
     })
     d.dom.infobox_data.show = true;
-    console.log("Show");
     animate();
 }
 
@@ -2745,7 +2743,6 @@ function mouseover(x, y, dom_element) {
         if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
             if(d.mouseover !== null)
                 infobox_clear();
-                //console.log("Deselected " + d.mouseover.type + " " + d.mouseover.id)
             d.mouseover = {
                 view: d.current_view,
                 type: obj.userData.type,
@@ -2757,7 +2754,6 @@ function mouseover(x, y, dom_element) {
     }
     else if(d.mouseover !== null) {
         infobox_clear();
-        //console.log("Deselected " + d.mouseover.type + " " + d.mouseover.id)
         d.mouseover = null;
     }
 }

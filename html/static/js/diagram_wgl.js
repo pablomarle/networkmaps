@@ -682,6 +682,15 @@ class WGL {
 				// In case of devices, we have to adjust the rotation of the name to face the camera
 				this.adjustDeviceNameRotation(mesh);
 			}
+			else if(type === "l2segment") {
+				let links = this.findLinksOfL2Segment(id);
+				for(let link_type in links) {
+					for(let link_id in links[link_type]) {
+						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
+					}
+				}
+				this.adjustDeviceNameRotation(mesh);
+			}
 
 			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
 		}
@@ -1893,11 +1902,36 @@ class WGL {
 			dev2 = this.findMesh("vrf", e.l3_reference.dst_vrf_id, this.scene[sceneid]);
 		}
 
-		this.tempVector = dev1.getWorldPosition();
+		dev1.getWorldPosition(this.tempVector);
 		let x1 = this.tempVector.x;
 		let y1 = this.tempVector.y+e.linedata.height;
 		let z1 = this.tempVector.z;
 		let points = e.linedata.points;
+		
+		dev2.getWorldPosition(this.tempVector);
+		let x2 = this.tempVector.x;
+		let y2 = this.tempVector.y+e.linedata.height;
+		let z2 = this.tempVector.z;
+		if((type === "interface") || (type === "svi_interface")) {
+			// For L2segments, find the final point of contact
+			let quaternion = new THREE.Quaternion();
+			dev2.getWorldQuaternion(quaternion);
+			this.tempVector.set(x1-x2, y1-y2, z1-z2).applyQuaternion(quaternion.conjugate());
+			if(this.tempVector.z < 0)
+				this.tempVector.z = -this.tempVector.z;
+			this.tempVector.z += 1;
+			this.tempVector.x = this.tempVector.x*dev2.userData.e.sx / (this.tempVector.z + (dev2.userData.e.sx));
+			this.tempVector.y = 0;
+			this.tempVector.z = 0;
+			if(this.tempVector.x > (dev2.userData.e.sx/2))
+				this.tempVector.x = dev2.userData.e.sx/2;
+			if(this.tempVector.x < -(dev2.userData.e.sx/2))
+				this.tempVector.x = -dev2.userData.e.sx/2;
+			this.tempVector.applyQuaternion(quaternion.conjugate());
+			x2 = x2 + this.tempVector.x;
+			z2 = z2 + this.tempVector.z;
+		}
+
 
 		if(e.type == 0) {
 			for(let x = 0; x < points.length; x++) {
@@ -1910,20 +1944,11 @@ class WGL {
 				x1 = points[x][0]; y1 = points[x][1]; z1 = points[x][2];
 			}
 
-			dev2.getWorldPosition(this.tempVector);
-			let x2 = this.tempVector.x;
-			let y2 = this.tempVector.y+e.linedata.height;
-			let z2 = this.tempVector.z;
 			// Create last segment
 			this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, points.length);
 
 		}
 		else if (e.type == 1) {
-			dev2.getWorldPosition(this.tempVector);
-			let x2 = this.tempVector.x;
-			let y2 = this.tempVector.y+e.linedata.height;
-			let z2 = this.tempVector.z;
-
 			for(let x = 0; x < 2; x++) {
 				if ((e.order[x] == "X") && (x1 !== x2)) {
 					this.addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y1, z1, material, 0);
