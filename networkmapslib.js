@@ -25,7 +25,7 @@ class Diagram {
                     ready_callback(null, this);
             },
         };
-        this.msg_id = 1
+        this.msg_id = 1;
 
         this.ws.on("message", (data) => {
             let jdata = JSON.parse(data);
@@ -42,12 +42,13 @@ class Diagram {
             }
 
             // If the message does not have my conn_id, it's not a reply from a message I sent. Ignore it.
-            if(jdata.conn_id !== this.conn_id)
+            if(jdata.conn_id !== this.conn_id) {
                 return;
+            }
             
             if(jdata.m === "E") {
                 if(this.callbacks[jdata.msg_id]) {
-                    this.callbacks[jdata.msg_id](jdata.d);
+                    this.callbacks[jdata.msg_id](jdata.d.error);
                     delete this.callbacks[jdata.msg_id];
                 }
 
@@ -55,7 +56,7 @@ class Diagram {
             }
             else {
                 if(this.callbacks[jdata.msg_id]) {
-                    this.callbacks[jdata.msg_id](jdata.d);
+                    this.callbacks[jdata.msg_id](null, jdata.d);
                     delete this.callbacks[jdata.msg_id];
                 }                
             }
@@ -132,7 +133,6 @@ class Diagram {
                 px: px, py: py, pz: pz, sx: sx, sy: sy, sz: sz, rx: rx, ry: ry, rz: rz,
                 st: st,
             },
-            msg_id: msg_id,
         };
         this.send_message(message, callback);
     }
@@ -216,6 +216,148 @@ class Diagram {
             },
         };
         this.send_message(message, callback);
+    }
+
+    /**
+     * Function to create a bgp peering. This function is used internally
+     * @param {string}      type            Type of the bgp peer. The type defines the elements used to create the bgp peering: "p2p", "lo2lo", "svi2svi", "svi2if", "svi2range", "if2if", "if2range"
+     * @param {Object}      l3_reference    Object with references to interfaces.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link
+     * @param {string}      dst_ip          IP address used by the second device of the link
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    _add_bgppeer(type, l3_reference, transport, afisafi, src_ip, dst_ip, callback) {
+        let message = {
+            m: "A",
+            d: {
+                v: "L3",
+                t: "bgp_peering",
+                type: type,
+                transport: transport,
+                afisafi: afisafi,
+                src_ip: src_ip,
+                dst_ip: dst_ip,
+                l3_reference: l3_reference,
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to create a p2p bgp peering
+     * @param {string}      p2p_interface_id    ID of the p2p interface used by the two devices to peer.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link
+     * @param {string}      dst_ip          IP address used by the second device of the link
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_p2p_bgppeer(p2p_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("p2p", {p2p_interface_id: p2p_interface_id}, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a loopback to loopback bgp peering
+     * @param {string}      src_vrf_id      ID of the source vrf.
+     * @param {string}      src_lo_id       ID of the source loopback in the source vrf.
+     * @param {string}      dst_vrf_id      ID of the destination vrf.
+     * @param {string}      dst_lo_id       ID of the destination loopback in the destination vrf.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP address used by the second device of the link.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_lo2lo_bgppeer(src_vrf_id, src_lo_id, dst_vrf_id, dst_lo_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("lo2lo", {
+            src_vrf_id: src_vrf_id,
+            src_lo_id: src_lo_id,
+            dst_vrf_id: dst_vrf_id,
+            dst_lo_id: dst_lo_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a svi to svi bgp peering
+     * @param {string}      src_svi_interface_id      ID of the source svi.
+     * @param {string}      dst_svi_interface_id      ID of the destination svi.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP address used by the second device of the link.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_svi2svi_bgppeer(src_svi_interface_id, dst_svi_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("svi2svi", {
+            src_svi_interface_id: src_svi_interface_id,
+            dst_svi_interface_id: dst_svi_interface_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a svi to interface bgp peering
+     * @param {string}      src_svi_interface_id        ID of the source svi.
+     * @param {string}      dst_interface_id            ID of the destination interface.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP address used by the second device of the link.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_svi2if_bgppeer(src_svi_interface_id, dst_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("svi2if", {
+            src_svi_interface_id: src_svi_interface_id,
+            dst_interface_id: dst_interface_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a svi to ip range bgp peering
+     * @param {string}      src_svi_interface_id        ID of the source svi.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP network of devices that can establish a bgp peering.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_svi2range_bgppeer(src_svi_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("svi2range", {
+            src_svi_interface_id: src_svi_interface_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a interface to interface bgp peering
+     * @param {string}      src_interface_id            ID of the source interface.
+     * @param {string}      dst_interface_id            ID of the destination interface.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP address used by the second device of the link.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_if2if_bgppeer(src_interface_id, dst_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("if2if", {
+            src_interface_id: src_interface_id,
+            dst_interface_id: dst_interface_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
+    }
+
+    /**
+     * Function to create a svi to ip range bgp peering
+     * @param {string}      src_interface_id        ID of the source svi.
+     * @param {string}      transport       Whether bgp uses IPv4 or IPv6 as transport.
+     * @param {string[]}    afisafi         List of address families exchanged on this peering: "ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled", "ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled", "l2vpn/vpls", "evpn"
+     * @param {string}      src_ip          IP address used by the first device of the link.
+     * @param {string}      dst_ip          IP network of devices that can establish a bgp peering.
+     * @param {diagramRequestCallback}    callback        Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    add_if2range_bgppeer(src_interface_id, transport, afisafi, src_ip, dst_ip, callback) {
+        this._add_bgppeer("if2range", {
+            src_interface_id: src_interface_id,
+        }, transport, afisafi, src_ip, dst_ip, callback);
     }
 
     /**
@@ -482,7 +624,7 @@ class Diagram {
                 color1: color1, color2: color2,
                 ifnaming: ifnaming,
             }
-        }
+        };
         this.send_message(message, callback);
     }
 
@@ -674,12 +816,6 @@ class Diagram {
      *                                          name: string with name of interface
      *                                          vrf: vrf this svi belongs to (route distinguiser).
      *                                          ej: {1: {name: "vlan100", vrf: "10:1"}}
-     * @param {Object}      los             List of loopbacks of this device. The key is the index of this lo. Value should be an Object containing:
-     *                                          name: string with name of interface
-     *                                          ipv4: list with strings, each one an ipv4 in cidr format
-     *                                          ipv6: list with strings, each one an ipv6 in cidr format
-     *                                          vrf: vrf this svi belongs to (route distinguiser).
-     *                                          ej: {1: {name: "lo0", ipv4: ["10.10.10.1/24"], ipv6: ["2a01::1/64"], vrf: "10:1"}}
      * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
      */
     config_device(id, vlans, vrfs, svis, los, callback) {
@@ -689,7 +825,7 @@ class Diagram {
                 v: "L2",
                 t: "device",
                 i: id,
-                vlans: vlans, vrfs: vrfs, svis: svis, los: los,
+                vlans: vlans, vrfs: vrfs, svis: svis,
             },
         };
         this.send_message(message, callback);
@@ -740,6 +876,32 @@ class Diagram {
                 vlans: vlans,
                 native_vlan: native_vlan,
                 subinterfaces: subinterfaces,
+            },
+        };
+        this.send_message(message, callback);
+    }
+
+    /**
+     * Function to configure a VRF
+     * @param {string}      id              ID of the interface.
+     * @param {string[]}    router_id       Router id: should be a 4 byte number following same notation as an ipv4 address. ej: 10.11.12.13
+     * @param {string[]}    asn             Autonomous system number
+     * @param {Object}      los             List of loopbacks of this vrf. The key will be the loopback name. Value should be an object containint:
+     *                                          ipv4: list of strings containing ipv4 addresses assigned to this interface
+     *                                          ipv6: list of strings containing ipv4 addresses assigned to this interface
+     *                                          ej: {"lo0": {ipv4: ["1.1.1.1/32"], "ipv6": []}, ... }
+     * @param {diagramRequestCallback}    callback    Function to be called when a response is received. Function will have two parameters: error and data received
+     */
+    config_vrf(id, router_id, asn, los, callback) {
+        let message = {
+            m: "C",
+            d: {
+                v: "L3",
+                t: "interface",
+                i: id,
+                router_id: router_id,
+                asn: asn,
+                los: los,
             },
         };
         this.send_message(message, callback);
@@ -905,17 +1067,23 @@ class NetworkMapsLib {
         this.conn.proto = "http";
         if(this.conn.use_ssl) {
             this.conn.proto = "https";
+        }
+
+        this.diagrams = {};
+
+        this.updateSessionCookie();
+        this.setup_user_ws();
+    }
+
+    updateSessionCookie() {
+        if(this.conn.use_ssl) {
             if(this.conn.session_id)
                 this.conn.headers.Cookie = 'NetSessionSec=' + this.conn.session_id;
         }
         else {
             if(this.conn.session_id)
                 this.conn.headers.Cookie = 'NetSessionNoSec=' + this.conn.session_id;
-        }
-
-        this.diagrams = {};
-
-        this.setup_user_ws();
+        }        
     }
 
     /**
@@ -949,8 +1117,9 @@ class NetworkMapsLib {
      *                                  This function will have two parameters:
      *                                      error: error if any
      *                                      diagram: diagram object we can use to make changed on the diagram.
+     * @param {Function}    close_callback    Function to be called once the connection is closed.
      */
-    setup_diagram_ws(uuid, callback) {
+    setup_diagram_ws(uuid, callback, close_callback) {
         if(!this.connected) {
             if(callback) callback("Not connected.");
             return;
@@ -975,6 +1144,8 @@ class NetworkMapsLib {
             if(uuid in this.diagrams) {
                 this.diagrams[uuid].connected = false;
                 delete this.diagrams[uuid];
+                if(close_callback)
+                    close_callback();
             }
         });
     }
@@ -990,6 +1161,8 @@ class NetworkMapsLib {
         
         if(jdata.m === "I") {
             this.conn.session_id = jdata.session_id;
+            this.updateSessionCookie();
+
             if("user" in jdata.d) {
                 this.authenticated = true;
                 this.conn.ready_callback();

@@ -859,7 +859,7 @@ class WGL {
 
 	settingsMesh_Text(view, id, text, py, height, color, text_align, bg_type, bg_show, bg_color, border_show, border_color, border_width, bg_depth, rotation_x) {
 		let mesh = this.findMesh("text", id, this.scene[view]);
-		let textMesh = null, bgMesh = null, borderMesh = null;
+		let textMesh = null, bgMesh = null, borderMesh = null, boundingMesh = null;
 		for(let x = 0; x < mesh.children.length; x++) {
 			if(mesh.children[x].userData.subtype === "text")
 				textMesh = mesh.children[x];
@@ -867,6 +867,8 @@ class WGL {
 				bgMesh = mesh.children[x];
 			if(mesh.children[x].userData.subtype === "border")
 				borderMesh = mesh.children[x];
+			if(mesh.children[x].userData.subtype === "bounding")
+				boundingMesh = mesh.children[x];
 		}
 		if(mesh) {
 			mesh.userData.e.text = text;
@@ -884,7 +886,7 @@ class WGL {
 			mesh.userData.e.rotation_x = rotation_x;
 
 			textMesh.geometry = this.createTextGeometry(text, height, text_align, rotation_x);
-			[bgMesh.geometry, borderMesh.geometry] = this.createTextBGGeometry(textMesh.geometry, mesh.userData.e);
+			[bgMesh.geometry, borderMesh.geometry, boundingMesh.geometry] = this.createTextBGGeometry(textMesh.geometry, mesh.userData.e);
 
 			textMesh.material = new THREE.MeshPhongMaterial({color: color, side: THREE.DoubleSide});
 			bgMesh.material = new THREE.MeshPhongMaterial({color: bg_color});
@@ -931,7 +933,6 @@ class WGL {
 			mesh.userData.e.vlans = vlans;
 			mesh.userData.e.vrfs = vrfs;
 			mesh.userData.e.svis = svis;
-			mesh.userData.e.los = los;
 		}
 	}
 
@@ -992,6 +993,17 @@ class WGL {
 		let mesh = this.findMesh("p2p_interface", id, this.scene["L3"]);
 		if(mesh) {
 			mesh.userData.e.ip = ip;
+		}
+	}
+
+	configMesh_Vrf(id, router_id, asn, los) {
+		let mesh = this.findMesh("vrf", id, this.scene["L3"]);
+		if(mesh) {
+			if(!("routing" in mesh.userData.e))
+				mesh.userData.e.routing = {};
+			mesh.userData.e.routing.router_id = router_id;
+			mesh.userData.e.routing.asn = asn;
+			mesh.userData.e.los = los;
 		}
 	}
 
@@ -2128,6 +2140,7 @@ class WGL {
 		let b = text_geometry.boundingBox;
 		let bg_g = new THREE.Geometry();
 		let border_g = new THREE.Geometry();
+		let bounding_g = new THREE.Geometry();
 		let xmin = b.min.x - e.height/2;
 		let xmax = b.max.x + e.height/2;
 		let ymin = b.min.y - e.height/2;
@@ -2135,6 +2148,9 @@ class WGL {
 		let zmin = b.min.z;
 		let zmax = b.max.z;
 		let CB = e.border_width*.2;
+
+		this.addListVertex(bounding_g.vertices, [[xmin, ymin, zmin], [xmax, ymin, zmin], [xmax, ymax, zmin], [xmin, ymax, zmin]]);
+		this.addListFaces(bounding_g.faces, bounding_g.faceVertexUvs[0], [[0,1,2],[0,2,3]], [[[0,0],[0,0],[0,0]], [[0,0],[0,0],[0,0]]]);
 
 		if(e.bg_show) {
 			if(e.bg_type === "r") {
@@ -2285,7 +2301,7 @@ class WGL {
 			}
 		}
 
-		return [bg_g, border_g];
+		return [bg_g, border_g, bounding_g];
 	}
 
 	addText(id, sceneid, e, alignToGrid) {
@@ -2293,16 +2309,17 @@ class WGL {
 
 		let group = new THREE.Group();
 		let g = this.createTextGeometry(e.text, e.height, e.text_align, e.rotation_x);
-		let bg_g, border_g;
-		[bg_g, border_g] = this.createTextBGGeometry(g, e);
+		let bg_g, border_g, bounding_g;
+		[bg_g, border_g, bounding_g] = this.createTextBGGeometry(g, e);
 
 		let material = new THREE.MeshPhongMaterial({color: e.color, side: THREE.DoubleSide});
 		let bg_material = new THREE.MeshPhongMaterial({color: (e.bg_color !== undefined) ? e.bg_color : 0xffffff});
 		let border_material = new THREE.MeshPhongMaterial({color: (e.border_color !== undefined) ? e.border_color : 0x000000});
-
+		let bounding_material = new THREE.MeshBasicMaterial({color: 0x0, visible: false});
 		let textMesh = new THREE.Mesh(g, material);
 		let bgMesh = new THREE.Mesh(bg_g, bg_material);
 		let borderMesh = new THREE.Mesh(border_g, border_material);
+		let boundingMesh = new THREE.Mesh(bounding_g, bounding_material);
 
 		textMesh.userData.id = id;
 		textMesh.userData.type = "text";
@@ -2316,6 +2333,10 @@ class WGL {
 		borderMesh.userData.type = "text";
 		borderMesh.userData.subtype = "border";
 		borderMesh.userData.e = e;
+		boundingMesh.userData.id = id;
+		boundingMesh.userData.type = "text";
+		boundingMesh.userData.subtype = "bounding";
+		boundingMesh.userData.e = e;
 		group.userData.id = id;
 		group.userData.type = "text";
 		group.userData.e = e;
@@ -2324,6 +2345,7 @@ class WGL {
 		group.add(textMesh);
 		group.add(bgMesh);
 		group.add(borderMesh);
+		group.add(boundingMesh);
 
 		this.moveMesh(sceneid, "text", id, e.px, e.py + base.userData.e.sy, e.pz, null, alignToGrid);
 		group.rotation.order = "YXZ";

@@ -105,14 +105,6 @@ this.diagram = {
 						vrf: "<vrf rd>"
 					}
 				},
-				los: {												-> Loopbacks
-					5: {
-						name: "lo5",
-						ipv4: [],
-						ipv6: []
-						vrf: "<vrf rd>"
-					}
-				},
 				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
 				data: [],									-> see at the end format of data
 			}
@@ -213,7 +205,43 @@ this.diagram = {
 				color1: 0xffffff,
 				color2: 0xffffff,
 				infobox_type: "l", 							-> "l": show l2/l3 info, "d": show data
+				routing: {
+					router_id: 1.1.1.1,
+					asn: "",
+				}
+				los: {												-> Loopbacks
+					"lo1": {
+						ipv4: [],
+						ipv6: [],
+					}
+				},
 				data: [],									-> see at the end format of data
+			}
+		},
+		bgp_peering: {
+			0: {
+				type: 										-> options are "p2p", "lo2lo", "svi2svi", "svi2if", "svi2range", "if2if", "if2range"
+				l3_reference: {
+					// Fields depend on type
+					p2p_interface_id:						-> p2p
+					src_vrf_id:								-> lo2lo
+					dst_vrf_id:								-> lo2lo
+					src_lo_id:								-> lo2lo
+					dst_lo_id:								-> lo2lo
+					src_svi_interface_id:					-> svi2svi, svi2if, svi2range
+					dst_svi_interface_id:					-> svi2svi
+					src_interface_id:						-> if2if, if2range
+					dst_interface_id:						-> svi2if, if2if
+				}
+				transport: options are ipv4 or ipv6
+				afisafi: ["ipv4/unicast", "ipv6/unicast"]					
+					-> Options: 
+						"ipv4/unicast", "ipv4/multicast", "ipv4/l3vpn", "ipv4/l3vpn-multicast", "ipv4/labeled"
+						"ipv6/unicast", "ipv6/multicast", "ipv6/l3vpn", "ipv6/l3vpn-multicast", "ipv6/labeled"
+						"l2vpn/vpls",
+						"evpn"
+				src_ip:
+				dst_ip:
 			}
 		},
 		p2p_interface: {

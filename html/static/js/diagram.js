@@ -347,7 +347,7 @@ function process_message_settings(data) {
 function process_message_config(data) {
     if(data.v == "L2") {
         if(data.t == "device") {
-            d.wgl.configMesh_L2Device(data.i, data.name, data.vlans, data.vrfs, data.svis, data.los);
+            d.wgl.configMesh_L2Device(data.i, data.name, data.vlans, data.vrfs, data.svis);
         }
         else if(data.t == "link") {
             d.wgl.configMesh_L2Link(data.i, data.ifbindings, data.lag_name, data.lacp, data.transceiver);   
@@ -365,6 +365,9 @@ function process_message_config(data) {
         }
         if(data.t == "p2p_interface") {
             d.wgl.configMesh_P2PInterface(data.i, data.ip);
+        }
+        if(data.t == "vrf") {
+            d.wgl.configMesh_Vrf(data.i, data.router_id, data.asn, data.los);
         }
     }
 }
@@ -439,6 +442,11 @@ function process_message_l3(l3_changes) {
             }
             else if(message.m === "D") {
                 d.wgl.deleteMesh("L3", "p2p_interface", message.id);
+            }
+        }
+        else if(message.t === "bgp_peering") {
+            if(message.m === "D") {
+                d.wgl.deleteMesh("L3", "bgp_peering", message.id);
             }
         }
     })
@@ -712,7 +720,6 @@ function sendConfig_Device(id, windata) {
     let vlans = JSON.parse(windata.d.vlans.value);
     let vrfs = JSON.parse(windata.d.vrfs.value);
     let svis = JSON.parse(windata.d.svis.value);
-    let los = JSON.parse(windata.d.los.value);
 
     for(let x = 0; x < vlans.length; x++)
         message.d.vlans[vlans[x].tag] = { name: vlans[x].name };
@@ -720,11 +727,6 @@ function sendConfig_Device(id, windata) {
         message.d.vrfs[vrfs[x].rd] = { name: vrfs[x].name };
     for(let x = 0; x < svis.length; x++) {
         message.d.svis[svis[x].tag] = { name: svis[x].name, vrf: svis[x].vrf };
-    }
-    for(let x = 0; x < los.length; x++) {
-        let ipv4 = (los[x].ipv4 === "") ? [] : [los[x].ipv4];
-        let ipv6 = (los[x].ipv6 === "") ? [] : [los[x].ipv6];
-        message.d.los[los[x].id] = { name: los[x].name, ipv4: ipv4, ipv6: ipv6, vrf: los[x].vrf };
     }
 
     if(!d.ws.send(message))
@@ -883,6 +885,31 @@ function sendConfig_P2PInterface(id, windata) {
             if(ip.ipv6 !== "") message.d.ip[x].address.ipv6.push(ip.ipv6);
         });
     }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendConfig_Vrf(id, windata) {
+    let message = {
+        m: "C",
+        d: {
+            v: "L3",
+            t: "vrf",
+            i: id,
+            router_id: (windata.d.router_id.value === "") ? null : windata.d.router_id.value,
+            asn: (windata.d.asn.value === "") ? null : windata.d.asn.value,
+            los: {},
+        }
+    }
+
+    let lo_data = JSON.parse(windata.d.los.value);
+    lo_data.forEach((lo) => {
+        message.d.los[lo.name] = {
+            ipv4: (lo.ipv4 === "") ? [] : [lo.ipv4],
+            ipv6: (lo.ipv6 === "") ? [] : [lo.ipv6],
+        }
+    });
 
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
@@ -2409,6 +2436,12 @@ function mouseup(x, y, dx, dy, dom_element) {
                 WIN_showP2PInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, vrf1.userData.e, vrf2.userData.e,
                     (windata) => {
                         sendConfig_P2PInterface(a.obj.mesh.userData.id, windata);
+                    });
+            }
+            else if(a.obj.mesh.userData.type == "vrf") {
+                WIN_showVrfConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendConfig_Vrf(a.obj.mesh.userData.id, windata);
                     });
             }
         }

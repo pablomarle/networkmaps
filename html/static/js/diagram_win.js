@@ -319,12 +319,16 @@ function WIN_addLabel(win, px, py, label) {
 	return l;
 }
 
-function WIN_addTextInput(win, lpx, lpy, px, py, label, value) {
+function WIN_addTextInput(win, lpx, lpy, px, py, label, value, description) {
 	WIN_addLabel(win, lpx, lpy, label)
 
 	let i = DOM.ci_text(win);
 	DOM.setElementPos(i, px, py);
 	i.value = value;
+
+	if(description) {
+		WIN_addBasicMouseDescriptionActions(i, description);
+	}
 
 	return i;
 }
@@ -890,17 +894,6 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 		})
 	}
 
-	let list_los = [];
-	for(let lo_id in e.los) {
-		list_los.push({
-			id: lo_id, 
-			name: e.los[lo_id].name, 
-			ipv4: (e.los[lo_id].ipv4.length > 0) ? e.los[lo_id].ipv4[0] : "",
-			ipv6: (e.los[lo_id].ipv6.length > 0) ? e.los[lo_id].ipv6[0] : "",
-			vrf: (e.los[lo_id].vrf === undefined) ? default_vrf : e.los[lo_id].vrf,
-		})
-	}
-
 	wdata.d.vlans = WIN_addDictList(w, 20, 20, 300, 120, "VLAN List", list_vlans, {
 		"tag": { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)."},
 		"name": { name: "Vlan Name", width: 120, "description": "Name of the VLAN."}
@@ -914,14 +907,6 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 	wdata.d.svis = WIN_addDictList(w, 20, 150, 620, 120, "SVI List", list_svis, {
 		"tag":   { name: "Vlan Tag", width: 60, "description": "Vlan Tag (0-4095)." },
 		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Vlan100)." },
-		"vrf": { name: "VRF", width: 80, "descripion": "VRF this interface belongs to.", options: vrf_options },
-	});
-
-	wdata.d.los = WIN_addDictList(w, 20, 280, 620, 120, "Loopback List", list_los, {
-		"id":   { name: "Lo ID", width: 60, "description": "ID of loopback interface (number 0 - 10)." },
-		"name": { name: "If Name", width: 120, "description": "Name of the Interface (e. Lo0)." },
-		"ipv4": { name: "IPv4", width: 120, "description": "IPv4 (e. 10.0.0.1/24). Empty if none." },
-		"ipv6": { name: "IPv6", width: 120, "description": "IPv6 (e. 2a01::1/64). Empty if none." },
 		"vrf": { name: "VRF", width: 80, "descripion": "VRF this interface belongs to.", options: vrf_options },
 	});
 
@@ -1314,6 +1299,42 @@ function WIN_showVrfWindow(id, e, callback) {
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
+}
+
+function WIN_showVrfConfigWindow(id, e, callback) {
+	let wdata = WIN_create("L3", "vrf-config", id, e.name, 490, 210);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	let router_id = "", asn="", los = [];
+	if("routing" in e) {
+		if("asn" in e.routing) asn = (e.routing.asn === null) ? "" : e.routing.asn;
+		if("router_id" in e.routing) router_id = (e.routing.router_id === null) ? "" : e.routing.router_id;
+	}
+	if("los" in e) {
+		for(let lo_name in e.los) {
+			los.push({
+				name: lo_name, 
+				ipv4: (e.los[lo_name].ipv4.length > 0) ? e.los[lo_name].ipv4[0] : "",
+				ipv6: (e.los[lo_name].ipv6.length > 0) ? e.los[lo_name].ipv6[0] : "",
+			})
+		}
+	}
+	wdata.d.router_id = WIN_addTextInput(w, 20, 20, 100, 20, "Router ID", router_id, "4 byte router ID used on different routing protocols. Ej. 10.0.0.1");
+	wdata.d.asn = WIN_addTextInput(w, 20, 40, 100, 40, "ASN", asn, "Autonomous System Number used on BGP. Can use plain or AsDot notation. Ej. 65000");
+
+	let list_loopbacks = [];
+	wdata.d.los = WIN_addDictList(w, 20, 60, 460, 90, "Loopback List", los, {
+		"name": { name: "Name", width: 60, "description": "Loopback interface name."},
+		"ipv4": { name: "IPv4", width: 100, "description": "IPv4 Address. Empty if none."},
+		"ipv6": { name: "IPv6", width: 200, "description": "IPv6 Address. Empty if none."},
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 180, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");
 }
