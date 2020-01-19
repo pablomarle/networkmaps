@@ -2501,7 +2501,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         sendResize(d.current_view, a.type, a.id);
     }
     else if(d.dom.tools.active_t === "BC") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if(d.current_view === "L2")
                 WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
@@ -2515,7 +2515,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "EC") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if(a.obj === null) {
                 WIN_showBackgroundSettings(d.diagram.settings, (windata) => {
                     sendSettings_Background(windata);
@@ -2589,7 +2589,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "EDT") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             WIN_showData(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                 (windata) => {
                     sendData(windata);
@@ -2598,7 +2598,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "EI") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if (a.obj.mesh.userData.type == "device") {
                 WIN_showDeviceConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
@@ -2658,11 +2658,11 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "BD") {
-        if ((x == a.x) && (y == a.y))
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5))
             sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
     }
     else if (d.dom.tools.active_t === "ED") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if (a.obj.mesh.userData.type === "device") {
                 sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
             }
@@ -2699,7 +2699,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "FC") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if((a.obj.mesh.userData.type === "device") || (a.obj.mesh.userData.type === "vrf")) {
                 d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
                 d.wgl.global_settings.format.color2 = a.obj.mesh.userData.e.color2;
@@ -2731,7 +2731,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
     else if(d.dom.tools.active_t === "FP") {
-        if ((x == a.x) && (y == a.y)) {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if(a.obj.mesh.userData.type === "device") {
                 sendMessageSettings_Device(a.obj.mesh.userData.id,
                     a.obj.mesh.userData.e.name,
