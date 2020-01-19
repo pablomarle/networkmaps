@@ -122,6 +122,14 @@ DOM = {
 		return select;
 	},
 
+	cselect_options : (select, optionlist) => {
+		DOM.removeChilds(select);
+		for(let x = 0; x < optionlist.length; x++) {
+			let o = DOM.c(select, "option", null, null, optionlist[x][0]);
+			o.value = optionlist[x][1];
+		}
+	},
+
 	cradio : (parent, eid=null, eclass=null, ename=null, checked=false) => {
 		let radio = DOM.c(parent, "input", eid, eclass);
 		radio.setAttribute('type', 'radio');

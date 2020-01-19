@@ -221,21 +221,23 @@ class WGL {
 		this.font = new THREE.FontLoader().parse(WGL_FONT);
 		this.namematerial = new THREE.MeshStandardMaterial({color: 0x000000});
 
+		this.cached_textures = {};
+
 		//var helper = new THREE.CameraHelper( this.directionallightL2.shadow.camera );
 		//this.scene.L2.add(helper);
-		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	setBGColor(color) {
 		this.renderer.setClearColor(color);
-		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	setCastShadow(cast_shadow) {
 		this.global_settings.cast_shadow = cast_shadow;
 		this.directionallightL2.castShadow = cast_shadow;
 		this.directionallightL3.castShadow = cast_shadow;
-		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	resize() {
@@ -255,13 +257,13 @@ class WGL {
 		this.camera.L3.ortho.updateProjectionMatrix();
 		
 		this.renderer.setSize(this.domelement.clientWidth, this.domelement.clientHeight)
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	setView(view) {
 		this.view = view;
 		this.adjustLabelsToCamera();
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	draw() {
@@ -271,12 +273,32 @@ class WGL {
 		}
 	}
 
+	requestDraw() {
+		if(!this.draw_needed) {
+			this.draw_needed = true;
+			requestAnimationFrame( () => {
+				this.draw();
+			});
+		}
+	}
+
 	processLoadedTexture(texture) {
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
 		texture.anisotropy = 4;
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
+	}
+
+	loadTexture(texture_url) {
+		if(texture_url in this.cached_textures)
+			return this.cached_textures[texture_url];
+		else {
+			this.cached_textures[texture_url] = new THREE.TextureLoader().load(texture_url, (t) => {
+				this.processLoadedTexture(t);
+			});
+			return this.cached_textures[texture_url];
+		}
 	}
 
 	settingsBackground(bg_color) {
@@ -293,7 +315,8 @@ class WGL {
 		ac.rotation.x = rx;
 		ac.rotation.y = ry;
 		ac.rotation.z = rz;
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});		
+		
+		this.requestDraw();
 	}
 	moveCamera(dx, dy) {
 		let ac = this.camera[this.view][this.camera.current];
@@ -302,7 +325,7 @@ class WGL {
 		ac.position.x -= dx * .1 * cos + dy * .1 * sin;
 		ac.position.z -= -dx * .1 * sin + dy * .1 * cos;
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	adjustLabelsToCamera() {
@@ -318,7 +341,7 @@ class WGL {
 			}
 		})
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	rotateCamera(dx, dy) {
@@ -338,7 +361,7 @@ class WGL {
 		}
 
 		this.adjustLabelsToCamera();
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	zoomCamera(dy) {
@@ -364,7 +387,7 @@ class WGL {
 			ac.bottom = -this.camera[this.view].ortho_size;
 			ac.updateProjectionMatrix();
 		}
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	toggleCamera() {
@@ -372,7 +395,7 @@ class WGL {
 		
 		this.adjustLabelsToCamera();
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 
 		return this.camera.current;
 	}
@@ -486,6 +509,51 @@ class WGL {
 		return linklist;
 	}
 
+	findIPsOfVrf(id) {
+		let vrf = this.getMesh("L3", "vrf", id);
+		let ips = {
+			"ipv4": [],
+			"ipv6": [],
+		}
+		if(!vrf)
+			return ips;
+
+		// Find ips on interfaces
+		let links = this.findLinksOfVrf(id);
+		for(let if_type in links) {
+			for(let if_id in links[if_type]) {
+				let ip_data;
+				let link = links[if_type][if_id];
+				if(if_type === "p2p_interface") {
+					if(link.userData.e.l3_reference.src_vrf_id === id)
+						ip_data = link.userData.e.ip[0];
+					else
+						ip_data = link.userData.e.ip[1];
+				}
+				else
+					ip_data = link.userData.e.ip;
+
+				["ipv4", "ipv6"].forEach((af) => {
+					ip_data.address[af].forEach((ip) => {
+						ips[af].push(ip)
+					})
+				});
+			}
+		}
+
+		// Find ips on lo interfaces
+		if("los" in vrf.userData.e) {
+			for(let if_name in vrf.userData.e.los) {
+				["ipv4", "ipv6"].forEach((af) => {
+					vrf.userData.e.los[if_name][af].forEach((ip) => {
+						ips[af].push(ip)
+					});
+				});
+			}
+		}
+		return ips;
+	}
+
 	findLinksOfVrf(id) {
 		let linklist = {
 			p2p_interface: {},
@@ -509,6 +577,19 @@ class WGL {
 		return linklist;
 	}
 
+	findBGPPeersOfVrf(id) {
+		let bgp_peer_list = [];
+		for(let x = 0; x < this.scene.L3.children.length; x++) {
+			let element = this.scene.L3.children[x];
+			if(element.userData.type === "bgp_peering") {
+				if((element.userData.e.l3_reference.src_vrf_id === id) || (element.userData.e.l3_reference.dst_vrf_id === id)) {
+					bgp_peer_list.push(element);
+				}
+			}
+		}
+
+		return bgp_peer_list;
+	}
 	findClosestLinkJointIndex(view, element_type, linkid, x, y, z) {
 		let mesh = this.getMesh(view, element_type, linkid);
 		let distance = 10000;
@@ -522,6 +603,204 @@ class WGL {
 			}
 		}
 		return index;
+	}
+
+	/**
+	 * Function to compute what l2 segments are connected together (l2 domains)
+	 */
+	 findL2Domains() {
+	 	let l2segment_domain = {};
+	 	let l2domains = {};
+	 	let l2links = [];
+	 	let id = 0;
+	 	this.scene.L3.children.forEach((parent_element) => {
+	 		if(parent_element.userData.type === "base") {
+	 			parent_element.children.forEach((element) => {
+	 				if(element.userData.type == "l2segment") {
+	 					l2segment_domain[element.userData.id] = id;
+	 					l2domains[id] = [element.userData.id];
+	 					id++;
+	 				}
+	 			});
+	 		}
+	 		else if(parent_element.userData.type === "l2link") {
+	 			l2links.push(parent_element.userData);
+	 		}
+	 	});
+
+	 	l2links.forEach((l2link) => {
+	 		let dst_domain = l2segment_domain[l2link.e.l3_reference.dst_l2segment_id];
+	 		let src_domain = l2segment_domain[l2link.e.l3_reference.src_l2segment_id];
+	 		if(src_domain !== dst_domain) {
+	 			l2domains[dst_domain].forEach((l2segment_id) => {
+	 				l2segment_domain[l2segment_id] = src_domain;
+	 				l2domains[src_domain].push(l2segment_id);
+	 			});
+	 			delete l2domains[dst_domain];
+	 			/*
+	 			for(let l2segment_id in l2segment_domain) {
+	 				if(l2segment_domain[l2segment_id] === dst_domain) l2segment_domain[l2segment_id] = src_domain;
+	 			}*/
+	 		}
+	 	});
+
+	 	return [l2segment_domain, l2domains];
+	 }
+
+	/**
+	 * Function to fill transport and ip addressing on the return structure of function findBGPPeerData
+	 */
+	findBGPPeerData_createStruct(vrf1_id, vrf2_id, src_if, dst_if) {
+		let result_data = {
+			src_vrf_id: vrf1_id,
+			dst_vrf_id: vrf2_id,
+			curve_x: 0,
+			curve_y: 4,
+			color: 0xff0000,
+		};
+
+		let addressing = [];
+		// First of all, if src is interface and dst is svi, we invert it
+		if((src_if.type === "interface") && (dst_if.type === "svi_interface")) {
+			let tmp = dst_if;
+			dst_if = src_if;
+			src_if = tmp;
+		}
+
+		// Check what type of peering we are looking at and start filling result data
+		if((src_if.type === "vrf") && (dst_if.type === "vrf")) {
+			let src_lo = null, dst_lo = null;
+
+			if("los" in src_if.e) {
+				let keys = Object.keys(src_if.e.los)
+				if(keys.length > 0) {
+					src_lo = keys[0];
+					addressing.push(src_if.e.los[src_lo]);
+				}
+			}
+			else
+				addressing.push(null);
+
+			if("los" in dst_if.e) {
+				let keys = Object.keys(dst_if.e.los)
+				if(keys.length > 0) {
+					dst_lo = keys[0];
+					addressing.push(dst_if.e.los[dst_lo]);
+				}
+			}
+			else
+				addressing.push(null);
+		}
+
+		else if(src_if.type === "p2p_interface") {
+			if(src_if.e.l3_reference.src_vrf_id === vrf1_id) {
+				addressing.push(("ip" in src_if.e) ? src_if.e.ip[0].address : null);
+				addressing.push(("ip" in src_if.e) ? src_if.e.ip[1].address : null);
+			}
+			else {
+				addressing.push(("ip" in src_if.e) ? src_if.e.ip[1].address : null);
+				addressing.push(("ip" in src_if.e) ? src_if.e.ip[0].address : null);				
+			}
+		}
+		else if((src_if.type === "svi_interface") && (dst_if.type === "svi_interface")) {
+			addressing.push(("ip" in src_if.e) ? src_if.e.ip.address : null);
+			addressing.push(("ip" in dst_if.e) ? dst_if.e.ip.address : null);
+		}
+		else if((src_if.type === "svi_interface") && (dst_if.type === "interface")) {
+			addressing.push(("ip" in src_if.e) ? src_if.e.ip.address : null);
+			addressing.push(("ip" in dst_if.e) ? dst_if.e.ip.address : null);
+		}
+		else if((src_if.type === "interface") && (dst_if.type === "interface")) {
+			addressing.push(("ip" in src_if.e) ? src_if.e.ip.address : null);
+			addressing.push(("ip" in dst_if.e) ? dst_if.e.ip.address : null);
+		}
+		else {
+			console.log("Unknown combination on findBGPPeerData_createStruct: " + src_if.type + " " + dst_if.type)
+			return null
+		}
+
+		// Fill transport and ips
+		if((addressing[0]) && (addressing[1]) && (addressing[0].ipv4.length > 0) && (addressing[1].ipv4.length > 0)) {
+			result_data.src_ip = addressing[0].ipv4[0].split("/")[0];
+			result_data.dst_ip = addressing[1].ipv4[0].split("/")[0];
+			result_data.afisafi = ["ipv4/unicast"];
+			result_data.transport = "ipv4";
+		}
+		else if((addressing[0]) && (addressing[1]) && (addressing[0].ipv6.length > 0) && (addressing[1].ipv6.length > 0)) {
+			result_data.src_ip = addressing[0].ipv6[0].split("/")[0];
+			result_data.dst_ip = addressing[1].ipv6[0].split("/")[0];
+			result_data.afisafi = ["ipv6/unicast"];
+			result_data.transport = "ipv6";
+		}
+		else {
+			result_data.src_ip = "0.0.0.0";
+			result_data.dst_ip = "0.0.0.0";
+			result_data.afisafi = ["ipv4/unicast"];
+			result_data.transport = "ipv4";
+		}
+		return result_data;
+	}
+
+	/**
+	 * Function to find what is the best type of bgp peering between 2 vrfs
+	 */
+	findBGPPeerData(vrf1_id, vrf2_id) {
+		let result_data = null;
+
+		let vrf1 = this.findMesh("vrf", vrf1_id, this.scene.L3);
+		let vrf2 = this.findMesh("vrf", vrf2_id, this.scene.L3);
+		if((vrf1 === null) || (vrf2 === null))
+			return null;
+
+		// Check if these two vrfs have the same asn. If so, we'll do a loopback to loopback bgp peering if loopbacks exist.
+		// If loopbacks don't exist, we'll do an unknown
+		let asn1 = (vrf1.userData.e.routing && vrf1.userData.e.routing.asn) ? vrf1.userData.e.routing.asn : "";
+		let asn2 = (vrf2.userData.e.routing && vrf2.userData.e.routing.asn) ? vrf2.userData.e.routing.asn : "";
+		if(asn1 === asn2) {
+			result_data = this.findBGPPeerData_createStruct(vrf1_id, vrf2_id, vrf1.userData, vrf2.userData);
+			return result_data;
+		}
+
+		// Check if there is a p2pinterface between the two vrfs
+		// on this same pass, for efficiency, we'll collect the list of interfaces of each vrf
+		let interfaces = [[], []];
+		this.scene.L3.children.forEach((element) => {
+			if(element.userData.type === "p2p_interface") {
+				if(
+					((element.userData.e.l3_reference.src_vrf_id === vrf1_id) && (element.userData.e.l3_reference.dst_vrf_id === vrf2_id)) ||
+					((element.userData.e.l3_reference.src_vrf_id === vrf2_id) && (element.userData.e.l3_reference.dst_vrf_id === vrf1_id))
+					)
+					result_data = this.findBGPPeerData_createStruct(vrf1_id, vrf2_id, element.userData, null);
+			}
+			else if((element.userData.type === "interface") || (element.userData.type === "svi_interface")) {
+				if(element.userData.e.l3_reference.vrf_id === vrf1_id)
+					interfaces[0].push(element.userData);
+				else if(element.userData.e.l3_reference.vrf_id === vrf2_id)
+					interfaces[1].push(element.userData);
+			}
+		})
+
+		if(result_data !== null)
+			return result_data;
+
+		// Check if the two elements have interfaces connected to the same l2segment
+		let [l2segment_domain, l2domains] = this.findL2Domains();
+		interfaces[0].forEach((dev1_if) => {
+			interfaces[1].forEach((dev2_if) => {
+				if(l2segment_domain[dev1_if.e.l3_reference.l2segment_id] === l2segment_domain[dev2_if.e.l3_reference.l2segment_id])
+					result_data = this.findBGPPeerData_createStruct(vrf1_id, vrf2_id, dev1_if, dev2_if);
+			})
+		});
+
+		if(result_data !== null)
+			return result_data;
+
+		// If none of these match, we'll greate a bgp peering without interfaces
+		// (from loopbacks if they exist).
+		if((vrf1 !== null) && (vrf2 !== null))
+			result_data = this.findBGPPeerData_createStruct(vrf1_id, vrf2_id, vrf1.userData, vrf2.userData);
+
+		return result_data;
 	}
 
 	getMesh(view, type, id) {
@@ -640,9 +919,13 @@ class WGL {
 						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
 					}
 				}
+				let bgp_peers = this.findBGPPeersOfVrf(id);
+				bgp_peers.forEach((bgp_peer) => {
+					this.updateBGPArrowGeometry(bgp_peer);
+				})
 			}
 
-			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+			this.requestDraw();
 		}
 	}
 
@@ -678,7 +961,7 @@ class WGL {
 						this.updateLinkGeometry(link_type, links[link_type][link_id], view);
 				this.adjustLabelsToCamera();
 			}
-			if(type == "device") {
+			if((type === "device") || (type === "vrf")) {
 				// In case of devices, we have to adjust the rotation of the name to face the camera
 				this.adjustDeviceNameRotation(mesh);
 			}
@@ -692,7 +975,7 @@ class WGL {
 				this.adjustDeviceNameRotation(mesh);
 			}
 
-			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+			this.requestDraw();
 		}
 
 	}
@@ -729,7 +1012,7 @@ class WGL {
 			else if(type == "l2segment")
 				this.updateL2SegmentGeometry(mesh);
 
-			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+			this.requestDraw();
 		}
 	}
 
@@ -845,6 +1128,14 @@ class WGL {
 		}
 	}
 
+	settingsMesh_BGPPeer(id, color) {
+		let mesh = this.findMesh("bgp_peering", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.color = color;
+			this.updateBGPArrowColor(mesh);
+		}
+	}
+
 	settingsMesh_Link(view, type, id, link_type, order, color, weight, height) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {
@@ -894,7 +1185,7 @@ class WGL {
 
 			mesh.position.y = py + mesh.parent.userData.e.sy;
 
-			this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+			this.requestDraw();
 		}
 	}
 
@@ -1007,6 +1298,16 @@ class WGL {
 		}
 	}
 
+	configMesh_BGPPeer(id, transport, src_ip, dst_ip, afisafi) {
+		let mesh = this.findMesh("bgp_peering", id, this.scene["L3"]);
+		if(mesh) {
+			mesh.userData.e.transport = transport;
+			mesh.userData.e.src_ip = src_ip;
+			mesh.userData.e.dst_ip = dst_ip;
+			mesh.userData.e.afisafi = afisafi;
+		}
+	}
+
 	dataMesh(view, type, id, infobox_type, data) {
 		let mesh = this.findMesh(type, id, this.scene[view]);
 		if(mesh) {
@@ -1030,7 +1331,7 @@ class WGL {
 			}
 			mesh = this.findMesh(type, id, this.scene[view]);
 		}
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	deleteJoint(view, element_type, link_id, joint_index) {
@@ -1115,7 +1416,7 @@ class WGL {
 			}
 		}
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	updateGlobalSettings_grid(active, x, y, z, angle, resize) {
@@ -1171,19 +1472,62 @@ class WGL {
 	// ***********************************************
 	// Functions to create/update meshes
 	// ***********************************************
+	createMeshGroup(data) {
+		let group = new THREE.Group();
+		let mesh_list = [];
+		for(let x = 0; x < data.num_submesh; x++) {
+			let geometry = new THREE.Geometry();
+			let texture = this.loadTexture(staticurl + data.texture[x]);
+			let material = WGL_createDeviceMaterial({map: texture, mycolor: data.color[x]});
+			let mesh = new THREE.Mesh( geometry, material );
+			group.add(mesh);
+
+			mesh.userData.id = data.id;
+			mesh.userData.type = data.type;
+			mesh.userData.e = data.e;
+			mesh.userData.submesh = data.submesh_id[x];
+			mesh.castShadow = true;
+		}
+
+
+		group.userData.id = data.id;
+		group.userData.type = data.type;
+		group.userData.e = data.e;
+		group.rotation.order="YXZ"
+
+		if(data.base) {
+			let basemesh = this.findMesh("base", data.base, this.scene[data.view]);
+			basemesh.add(group);
+		}
+		else {
+			this.scene[data.view].add(group);
+		}
+
+		if("px" in data.e) {
+			this.moveMesh(data.view, data.type, data.id, data.e.px, data.e.py, data.e.pz, null, data.alignToGrid);
+		}
+		if("rx" in data.e) {
+			group.rotation.x = data.e.rx;
+			group.rotation.y = data.e.ry;
+			group.rotation.z = data.e.rz;
+		}
+		group.updateMatrixWorld();
+
+		return group;
+	}
+
 	findMeshesOfGroup(meshgroup) {
-		let m1 = null; let m2 = null;
+		let m1 = null, m2 = null, m3 = null;
 		for(let x = 0; x < meshgroup.children.length; x++) {
 			if (meshgroup.children[x].userData.submesh === 1)
 				m1 = meshgroup.children[x];
 			else if (meshgroup.children[x].userData.submesh === 2)
 				m2 = meshgroup.children[x];
-
-			if((m1 != null) && (m2 != null))
-				break;
+			else if (meshgroup.children[x].userData.submesh === 3)
+				m3 = meshgroup.children[x];
 		}
 
-		return [m1, m2];
+		return [m1, m2, m3];
 	}
 
 	addListVertex(l, vl) {
@@ -1249,7 +1593,7 @@ class WGL {
 			}
 		}
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	updateCubeFloorGeometry_height_float(g, w2, h, b, d2, tu1, tv1) {
@@ -1390,7 +1734,7 @@ class WGL {
 		m[0].material = material1;
 		m[1].material = material2;
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	addCubeFloor(id, sceneid, e) {
@@ -1691,7 +2035,7 @@ class WGL {
 			m[x].material.uniforms.mycolor.value.b = (color[x] & 0xFF) / 256;
 		}
 		
-		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	getDeviceTextureByType(type, index) {
@@ -1706,53 +2050,27 @@ class WGL {
 	}
 
 	addDevice(type, id, sceneid, e, alignToGrid) {
-		let geometry1 = new THREE.Geometry();
-		let geometry2 = new THREE.Geometry();
-		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
-		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getDeviceTextureByType(e.type, 1), (t) => {this.processLoadedTexture(t)} );		
-		//let material1 = new THREE.MeshLambertMaterial({lightMap: texture1, lightMapIntensity:8})
-		//let material2 = new THREE.MeshLambertMaterial({map: texture2})
-		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1})
-		let material2 = WGL_createDeviceMaterial({map: texture2, mycolor: e.color2})
-
-		let mesh1 = new THREE.Mesh( geometry1, material1 );
-		mesh1.userData.submesh = 1;
-		let mesh2 = new THREE.Mesh( geometry2, material2 );
-		mesh2.userData.submesh = 2;
-
-		let group = new THREE.Group();
-
-		group.add(mesh1);
-		group.add(mesh2);
-
-		mesh1.userData.id = id;
-		mesh1.userData.type = type;
-		mesh1.userData.e = e
-		mesh2.userData.id = id;
-		mesh2.userData.type = type;
-		mesh2.userData.e = e
-		group.userData.id = id;
-		group.userData.type = type;
-		group.userData.e = e
-
-		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
-		basemesh.add(group);
+		let group = this.createMeshGroup({
+			view: sceneid,
+			type: type, 
+			id: id,
+			e: e,
+			base: e.base,
+			num_submesh: 2, 
+			texture: [
+				"/static/textures/" + this.getDeviceTextureByType(e.type, 0),
+				"/static/textures/" + this.getDeviceTextureByType(e.type, 1),
+			], 
+			submesh_id: [1, 2],
+			color: [e.color1, e.color2],
+			alignToGrid: alignToGrid,
+		});
 
 		this.updateDeviceGeometry(type, id, sceneid);
 		this.updateDeviceColor(type, id, sceneid);
 
-		this.moveMesh(sceneid, type, id, e.px, e.py, e.pz, null, alignToGrid);
-		group.rotation.x = e.rx;
-		group.rotation.y = e.ry;
-		group.rotation.z = e.rz;
-		group.updateMatrixWorld();
-
-		mesh1.castShadow = true;
-		mesh2.castShadow = true;
-
 		// Name
-		this.addDeviceName(group);	
-
+		this.addDeviceName(group);
 		return id;
 	}
 
@@ -1809,7 +2127,7 @@ class WGL {
 
 		mesh.visible = this.global_settings.show_device_name;
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	adjustDeviceNameRotation(device) {
@@ -2068,7 +2386,7 @@ class WGL {
 				-b.min.z - (b.max.z-b.min.z)/2
 			);
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	createTextGeometry(text, height, alignment, rotationX) {
@@ -2353,7 +2671,7 @@ class WGL {
 		group.rotation.y = e.ry;
 
 		textMesh.castShadow = true;
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 
 		return group;
 	}
@@ -2375,9 +2693,12 @@ class WGL {
 			m[1].material.uniforms.mycolor.value.r = (meshgroup.userData.e.cd.head_color >> 16) / 256;
 			m[1].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.cd.head_color >> 8) & 0xFF) / 256;
 			m[1].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.head_color & 0xFF) / 256;
+			m[2].material.uniforms.mycolor.value.r = (meshgroup.userData.e.cd.head_color >> 16) / 256;
+			m[2].material.uniforms.mycolor.value.g = ((meshgroup.userData.e.cd.head_color >> 8) & 0xFF) / 256;
+			m[2].material.uniforms.mycolor.value.b = (meshgroup.userData.e.cd.head_color & 0xFF) / 256;
 		}
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	updateSymbolGeometryArrow_Shaft(g, e) {
@@ -2749,59 +3070,28 @@ class WGL {
 	}
 
 	addSymbol(id, sceneid, e, alignToGrid) {
-		let geometry1 = new THREE.Geometry();
-		let geometry2 = new THREE.Geometry();
-		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 0), (t) => {this.processLoadedTexture(t)} );
-		let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + this.getSymbolTextureByType(e.type, 1), (t) => {this.processLoadedTexture(t)} );		
-		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color})
-		let material2 = WGL_createDeviceMaterial({map: texture2, mycolor: 0x000000})
-
-		let mesh1 = new THREE.Mesh( geometry1, material1 );
-		mesh1.userData.submesh = 1;
-		let mesh2 = new THREE.Mesh( geometry2, material2 );
-		mesh2.userData.submesh = 2;
-
-		let group = new THREE.Group();
-		group.rotation.order="YXZ"
-
-		group.add(mesh1);
-		group.add(mesh2);
-
-		mesh1.userData.id = id;
-		mesh1.userData.type = "symbol";
-		mesh1.userData.e = e
-		mesh2.userData.id = id;
-		mesh2.userData.type = "symbol";
-		mesh2.userData.e = e
-		group.userData.id = id;
-		group.userData.type = "symbol";
-		group.userData.e = e
-
-		if(e.type === "A") { // Arrows have 3 geometries
-			let geometry3 = new THREE.Geometry();
-			let mesh3 = new THREE.Mesh( geometry3, material2 );
-			mesh3.userData.submesh = 3;
-			group.add(mesh3);
-			mesh3.userData.id = id;
-			mesh3.userData.type = "symbol";
-			mesh3.userData.e = e
-			mesh3.castShadow = true;
+		let groupdata = {
+			view: sceneid,
+			type: "symbol", 
+			id: id,
+			e: e,
+			base: e.base,
+			num_submesh: 2,
+			texture: [
+				"/static/textures/" + this.getSymbolTextureByType(e.type, 0), 
+				"/static/textures/" + this.getSymbolTextureByType(e.type, 1),
+				"/static/textures/" + this.getSymbolTextureByType(e.type, 1)
+				],
+			submesh_id: [1, 2, 3],
+			color: [e.color, 0x0, 0x0],
 		}
-
-		let basemesh = this.findMesh("base", e.base, this.scene[sceneid]);
-		basemesh.add(group);
+		if(e.type === "A") { // Arrows have 3 geometries
+			groupdata.num_submesh = 3;
+		}
+		let group = this.createMeshGroup(groupdata);
 
 		this.updateSymbolGeometry(group);
 		this.updateSymbolColor("symbol", id, sceneid);
-
-		this.moveMesh(sceneid, "symbol", id, e.px, e.py, e.pz, null, alignToGrid);
-		group.rotation.x = e.rx;
-		group.rotation.y = e.ry;
-		group.rotation.z = e.rz;
-		group.updateMatrixWorld();
-
-		mesh1.castShadow = true;
-		mesh2.castShadow = true;
 
 		return id;
 	}
@@ -2850,7 +3140,7 @@ class WGL {
 		g.computeVertexNormals();
 		//g.computeFlatVertexNormals();
 
-		this.draw_needed = true;requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	updateL2SegmentColor(id) {
@@ -2863,44 +3153,154 @@ class WGL {
 		m[0].material.uniforms.mycolor.value.g = ((color >> 8) & 0xFF) / 256;
 		m[0].material.uniforms.mycolor.value.b = (color & 0xFF) / 256;
 
-		this.draw_needed = true; requestAnimationFrame( () => {this.draw()});
+		this.requestDraw();
 	}
 
 	addL2Segment(id, e, alignToGrid) {
-		let geometry1 = new THREE.Geometry();
-		let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/basic.png", (t) => {this.processLoadedTexture(t)} );
-		
-		//let material1 = new THREE.MeshLambertMaterial({map: texture1, color: 0x888888})
-		let material1 = WGL_createDeviceMaterial({map: texture1, mycolor: e.color1});
-		let mesh1 = new THREE.Mesh( geometry1, material1 );
-		mesh1.userData.submesh = 1;
-
-		let group = new THREE.Group();
-
-		group.add(mesh1);
-
-		mesh1.userData.id = id;
-		mesh1.userData.type = "l2segment";
-		mesh1.userData.e = e
-		group.userData.id = id;
-		group.userData.type = "l2segment";
-		group.userData.e = e
-
-		let basemesh = this.findMesh("base", e.base, this.scene.L3);
-		basemesh.add(group);
+		let group = this.createMeshGroup({
+			view: "L3",
+			type: "l2segment", 
+			id: id,
+			e: e,
+			base: e.base,
+			num_submesh: 1, 
+			texture: ["/static/textures/basic.png"], 
+			submesh_id: [1],
+			color: [e.color1],
+			alignToGrid: alignToGrid,
+		});
 
 		this.updateL2SegmentGeometry(group);
-
-		this.moveMesh("L3", "l2segment", id, e.px, e.py, e.pz, null, alignToGrid);
-		group.rotation.x = e.rx;
-		group.rotation.y = e.ry;
-		group.rotation.z = e.rz;
-		group.updateMatrixWorld();
-
-		mesh1.castShadow = true;
-
 		this.addDeviceName(group, .2);
 
 		return group;
+	}
+
+	getSidesOfBGPPeering(bgp_peering) {
+		let e = bgp_peering.userData.e;
+		let src_element = this.getMesh("L3", "vrf", e.l3_reference.src_vrf_id);
+		let dst_element = this.getMesh("L3", "vrf", e.l3_reference.dst_vrf_id);
+
+		return [src_element, dst_element];
+	}
+
+	updateBGPArrowColor(meshgroup) {
+		let color = meshgroup.userData.e.color;
+		let m = this.findMeshesOfGroup(meshgroup);
+
+		m[0].material.uniforms.mycolor.value.r = (color >> 16) / 256;
+		m[0].material.uniforms.mycolor.value.g = ((color >> 8) & 0xFF) / 256;
+		m[0].material.uniforms.mycolor.value.b = (color & 0xFF) / 256;
+
+		this.requestDraw();
+	}
+
+	updateBGPArrowGeometry(meshgroup) {
+		let m = this.findMeshesOfGroup(meshgroup);
+		let g = m[0].geometry;
+
+		g.vertices = [];
+		g.faces = [];
+		g.faceVertexUvs[0] = [];
+
+		let vertices = [];
+		let faces = [];
+		let fvuvs = [];
+
+		// Find coordinates of source and destination vrfs
+		let src_element = null, dst_element = null;
+		let x1, y1, z1, x2, y2, z2;
+		[src_element, dst_element] = this.getSidesOfBGPPeering(meshgroup);
+
+		src_element.getWorldPosition(this.tempVector);
+		x1 = this.tempVector.x;
+		y1 = this.tempVector.y + src_element.userData.e.sy*.7;
+		z1 = this.tempVector.z;
+
+		dst_element.getWorldPosition(this.tempVector);
+		x2 = this.tempVector.x;
+		y2 = this.tempVector.y + dst_element.userData.e.sy*.7;
+		z2 = this.tempVector.z;
+
+		this.tempVector.set(x2-x1, y2-y1, z2-z1).normalize();
+		x1 = x1+this.tempVector.x*.5;
+		y1 = y1+this.tempVector.y*.5;
+		z1 = z1+this.tempVector.z*.5;
+		x2 = x2-this.tempVector.x*.5;
+		y2 = y2-this.tempVector.y*.5;
+		z2 = z2-this.tempVector.z*.5;
+		let dir_x = (x2-x1), dir_y = (y2-y1), dir_z = (z2-z1);
+		for(let i = 0; i < 17; i++) {
+			let fraction = i/16;
+			let x = dir_x * fraction;
+			let z = dir_z * fraction;
+			let y = dir_y * fraction - (i-8)*(i-8)/128 * meshgroup.userData.e.curve_y + .5 * meshgroup.userData.e.curve_y;
+			x -= this.tempVector.z * ((i-8)*(i-8)/128 * meshgroup.userData.e.curve_x - .5 * meshgroup.userData.e.curve_x);
+			z += this.tempVector.x * ((i-8)*(i-8)/128 * meshgroup.userData.e.curve_x - .5 * meshgroup.userData.e.curve_x);
+
+			if((i == 0) || (i == 16)) {
+				vertices.push([x, y-.05, z]);
+				vertices.push([x, y-.05, z]);
+				vertices.push([x, y-.05, z]);
+				vertices.push([x, y-.05, z]);
+			}
+			else {
+				if(i == 1) {
+					vertices.push([x - this.tempVector.z*.2, y, z + this.tempVector.x*.2]);
+					vertices.push([x + this.tempVector.z*.2, y, z - this.tempVector.x*.2]);
+					vertices.push([x + this.tempVector.z*.2, y-.1, z - this.tempVector.x*.2]);
+					vertices.push([x - this.tempVector.z*.2, y-.1, z + this.tempVector.x*.2]);
+				}
+				vertices.push([x - this.tempVector.z*.08, y, z + this.tempVector.x*.08]);
+				vertices.push([x + this.tempVector.z*.08, y, z - this.tempVector.x*.08]);
+				vertices.push([x + this.tempVector.z*.08, y-.1, z - this.tempVector.x*.08]);
+				vertices.push([x - this.tempVector.z*.08, y-.1, z + this.tempVector.x*.08]);
+				if(i == 15) {
+					vertices.push([x - this.tempVector.z*.2, y, z + this.tempVector.x*.2]);
+					vertices.push([x + this.tempVector.z*.2, y, z - this.tempVector.x*.2]);
+					vertices.push([x + this.tempVector.z*.2, y-.1, z - this.tempVector.x*.2]);
+					vertices.push([x - this.tempVector.z*.2, y-.1, z + this.tempVector.x*.2]);
+				}
+			}
+		}
+		for(let i = 0; i < 18; i++) {
+			for(let j = 0; j < 4; j++) {
+				faces.push([i*4 + j, (i+1)*4 + j, (i+1)*4 + ((j+1)%4)]);
+				faces.push([i*4 + j, (i+1)*4 + ((j+1)%4), i*4 + ((j+1)%4)]);
+				fvuvs.push([[0,0], [0,0], [0,0]]); fvuvs.push([[0,0], [0,0], [0,0]]);
+			}
+		}
+		this.addListVertex(g.vertices, vertices);
+		this.addListFaces(g.faces, g.faceVertexUvs[0], faces, fvuvs);
+
+		this.moveMesh("L3", "bgp_peering", meshgroup.userData.id, x1, y1, z1);
+
+		g.verticesNeedUpdate = true;
+		g.elementsNeedUpdate = true;
+		g.uvsNeedUpdate = true;
+
+		g.computeBoundingBox();
+		g.computeBoundingSphere();
+		g.computeVertexNormals();
+		//g.computeFlatVertexNormals();
+
+		this.requestDraw();
+	}
+
+	addBGPArrow(id, e) {
+		let meshgroup = this.createMeshGroup({
+			view: "L3",
+			type: "bgp_peering", 
+			id: id,
+			e: e,
+			base: null,
+			num_submesh: 1, 
+			texture: ["/static/textures/basic.png"], 
+			submesh_id: [1],
+			color: [e.color],
+			alignToGrid: false,
+		});
+		this.updateBGPArrowGeometry(meshgroup);
+		return meshgroup;
 	}
 }

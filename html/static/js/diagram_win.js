@@ -53,6 +53,20 @@ WIN_data = {
 			["10BASE-T", "10BASE-T"],
 			["100BASE-T", "100BASE-T"],
 		],
+		bgp_afisafi_choices: [
+			["ipv4/unicast", "ipv4/unicast"],
+			["ipv4/multicast", "ipv4/multicast"],
+			["ipv4/l3vpn", "ipv4/l3vpn"], 
+			["ipv4/l3vpn-multicast", "ipv4/l3vpn-multicast"],
+			["ipv4/labeled", "ipv4/labeled"],
+			["ipv6/unicast", "ipv6/unicast"],
+			["ipv6/multicast", "ipv6/multicast"],
+			["ipv6/l3vpn", "ipv6/l3vpn"],
+			["ipv6/l3vpn-multicast", "ipv6/l3vpn-multicast"],
+			["ipv6/labeled", "ipv6/labeled"],
+			["l2vpn/vpls", "l2vpn/vpls"],
+			["evpn", "evpn"],
+		],
 		iffunctionchoices: [
 			["Not Defined", "radio_if_notdef.png", "none"],
 			["Access/Trunk", "radio_if_l2.png", "switching"],
@@ -127,11 +141,19 @@ function WIN_removeMouseDescription() {
 }
 
 function WIN_addBasicMouseDescriptionActions(element, text) {
+	let num_lines = 1;
+	for(let x = 0; x < text.length; x++)
+		if(text[x] === "\n")
+			num_lines++;
+
     element.addEventListener("mouseover", (ev) => {
-		let ypos = ev.pageY-40;
-		if(ypos < 0)
+		let ypos = ev.pageY-20*num_lines;
+		let xpos = ev.pageX;
+		if(xpos > (window.innerWidth-100))
+			xpos = xpos-100;
+		if(ypos < 50)
 			ypos = ev.pageY+20
-        WIN_addMouseDescription(ev.pageX, ypos, text.replace(/\n/g, "<br>"));
+        WIN_addMouseDescription(xpos, ypos, text.replace(/\n/g, "<br>"));
     })
     element.addEventListener("mouseout", (ev) => {
         WIN_removeMouseDescription();
@@ -681,15 +703,27 @@ function WIN_addButton(win, px, py, label, callback, description) {
 	return b;
 }
 
-function WIN_addSelect(win, px, py, label, options, value) {
+function WIN_addSelect(win, px, py, label, options, value, description) {
 	WIN_addLabel(win, px, py, label)
 
 	let i = DOM.cselect(win, null, null, options);
 	DOM.setElementPos(i, px, py+16);
 	i.value = value;
 
+	if(description) {
+		WIN_addBasicMouseDescriptionActions(i, description);
+	}
+
 	return i;
 } 
+
+function WIN_updateSelectOptions(select, options, value) {
+	DOM.cselect_options(select, options);
+	select.value = options[0][1];
+	for(let x = 0; x < options.length; x++)
+		if(value === options[x][1])
+			select.value = options[x][1];
+}
 
 function WIN_addMultiSelect(win, px, py, sx, sy, label, options, value) {
 	WIN_addLabel(win, px, py, label)
@@ -870,7 +904,7 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 	}
 	let default_vrf = (vrf_options.length > 0) ? vrf_options[0][1] : "";	
 
-	let wdata = WIN_create(view, type + "-config", id, e.name, 660, 440);
+	let wdata = WIN_create(view, type + "-config", id, e.name, 660, 320);
 	if(!wdata)
 		return;
 	let w = wdata.w;
@@ -911,7 +945,7 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 	});
 
 	// Button to apply
-	wdata.d.apply = WIN_addButton(w, 280, 410, "Apply", () => {
+	wdata.d.apply = WIN_addButton(w, 280, 290, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");	
 }
@@ -1352,6 +1386,85 @@ function WIN_showL2SegmentWindow(id, e, callback) {
 	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");	
+}
+
+function WIN_showBGPPeerWindow(id, e, callback) {
+	let wdata = WIN_create("L3", "bgp_peering", id, "BGP Peering Settings", 440, 140);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Color
+	wdata.d.color = WIN_addColorInput(w, 20, 20, "Color 1", e.color);
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
+}
+
+function WIN_showBGPPeerConfigWindow_updateip(wdata, vrf1_addresses, vrf2_addresses, vrf1_ip, vrf2_ip) {
+	let address_selection;
+
+	let transport = wdata.d.transport.value;
+
+	// Update src ip
+	if(transport === "ipv4") {
+		address_selection = [["0.0.0.0", "0.0.0.0"]];
+	}
+	else {
+		address_selection = [["::", "::"]];
+	}
+	for(let x = 0; x < vrf1_addresses[transport].length; x++) {
+		address_selection.push([vrf1_addresses[transport][x], vrf1_addresses[transport][x].split("/")[0]]);
+	}
+	WIN_updateSelectOptions(wdata.d.src_ip, address_selection, vrf1_ip);
+
+	// Update dst ip
+	if(transport === "ipv4") {
+		address_selection = [["0.0.0.0", "0.0.0.0"]];
+	}
+	else {
+		address_selection = [["::", "::"]];
+	}
+	for(let x = 0; x < vrf2_addresses[transport].length; x++) {
+		address_selection.push([vrf2_addresses[transport][x], vrf2_addresses[transport][x].split("/")[0]]);
+	}
+	WIN_updateSelectOptions(wdata.d.dst_ip, address_selection, vrf2_ip);
+}
+
+function WIN_showBGPPeerConfigWindow(id, e, vrf1, vrf2, vrf1_addresses, vrf2_addresses, callback) {
+	let address_selection;
+	let wdata = WIN_create("L3", "bgp_peering", id, "BGP Peering Config", 440, 240);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Transport
+	wdata.d.transport = WIN_addSelect(w, 160, 20, "Transport AF", [["IPv4", "ipv4"], ["IPv6", "ipv6"]], e.transport, "What address family is used to peer with the neighbor.");
+	wdata.d.transport.addEventListener("change", () => {
+		WIN_showBGPPeerConfigWindow_updateip(wdata, vrf1_addresses, vrf2_addresses, e.src_ip, e.dst_ip);
+	})
+	// Address selection
+	address_selection = [["0.0.0.0", "0.0.0.0"]];
+
+	wdata.d.src_ip = WIN_addSelect(w, 20, 60, vrf1.name + " IP", address_selection, e.src_ip, "IP address in '" + vrf1.name + "' used establish the bgp neighborship.");
+	wdata.d.dst_ip = WIN_addSelect(w, 220, 60, vrf2.name + " IP", address_selection, e.dst_ip, "IP address in '" + vrf2.name + "' used establish the bgp neighborship.");
+	WIN_showBGPPeerConfigWindow_updateip(wdata, vrf1_addresses, vrf2_addresses, e.src_ip, e.dst_ip);
+
+	// AFI/SAFI selection
+	let afisafi_data = [];
+	e.afisafi.forEach((afisafi) => {
+		afisafi_data.push({"afisafi": afisafi});
+	});
+	wdata.d.afisafi = WIN_addDictList(w, 20, 100, 220, 100, "AFI/SAFI", afisafi_data, {
+		afisafi: {name: "AFI/SAFI", width: 120, options: WIN_data.constants.bgp_afisafi_choices},
+	});
+
+	// Button to apply
+	wdata.d.apply = WIN_addButton(w, 190, 210, "Apply", () => {
+		callback(wdata);
+	}, "Apply changes.");
 }
 
 function WIN_showBackgroundSettings(settings, callback) {

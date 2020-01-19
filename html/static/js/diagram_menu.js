@@ -48,6 +48,7 @@ MENU = {
             name: "Add New Elements",
             components: [
                 {n: "Base",     s: null,    i: "base.png",          f: "new_base",      d: "Add new Floors or Walls."},
+                {n: "Routing",  s: null,    i: "routing.png",       f: "new_routing",   d: "Add new routing protocol information."},
                 {n: "Text",     s: null,    i: "text.png",          f: "new_text",      d: "Add text to the diagrams." },
                 {n: "Symbol",   s: null,    i: "symbol.png",        f: "new_symbol",    d: "Add symbols to the diagrams." },
                 {n: "Link",     s: null,    i: "link.png",          f: "new_l3_link",   d: "Add connections between devices." },
@@ -201,6 +202,12 @@ MENU = {
                 {n: "Resize",   s: "BX",    i: "resize.png",    f: null, d: "Resize floors/walls\nQuick access key: 'h'", q: "KeyH"},
                 {n: "Settings", s: "BC",    i: "settings.png",  f: null, d: "View the settings of floors/walls\nQuick access key: 'v'", q: "KeyV"},
                 {n: "Delete",   s: "BD",    i: "delete.png",    f: null, d: "Delete floors/walls\nQuick access key: 'b'", q: "KeyB"},
+            ]},
+        new_routing: {
+            init_left: -190, left: -190, width: 170,
+            name: "Routing Protocols",
+            components: [
+                {n: "BGPPeer",    s: "ARB",    i: "bgp.png",   f: null, d: "Add BGP Peering\n Click on source VRF and drag to destination VRF."},
             ]},
     }
 }
