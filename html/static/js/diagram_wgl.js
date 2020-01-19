@@ -144,12 +144,12 @@ class WGL {
 
 		this.camera = {
 			L2: {
-				persp: new THREE.PerspectiveCamera( 30, cam_ratio, 0.1, 1000 ),
+				persp: new THREE.PerspectiveCamera( 15, cam_ratio, 0.1, 1000 ),
 				ortho: new THREE.OrthographicCamera( -initial_ortho_size * cam_ratio, initial_ortho_size * cam_ratio, initial_ortho_size, -initial_ortho_size, 1, 200),
 				ortho_size: initial_ortho_size,
 			},
 			L3: {
-				persp: new THREE.PerspectiveCamera( 30, cam_ratio, 0.1, 1000 ),
+				persp: new THREE.PerspectiveCamera( 15, cam_ratio, 0.1, 1000 ),
 				ortho: new THREE.OrthographicCamera( -initial_ortho_size * cam_ratio, initial_ortho_size * cam_ratio, initial_ortho_size, -initial_ortho_size, 1, 200),
 				ortho_size: initial_ortho_size,
 			},
