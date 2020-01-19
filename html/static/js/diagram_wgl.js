@@ -524,14 +524,18 @@ class WGL {
 			for(let if_id in links[if_type]) {
 				let ip_data;
 				let link = links[if_type][if_id];
-				if(if_type === "p2p_interface") {
-					if(link.userData.e.l3_reference.src_vrf_id === id)
-						ip_data = link.userData.e.ip[0];
+				if("ip" in link.userData.e) {
+					if(if_type === "p2p_interface") {
+						if(link.userData.e.l3_reference.src_vrf_id === id)
+							ip_data = link.userData.e.ip[0];
+						else
+							ip_data = link.userData.e.ip[1];
+					}
 					else
-						ip_data = link.userData.e.ip[1];
+						ip_data = link.userData.e.ip;
 				}
 				else
-					ip_data = link.userData.e.ip;
+					continue;
 
 				["ipv4", "ipv6"].forEach((af) => {
 					ip_data.address[af].forEach((ip) => {
