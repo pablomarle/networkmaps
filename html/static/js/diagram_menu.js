@@ -57,13 +57,13 @@ MENU = {
             init_left: -142, left: -142, width: 128,
             name: "Add New Devices",
             components: [
-                {n: "Shapes",   s: null,    i: "device_cube.png",       f: "new_device_shapes",     d: "Simple devices with geometrical shapes." },
+/*                {n: "Shapes",   s: null,    i: "device_cube.png",       f: "new_device_shapes",     d: "Simple devices with geometrical shapes." },
                 {n: "Network",  s: null,    i: "device_router.png", f: "new_device_network",    d: "Network devices like routers and switches."},
                 {n: "Clients",  s: null,    i: "device_user.png",       f: "new_device_clients",    d: "Laptops, desktops, phones, ..." },
                 {n: "Servers",  s: null,    i: "device_server.png",       f: "new_device_servers",    d: "Different kind of servers."},
-                {n: "Security",  s: null,    i: "device_firewall.png",      f: "new_device_security",   d: "Security devices like firewalls, "},
+                {n: "Security",  s: null,    i: "device_firewall.png",      f: "new_device_security",   d: "Security devices like firewalls, "}, */
             ]},
-        new_device_shapes: {
+/*        new_device_shapes: {
             init_left: -190, left: -190, width: 170,
             name: "Add Basic Shapes",
             components: [
@@ -158,7 +158,7 @@ MENU = {
                 {n: "Led",       s: "AD_XPL",    i: "device_led.png",      f: null},
                 {n: "Lock",      s: "AD_XL",    i: "device_lock.png",      f: null},
                 {n: "Hacker",    s: "AD_XH",    i: "device_hacker.png",      f: null},
-            ]},
+            ]}, */
         new_link: {
             init_left: -190, left: -190, width: 170,
             name: "Add Link",

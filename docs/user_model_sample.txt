@@ -42,6 +42,14 @@ user_struct:
             link_sharing: false,
         }
     }
+    shape: {
+        id: {
+            name:
+            owner: <email of owner>,
+            public: false,
+            icon: "sample.png"
+        }
+    }
 
 
 

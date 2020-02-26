@@ -1,7 +1,9 @@
 this.diagram = {
+	version: 1,
 	settings: {
         id_gen: 1000,
-        bg_color: 0xf0f0f0,		
+        bg_color: 0xf0f0f0,
+        shapes: ["1", "2"],
 	},
 	l2: {
 		base: {

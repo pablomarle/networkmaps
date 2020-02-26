@@ -1894,6 +1894,34 @@ function init_wgl() {
 function init_diagram() {
     // Background
     d.wgl.setBGColor(d.diagram.settings.bg_color);
+
+    // Load the shapes of this diagram
+    d.diagram.settings.shapes.forEach((shapegroup_id) => {
+        let path = "/3dshapes/" + shapegroup_id + "/";
+        if(shapegroup_id < 1000)
+            path = staticurl + "/static/shapes/" + shapegroup_id + "/";
+        let xmlhttp = new XMLHttpRequest();
+        xmlhttp.open("GET", path + "definition.json", true);
+        xmlhttp.send();
+        xmlhttp.onreadystatechange = () => {
+            if(xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                // Add tool too add shapes on this shape group on the "add device" tool
+                let data = JSON.parse(xmlhttp.responseText);
+                init_window_addtool(d.dom.tools.toolboxes["new_device"].dom, {
+                    n: data.name,
+                    s: null,
+                    il: path + "0.png",
+                    f: "new_device_" + shapegroup_id,
+                    d: data.description ? data.description : "",
+                });
+
+                // Create the toolbox to add the shapes on this shape group.
+
+                // Add shapes to the list of available geometries and update the shapes on the diagram
+                d.wgl.addShapes("DEVICE", shapegroup_id, data);
+            }
+        };
+    })
     // ********************************
     // Draw the L2 diagram
     // ********************************
@@ -1971,6 +1999,7 @@ function init_diagram() {
 function init_window_addtool(toolbox, tooldesc, isactive = false) {
     let tool;
     let imgname = tooldesc.i;
+    let longimgname = tooldesc.il;
     let newtoolbox = tooldesc.f;
     let name = tooldesc.n;
 
@@ -1991,12 +2020,25 @@ function init_window_addtool(toolbox, tooldesc, isactive = false) {
 
     tool.setAttribute("data-code", tooldesc.s)
 
-    DOM.cimg(tool, staticurl + "/static/img/" + imgname, null, "toolimg");
+    if(longimgname)
+        DOM.cimg(tool, longimgname, null, "toolimg");
+    else
+        DOM.cimg(tool, staticurl + "/static/img/" + imgname, null, "toolimg");
     DOM.cdiv(tool, null, "tooltext", name);
 
     tool.addEventListener("click", toolbox_click);
     
     return tool
+}
+
+function init_window_addtoolbox(toolbox) {
+    let b = document.body;
+    toolbox.dom = DOM.cdiv(b, null, "box toolbox");
+    DOM.cdiv(toolbox.dom, null, "tooltitle", toolbox.name);
+    for(let x = 0; x < toolbox.components.length; x++) {
+        let tool = toolbox.components[x];
+        tool.dom = init_window_addtool(toolbox.dom, tool, tool.s === d.dom.tools.active_t);
+    }
 }
 
 function mousedown(x, y, dx, dy, dom_element) {
@@ -3121,13 +3163,7 @@ function init_window() {
         toolboxes: MENU.toolboxes,
     }
     for(toolboxname in d.dom.tools.toolboxes) {
-        let toolbox = d.dom.tools.toolboxes[toolboxname];
-        toolbox.dom = DOM.cdiv(b, null, "box toolbox");
-        DOM.cdiv(toolbox.dom, null, "tooltitle", toolbox.name);
-        for(let x = 0; x < toolbox.components.length; x++) {
-            let tool = toolbox.components[x];
-            tool.dom = init_window_addtool(toolbox.dom, tool, tool.s === d.dom.tools.active_t);
-        }
+        init_window_addtoolbox(d.dom.tools.toolboxes[toolboxname])
     }
 
     // Initialize input

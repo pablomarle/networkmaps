@@ -32,13 +32,13 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 		}
 
 		// This is the index. The main page where users register, access their account and manage their diagrams
-		if ((url == "/") && (method == "GET"))  {
+		if ((url == "/") && (method === "GET"))  {
 			sendresponse(200, "text/html", html.index(config), session.sessionid);
 			return;
 		}
 
 		// Validate the creation of user accounts
-		else if (url.startsWith("/validate/") && (method == "GET"))  {
+		else if (url.startsWith("/validate/") && (method === "GET"))  {
 			let ac_email = url.split("/")[2].split("?");
 			if(ac_email.length != 2) {
 				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
@@ -65,7 +65,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 		}
 
 		// Confirm a password reset request
-		else if (url.startsWith("/passwordreset/") && (method == "GET"))  {
+		else if (url.startsWith("/passwordreset/") && (method === "GET"))  {
 			let ac_email = url.split("/")[2].split("?");
 			if(ac_email.length != 2) {
 				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
@@ -93,7 +93,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 		}
 
 		// Access a diagram. Gets the client that will be used to edit a diagram
-		else if (url.startsWith("/diagram/") && (method == "GET"))  {
+		else if (url.startsWith("/diagram/") && (method === "GET"))  {
 			// If the user is not logged in, redirect him to /
 			//if(!session.data.user) {
 			//	sendresponse(302, "text/html", "", session.sessionid, "/");
@@ -107,18 +107,30 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 			sendresponse(200, "text/html", html.diagram(config, surl[2]), session.sessionid);
 			return;
 		}
-		else if((url == "/favicon.ico") && (method == "GET")) {
+		else if((url == "/favicon.ico") && (method === "GET")) {
 			staticcontent.get("/static/img/favicon.ico", sendresponse, session.sessionid);
 		}
 		// Serving static content
-		else if ((config.serve_static_locally) && url.startsWith("/static/") && (method == "GET"))  {
+		else if ((config.serve_static_locally) && url.startsWith("/static/") && (method === "GET"))  {
 			staticcontent.get(url, sendresponse, session.sessionid);
 		}
-
+		// Get a group of 3d shapes
+		else if (url.startsWith("/3dshapes/") && (method === "GET")) {
+			let surl = url.split("/");
+			let path = config.diagrams.shapes;
+			if(surl.length === 4) {
+				staticcontent.get_file(path + "/" + surl[2] + "/" + surl[3], sendresponse, session.sessionid);
+			}
+			else {
+				sendresponse(404, "application/json", html.not_found(config), session.sessionid);
+				return;
+			}
+		}
 		else {
 			sendresponse(404, "text/html", html.not_found(config), session.sessionid);
 			return;
 		}
+
 	});
 }
 

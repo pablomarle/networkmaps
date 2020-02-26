@@ -1,0 +1,37 @@
+{
+	local_id: {
+			name: "Name of shape",
+			description: "A longer description of the shape",
+			base_scale: [1,1,1],
+			shapes: [
+				{
+					color: 0xffffff,
+					flat_normals: false,
+					texture: "lala.png",
+					is_texture_light: true,
+					elements: [
+						{
+							type: "vertex_list"
+							v: [[0,0,0], [0,0,1], ...]],
+							f: [[0,1,2], [0,2,3], ...]],
+							fvuv: [[[0,0],[0,1], [1,1]], [[0,0],[0,1], [1,1]], ... ],
+						},
+					],
+				},
+				{
+					color: 0xffffff,
+					flat_normals: false,
+					texture: "lala.png",
+					is_texture_light: true,
+					elements: [
+						{
+							type: "vertex_list"
+							v: [[0,0,0], [0,0,1], ...]],
+							f: [[0,1,2], [0,2,3], ...]],
+							fvuv: [[[0,0],[0,1], [1,1]], [[0,0],[0,1], [1,1]], ... ],
+						},
+					],
+				},
+			]
+		},
+}

@@ -304,6 +304,49 @@ class WGL {
 	settingsBackground(bg_color) {
 		this.setBGColor(bg_color);
 	}
+
+	// ***********************************************
+	// Functions to add/remove shapes to the GEOMETRIES structure
+	// and update the diagrams
+	// ***********************************************
+	addShapes(geometry_type, shapegroup_id, shape_data) {
+		for(let shape_id in shape_data) {
+			let to_update = [];
+			if(!isNaN(shape_id)) {
+				let dev_type = shapegroup_id + "_" + shape_id;
+				GEOMETRY[geometry_type][dev_type] = shape_data[shape_id];
+
+				if(geometry_type === "DEVICE") {
+					// Mark devices that need to be updated
+					this.scene.L2.children.forEach((base_element) => {
+						if(base_element.userData.type === "base") {
+							base_element.children.forEach((meshgroup) => {
+								if((meshgroup.userData.type === "device") && (meshgroup.userData.e.type === dev_type)) {
+									to_update.push(meshgroup);
+								}
+							})
+						}
+					});
+					// Mark vrfs that need to be updated
+					this.scene.L3.children.forEach((base_element) => {
+						if(base_element.userData.type === "base") {
+							base_element.children.forEach((meshgroup) => {
+								if((meshgroup.userData.type === "vrf") && (meshgroup.userData.e.type === dev_type)) {
+									to_update.push(meshgroup);
+								}
+							})
+						}
+					});					
+				}
+				// Remove and re add devices and vrfs
+				to_update.forEach((meshgroup) => {
+					let base_element = meshgroup.parent;
+					base_element.remove(meshgroup);
+					this.addDevice(meshgroup.userData.type, meshgroup.userData.id, (meshgroup.userData.type === "device") ? "L2" : "L3", meshgroup.userData.e, false);
+				});
+			}
+		}
+	}
 	// ***********************************************
 	// Camera Functions
 	// ***********************************************
@@ -1481,7 +1524,7 @@ class WGL {
 		let mesh_list = [];
 		for(let x = 0; x < data.num_submesh; x++) {
 			let geometry = new THREE.Geometry();
-			let texture = this.loadTexture(staticurl + data.texture[x]);
+			let texture = this.loadTexture(data.texture[x]);
 			let material = WGL_createDeviceMaterial({map: texture, mycolor: data.color[x]});
 			let mesh = new THREE.Mesh( geometry, material );
 			group.add(mesh);
@@ -1971,58 +2014,62 @@ class WGL {
 	}
 
 	updateStandardGeometry(meshgroup, geometry_type) {
-		let template_geometry = GEOMETRY[geometry_type].UNKNOWN;
-		if(meshgroup.userData.e.type in GEOMETRY[geometry_type])
-			template_geometry = GEOMETRY[geometry_type][meshgroup.userData.e.type];
+		let template_geometry = this.getDeviceTemplate(geometry_type, meshgroup.userData.e.type);
 
 		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
+		let g = [];
+		m.forEach((e) => {
+			if(e !== null)
+				g.push(e.geometry);
+			else
+				g.push(null);
+		})
 
 		for(let g_index = 0; g_index < 2; g_index++) {
+			if(g[g_index] === null)
+				continue;
 			g[g_index].vertices = [];
 			g[g_index].faces = [];
 			g[g_index].faceVertexUvs[0] = [];
-			if(! (g_index in template_geometry.v))
-				continue;
+
 			let v = g[g_index].vertices
 			let f = g[g_index].faces;
 			let uv = g[g_index].faceVertexUvs[0];
 
-			for(let i = 0; i < template_geometry.v[g_index].length; i++) {
-				let tv = template_geometry.v[g_index][i];
-				v.push($WGL_V3(
-					tv[0] * meshgroup.userData.e.sx * template_geometry.base_scale[0],
-					tv[1] * meshgroup.userData.e.sy * template_geometry.base_scale[1],
-					tv[2] * meshgroup.userData.e.sz * template_geometry.base_scale[2]
-					));
-			}
-			for(let i = 0; i < template_geometry.f[g_index].length; i++) {
-				let tf = template_geometry.f[g_index][i];
-				let tuv = template_geometry.uv[g_index][i];
-				f.push($WGL_F3(tf[0], tf[1], tf[2]))
-				uv.push([
-					$WGL_V2(tuv[0][0], tuv[0][1]),
-					$WGL_V2(tuv[1][0], tuv[1][1]),
-					$WGL_V2(tuv[2][0], tuv[2][1]),
-					])				
-			}
+			let vertex_base_index = 0;
+
+			template_geometry.shapes[g_index].elements.forEach((template_element) => {
+				if(template_element.type === "vertex_list") {
+					for(let i = 0; i < template_element.v.length; i++) {
+						let tv = template_element.v[i];
+						v.push($WGL_V3(
+							tv[0] * meshgroup.userData.e.sx * template_geometry.base_scale[0],
+							tv[1] * meshgroup.userData.e.sy * template_geometry.base_scale[1],
+							tv[2] * meshgroup.userData.e.sz * template_geometry.base_scale[2]
+							));
+					}
+					for(let i = 0; i < template_element.f.length; i++) {
+						let tf = template_element.f[i];
+						let tuv = template_element.uv[i];
+						f.push($WGL_F3(tf[0] + vertex_base_index, tf[1] + vertex_base_index, tf[2] + vertex_base_index))
+						uv.push([
+							$WGL_V2(tuv[0][0], tuv[0][1]),
+							$WGL_V2(tuv[1][0], tuv[1][1]),
+							$WGL_V2(tuv[2][0], tuv[2][1]),
+							])
+					}
+
+					vertex_base_index += template_element.v.length;
+				}
+			})
+			this.setGeometryUpdated([g[g_index]], template_geometry.shapes[g_index].flat_normals);
 		}
-		this.setGeometryUpdated(g, template_geometry.flat_normals);
 	}
 
 	updateDeviceGeometry(type, id, sceneid) {
 		let meshgroup = this.findMesh(type, id, this.scene[sceneid]);
 
-		if(meshgroup.userData.e.type == "S")
-			this.updateDeviceCubeGeometry(meshgroup, 1, .4, 1);
-		else if(meshgroup.userData.e.type == "LB")
-			this.updateDeviceLBGeometry(meshgroup, 1, .4, 1, .6, .8);
-		else
-			this.updateStandardGeometry(meshgroup, "DEVICE");
+		this.updateStandardGeometry(meshgroup, "DEVICE");
 	}
 
 	updateDeviceColor(type, id, sceneid) {
@@ -2033,39 +2080,62 @@ class WGL {
 
 		
 		for(let x = 0; x < 2; x++) {
-			
-			m[x].material.uniforms.mycolor.value.r = (color[x] >> 16) / 256;
-			m[x].material.uniforms.mycolor.value.g = ((color[x] >> 8) & 0xFF) / 256;
-			m[x].material.uniforms.mycolor.value.b = (color[x] & 0xFF) / 256;
+			if(m[x] !== null) {
+				m[x].material.uniforms.mycolor.value.r = (color[x] >> 16) / 256;
+				m[x].material.uniforms.mycolor.value.g = ((color[x] >> 8) & 0xFF) / 256;
+				m[x].material.uniforms.mycolor.value.b = (color[x] & 0xFF) / 256;
+			}
 		}
 		
 		this.requestDraw();
 	}
 
 	getDeviceTextureByType(type, index) {
-		if(type in GEOMETRY.DEVICE)
-			return GEOMETRY.DEVICE[type].texture[index];
-		else if(type == "S")
-			return "S_" + (index+1) + ".png";
-		else if (type == "LB")
-			return "LB_" + (index+1) + ".png";
-		else
-			return GEOMETRY.DEVICE["UNKNOWN"].texture[index];
+		if(type in GEOMETRY.DEVICE) {
+			if(index in GEOMETRY.DEVICE[type].shapes)
+				return GEOMETRY.DEVICE[type].shapes[index].texture;
+			else
+				return null;
+		}
+		else {
+			if(index in GEOMETRY.DEVICE["UNKNOWN"].shapes)
+				return GEOMETRY.DEVICE["UNKNOWN"].shapes[index].texture;
+			else
+				return null;
+		}
+	}
+
+	getDeviceTemplate(geometry_type, type) {
+		if(type in GEOMETRY[geometry_type]) {
+			return GEOMETRY[geometry_type][type];
+		}
+		else {
+			return GEOMETRY[geometry_type]["UNKNOWN"];
+		}		
 	}
 
 	addDevice(type, id, sceneid, e, alignToGrid) {
+		let device_template = this.getDeviceTemplate("DEVICE", e.type);
+		let shape_group = e.type.split("_")[0];
+		let textures = [];
+		let submesh_id = [];
+		let texture_base_path = "/3dshapes/" + shape_group + "/";
+		if(shape_group < 1000) {
+			texture_base_path = staticurl + "/static/shapes/" + shape_group + "/";
+		}
+		for(let x = 0; x < device_template.shapes.length; x++)  {
+			textures.push(texture_base_path + device_template.shapes[x].texture);
+			submesh_id.push(x+1);
+		}
 		let group = this.createMeshGroup({
 			view: sceneid,
-			type: type, 
+			type: type,
 			id: id,
 			e: e,
 			base: e.base,
-			num_submesh: 2, 
-			texture: [
-				"/static/textures/" + this.getDeviceTextureByType(e.type, 0),
-				"/static/textures/" + this.getDeviceTextureByType(e.type, 1),
-			], 
-			submesh_id: [1, 2],
+			num_submesh: device_template.shapes.length,
+			texture: textures, 
+			submesh_id: submesh_id,
 			color: [e.color1, e.color2],
 			alignToGrid: alignToGrid,
 		});
@@ -2103,7 +2173,7 @@ class WGL {
 					height = group.children[x].geometry.boundingBox.max.y;
 			}
 		}
-		if(m != null) {
+		if(m !== null) {
 			group.remove(m);
 		}
 
@@ -3068,29 +3138,35 @@ class WGL {
 
 	getSymbolTextureByType(type, index) {
 		if(type in GEOMETRY.SYMBOL)
-			return GEOMETRY.SYMBOL[type].texture[index];
+			return GEOMETRY.SYMBOL[type].shapes[index].texture;
 		else
-			return GEOMETRY.SYMBOL["UNKNOWN"].texture[index];
+			return GEOMETRY.SYMBOL["UNKNOWN"].shapes[index].texture;
 	}
 
 	addSymbol(id, sceneid, e, alignToGrid) {
+		let symbol_template = this.getDeviceTemplate("SYMBOL", e.type);
+		let submesh_id = [];
+		for(let x = 0; x < symbol_template.shapes.length; x++)  {
+			submesh_id.push(x+1);
+		}
 		let groupdata = {
 			view: sceneid,
-			type: "symbol", 
+			type: "symbol",
 			id: id,
 			e: e,
 			base: e.base,
-			num_submesh: 2,
+			num_submesh: symbol_template.shapes.length,
 			texture: [
-				"/static/textures/" + this.getSymbolTextureByType(e.type, 0), 
-				"/static/textures/" + this.getSymbolTextureByType(e.type, 1),
-				"/static/textures/" + this.getSymbolTextureByType(e.type, 1)
+				staticurl + "/static/textures/basic.png", 
+				staticurl + "/static/textures/basic.png",
+				staticurl + "/static/textures/basic.png",
 				],
-			submesh_id: [1, 2, 3],
+			submesh_id: submesh_id,
 			color: [e.color, 0x0, 0x0],
 		}
 		if(e.type === "A") { // Arrows have 3 geometries
 			groupdata.num_submesh = 3;
+			groupdata.submesh_id = [1,2,3];
 		}
 		let group = this.createMeshGroup(groupdata);
 
@@ -3168,7 +3244,7 @@ class WGL {
 			e: e,
 			base: e.base,
 			num_submesh: 1, 
-			texture: ["/static/textures/basic.png"], 
+			texture: [staticurl + "/static/textures/basic.png"], 
 			submesh_id: [1],
 			color: [e.color1],
 			alignToGrid: alignToGrid,
@@ -3299,7 +3375,7 @@ class WGL {
 			e: e,
 			base: null,
 			num_submesh: 1, 
-			texture: ["/static/textures/basic.png"], 
+			texture: [staticurl + "/static/textures/basic.png"], 
 			submesh_id: [1],
 			color: [e.color],
 			alignToGrid: false,
