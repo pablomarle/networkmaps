@@ -310,41 +310,39 @@ class WGL {
 	// and update the diagrams
 	// ***********************************************
 	addShapes(geometry_type, shapegroup_id, shape_data) {
-		for(let shape_id in shape_data) {
+		for(let shape_id in shape_data.shapes) {
 			let to_update = [];
-			if(!isNaN(shape_id)) {
-				let dev_type = shapegroup_id + "_" + shape_id;
-				GEOMETRY[geometry_type][dev_type] = shape_data[shape_id];
+			let dev_type = shapegroup_id + "_" + shape_id;
+			GEOMETRY[geometry_type][dev_type] = shape_data.shapes[shape_id];
 
-				if(geometry_type === "DEVICE") {
-					// Mark devices that need to be updated
-					this.scene.L2.children.forEach((base_element) => {
-						if(base_element.userData.type === "base") {
-							base_element.children.forEach((meshgroup) => {
-								if((meshgroup.userData.type === "device") && (meshgroup.userData.e.type === dev_type)) {
-									to_update.push(meshgroup);
-								}
-							})
-						}
-					});
-					// Mark vrfs that need to be updated
-					this.scene.L3.children.forEach((base_element) => {
-						if(base_element.userData.type === "base") {
-							base_element.children.forEach((meshgroup) => {
-								if((meshgroup.userData.type === "vrf") && (meshgroup.userData.e.type === dev_type)) {
-									to_update.push(meshgroup);
-								}
-							})
-						}
-					});					
-				}
-				// Remove and re add devices and vrfs
-				to_update.forEach((meshgroup) => {
-					let base_element = meshgroup.parent;
-					base_element.remove(meshgroup);
-					this.addDevice(meshgroup.userData.type, meshgroup.userData.id, (meshgroup.userData.type === "device") ? "L2" : "L3", meshgroup.userData.e, false);
+			if(geometry_type === "DEVICE") {
+				// Mark devices that need to be updated
+				this.scene.L2.children.forEach((base_element) => {
+					if(base_element.userData.type === "base") {
+						base_element.children.forEach((meshgroup) => {
+							if((meshgroup.userData.type === "device") && (meshgroup.userData.e.type === dev_type)) {
+								to_update.push(meshgroup);
+							}
+						})
+					}
 				});
+				// Mark vrfs that need to be updated
+				this.scene.L3.children.forEach((base_element) => {
+					if(base_element.userData.type === "base") {
+						base_element.children.forEach((meshgroup) => {
+							if((meshgroup.userData.type === "vrf") && (meshgroup.userData.e.type === dev_type)) {
+								to_update.push(meshgroup);
+							}
+						})
+					}
+				});					
 			}
+			// Remove and re add devices and vrfs
+			to_update.forEach((meshgroup) => {
+				let base_element = meshgroup.parent;
+				base_element.remove(meshgroup);
+				this.addDevice(meshgroup.userData.type, meshgroup.userData.id, (meshgroup.userData.type === "device") ? "L2" : "L3", meshgroup.userData.e, false);
+			});
 		}
 	}
 	// ***********************************************
@@ -1845,174 +1843,6 @@ class WGL {
 		return id;
 	}
 
-	updateDeviceCubeGeometry(meshgroup, base_sx, base_sy, base_sz) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		v1.push($WGL_V3(-sx*.45, h, sz*.45)); 
-		v1.push($WGL_V3(sx*.45, h, sz*.45)); 
-		v1.push($WGL_V3(sx*.45, h, -sz*.45)); 
-		v1.push($WGL_V3(-sx*.45, h, -sz*.45))
-		f1.push($WGL_F3(0,1,2)); f1.push($WGL_F3(0,2,3))
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1,1), $WGL_V2(1,0)])
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1,0), $WGL_V2(0,0)])
-		v1.push($WGL_V3(-sx*.45, 0, sz*.45))
-		v1.push($WGL_V3(sx*.45, 0, sz*.45))
-		v1.push($WGL_V3(sx*.45, 0, -sz*.45))
-		v1.push($WGL_V3(-sx*.45, 0, -sz*.45))
-		f1.push($WGL_F3(4,6,5)); f1.push($WGL_F3(4,7,6))
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1,0), $WGL_V2(1,1)])
-		uv1.push([$WGL_V2(0,1), $WGL_V2(0,0), $WGL_V2(1,0)])
-
-		v2.push($WGL_V3(-sx*.45, h, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, h, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, h, -sz*.45)); 
-		v2.push($WGL_V3(-sx*.45, h, -sz*.45))
-		v2.push($WGL_V3(-sx*.5, h, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, h, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, h, -sz*.5)); 
-		v2.push($WGL_V3(-sx*.5, h, -sz*.5))
-		v2.push($WGL_V3(-sx*.5, 0, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, 0, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, 0, -sz*.5)); 
-		v2.push($WGL_V3(-sx*.5, 0, -sz*.5))
-		v2.push($WGL_V3(-sx*.45, 0, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, 0, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, 0, -sz*.45)); 
-		v2.push($WGL_V3(-sx*.45, 0, -sz*.45))
-		for(let x = 0; x < 12; x+=4) {
-			f2.push($WGL_F3(x+0,x+5,x+1)); f2.push($WGL_F3(x+0,x+4,x+5))
-			f2.push($WGL_F3(x+1,x+6,x+2)); f2.push($WGL_F3(x+1,x+5,x+6))
-			f2.push($WGL_F3(x+2,x+7,x+3)); f2.push($WGL_F3(x+2,x+6,x+7))
-			f2.push($WGL_F3(x+3,x+4,x+0)); f2.push($WGL_F3(x+3,x+7,x+4))
-			if(x == 4) {
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,h), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sx,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,h), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sz,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,h), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sx,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,h), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sz,h)])
-			}
-			else {
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,sz*.05), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sz*.05),  $WGL_V2(sx,sz*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,sx*.05), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sx*.05),  $WGL_V2(sz,sx*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,sz*.05), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sz*.05),  $WGL_V2(sx,sz*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,sx*.05), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sx*.05),  $WGL_V2(sz,sx*.05)])
-			}
-		}
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		this.setGeometryUpdated(g, true);
-	}
-
-
-	updateDeviceLBGeometry(meshgroup, base_sx, base_sy, base_sz, back_factor_x, back_factor_y) {
-		let m = this.findMeshesOfGroup(meshgroup);
-		let g = [m[0].geometry, m[1].geometry]
-		
-		let sx = meshgroup.userData.e.sx * base_sx;
-		let sz = meshgroup.userData.e.sz * base_sz;
-		let h = meshgroup.userData.e.sy * base_sy;
-
-		// Set to 0
-		g[0].vertices = [];
-		g[0].faces = []
-		g[0].faceVertexUvs[0] = []
-		g[1].vertices = [];
-		g[1].faces = []
-		g[1].faceVertexUvs[0] = []
-		let v1 = g[0].vertices;
-		let f1 = g[0].faces;
-		let uv1 = g[0].faceVertexUvs[0];
-		let v2 = g[1].vertices;
-		let f2 = g[1].faces;
-		let uv2 = g[1].faceVertexUvs[0];
-
-		let fxt = (1-back_factor_x)*.5;
-		v1.push($WGL_V3(-sx*.45, h, sz*.45)); 
-		v1.push($WGL_V3(sx*.45, h, sz*.45)); 
-		v1.push($WGL_V3(sx*.45*back_factor_x, h*back_factor_y, -sz*.45)); 
-		v1.push($WGL_V3(-sx*.45*back_factor_x, h*back_factor_y, -sz*.45))
-		f1.push($WGL_F3(0,1,2)); f1.push($WGL_F3(0,2,3))
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1,1), $WGL_V2(1-fxt,0)])
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1-fxt,0), $WGL_V2(fxt,0)])
-		v1.push($WGL_V3(-sx*.45, 0, sz*.45))
-		v1.push($WGL_V3(sx*.45, 0, sz*.45))
-		v1.push($WGL_V3(sx*.45*back_factor_x, h*(1-back_factor_y), -sz*.45))
-		v1.push($WGL_V3(-sx*.45*back_factor_x, h*(1-back_factor_y), -sz*.45))
-		f1.push($WGL_F3(4,6,5)); f1.push($WGL_F3(4,7,6))
-		uv1.push([$WGL_V2(0,1), $WGL_V2(1-fxt,0), $WGL_V2(1,1)])
-		uv1.push([$WGL_V2(0,1), $WGL_V2(fxt,0), $WGL_V2(1-fxt,0)])
-
-		v2.push($WGL_V3(-sx*.45, h, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, h, sz*.45)); 
-		v2.push($WGL_V3(sx*.45*back_factor_x, h*back_factor_y, -sz*.45)); 
-		v2.push($WGL_V3(-sx*.45*back_factor_x, h*back_factor_y, -sz*.45))
-		v2.push($WGL_V3(-sx*.5, h, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, h, sz*.5)); 
-		v2.push($WGL_V3(sx*.5*back_factor_x, h*back_factor_y, -sz*.5)); 
-		v2.push($WGL_V3(-sx*.5*back_factor_x, h*back_factor_y, -sz*.5))
-		v2.push($WGL_V3(-sx*.5, 0, sz*.5)); 
-		v2.push($WGL_V3(sx*.5, 0, sz*.5)); 
-		v2.push($WGL_V3(sx*.5*back_factor_x, h*(1-back_factor_y), -sz*.5)); 
-		v2.push($WGL_V3(-sx*.5*back_factor_x, h*(1-back_factor_y), -sz*.5))
-		v2.push($WGL_V3(-sx*.45, 0, sz*.45)); 
-		v2.push($WGL_V3(sx*.45, 0, sz*.45)); 
-		v2.push($WGL_V3(sx*.45*back_factor_x, h*(1-back_factor_y), -sz*.45)); 
-		v2.push($WGL_V3(-sx*.45*back_factor_x, h*(1-back_factor_y), -sz*.45))
-		for(let x = 0; x < 12; x+=4) {
-			f2.push($WGL_F3(x+0,x+5,x+1)); f2.push($WGL_F3(x+0,x+4,x+5))
-			f2.push($WGL_F3(x+1,x+6,x+2)); f2.push($WGL_F3(x+1,x+5,x+6))
-			f2.push($WGL_F3(x+2,x+7,x+3)); f2.push($WGL_F3(x+2,x+6,x+7))
-			f2.push($WGL_F3(x+3,x+4,x+0)); f2.push($WGL_F3(x+3,x+7,x+4))
-			if(x == 4) {
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,h), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sx,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,h), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sz,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,h), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sx,h)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,h), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,h), $WGL_V2(sz,h)])
-			}
-			else {
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,sz*.05), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sz*.05),  $WGL_V2(sx,sz*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,sx*.05), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sx*.05),  $WGL_V2(sz,sx*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sx,sz*.05), $WGL_V2(sx,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sz*.05),  $WGL_V2(sx,sz*.05)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(sz,sx*.05), $WGL_V2(sz,0)])
-				uv2.push([$WGL_V2(0,0), $WGL_V2(0,sx*.05),  $WGL_V2(sz,sx*.05)])
-			}
-		}
-		// Mark vertex, faces, normals as updated and compute bounding boxes
-		this.setGeometryUpdated(g, true);
-	}
-
 	updateStandardGeometry(meshgroup, geometry_type) {
 		let template_geometry = this.getDeviceTemplate(geometry_type, meshgroup.userData.e.type);
 
@@ -2038,7 +1868,7 @@ class WGL {
 
 			let vertex_base_index = 0;
 
-			template_geometry.shapes[g_index].elements.forEach((template_element) => {
+			template_geometry.subshapes[g_index].elements.forEach((template_element) => {
 				if(template_element.type === "vertex_list") {
 					for(let i = 0; i < template_element.v.length; i++) {
 						let tv = template_element.v[i];
@@ -2062,7 +1892,7 @@ class WGL {
 					vertex_base_index += template_element.v.length;
 				}
 			})
-			this.setGeometryUpdated([g[g_index]], template_geometry.shapes[g_index].flat_normals);
+			this.setGeometryUpdated([g[g_index]], template_geometry.subshapes[g_index].flat_normals);
 		}
 	}
 
@@ -2092,14 +1922,14 @@ class WGL {
 
 	getDeviceTextureByType(type, index) {
 		if(type in GEOMETRY.DEVICE) {
-			if(index in GEOMETRY.DEVICE[type].shapes)
-				return GEOMETRY.DEVICE[type].shapes[index].texture;
+			if(index in GEOMETRY.DEVICE[type].subshapes)
+				return GEOMETRY.DEVICE[type].subshapes[index].texture;
 			else
 				return null;
 		}
 		else {
-			if(index in GEOMETRY.DEVICE["UNKNOWN"].shapes)
-				return GEOMETRY.DEVICE["UNKNOWN"].shapes[index].texture;
+			if(index in GEOMETRY.DEVICE["UNKNOWN"].subshapes)
+				return GEOMETRY.DEVICE["UNKNOWN"].subshapes[index].texture;
 			else
 				return null;
 		}
@@ -2123,8 +1953,8 @@ class WGL {
 		if(shape_group < 1000) {
 			texture_base_path = staticurl + "/static/shapes/" + shape_group + "/";
 		}
-		for(let x = 0; x < device_template.shapes.length; x++)  {
-			textures.push(texture_base_path + device_template.shapes[x].texture);
+		for(let x = 0; x < device_template.subshapes.length; x++)  {
+			textures.push(texture_base_path + device_template.subshapes[x].texture);
 			submesh_id.push(x+1);
 		}
 		let group = this.createMeshGroup({
@@ -2133,7 +1963,7 @@ class WGL {
 			id: id,
 			e: e,
 			base: e.base,
-			num_submesh: device_template.shapes.length,
+			num_submesh: device_template.subshapes.length,
 			texture: textures, 
 			submesh_id: submesh_id,
 			color: [e.color1, e.color2],
@@ -3138,15 +2968,15 @@ class WGL {
 
 	getSymbolTextureByType(type, index) {
 		if(type in GEOMETRY.SYMBOL)
-			return GEOMETRY.SYMBOL[type].shapes[index].texture;
+			return GEOMETRY.SYMBOL[type].subshapes[index].texture;
 		else
-			return GEOMETRY.SYMBOL["UNKNOWN"].shapes[index].texture;
+			return GEOMETRY.SYMBOL["UNKNOWN"].subshapes[index].texture;
 	}
 
 	addSymbol(id, sceneid, e, alignToGrid) {
 		let symbol_template = this.getDeviceTemplate("SYMBOL", e.type);
 		let submesh_id = [];
-		for(let x = 0; x < symbol_template.shapes.length; x++)  {
+		for(let x = 0; x < symbol_template.subshapes.length; x++)  {
 			submesh_id.push(x+1);
 		}
 		let groupdata = {
@@ -3155,7 +2985,7 @@ class WGL {
 			id: id,
 			e: e,
 			base: e.base,
-			num_submesh: symbol_template.shapes.length,
+			num_submesh: symbol_template.subshapes.length,
 			texture: [
 				staticurl + "/static/textures/basic.png", 
 				staticurl + "/static/textures/basic.png",

@@ -1,9 +1,15 @@
 {
-	local_id: {
+	"name": "",
+	"description": "",
+	"category": "networking",											-> Current Categories: "networking", "servers", "clients", "security", "3dshapes"
+	"tags": [], 															-> user defined list of strings
+	"shapes":
+		local_id: {
 			name: "Name of shape",
+			type: "l3device",      										-> Options: "l3device", "l2device".
 			description: "A longer description of the shape",
 			base_scale: [1,1,1],
-			shapes: [
+			subshapes: [
 				{
 					color: 0xffffff,
 					flat_normals: false,
@@ -34,4 +40,5 @@
 				},
 			]
 		},
+	}
 }

@@ -1,4 +1,5 @@
 user_struct:
+    version: 1,
     session: {
         a66928e914b0ec87d8d29253de6ec0615c89d849d021b6b06535367f9fc32455: {
             user: "" if no user
@@ -42,16 +43,16 @@ user_struct:
             link_sharing: false,
         }
     }
-    shape: {
-        id: {
-            name:
-            owner: <email of owner>,
-            public: false,
-            icon: "sample.png"
+    shape_group_data: {
+        shape_group {
+            id: {
+                name:
+                description:
+                owner: <email of owner>,
+                public: false,
+                icon: "sample.png",
+                category: "",
+                tags: [],
+            }
         }
     }
-
-
-
-
-

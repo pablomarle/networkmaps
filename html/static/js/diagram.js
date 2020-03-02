@@ -27,14 +27,12 @@ function createDefaultDevice(x, y, z, type, base) {
 
         base: base,
     }
-
-    if((type in GEOMETRY.DEVICE) && ("color" in GEOMETRY.DEVICE[type])) {
-        dev.color1 = d.wgl.global_settings.format.use_standard_color ? GEOMETRY.DEVICE[type].color[0] : d.wgl.global_settings.format.color1;
-        dev.color2 = d.wgl.global_settings.format.use_standard_color ? GEOMETRY.DEVICE[type].color[1] : d.wgl.global_settings.format.color2;
-    }
-    else {
-        dev.color1 = d.wgl.global_settings.format.color1;
-        dev.color2 = d.wgl.global_settings.format.color2;        
+    dev.color1 = d.wgl.global_settings.format.color1;
+    dev.color2 = d.wgl.global_settings.format.color2;
+    if(type in GEOMETRY.DEVICE) {
+        dev.color1 = GEOMETRY.DEVICE[type].shapes[0].color;
+        if(GEOMETRY.DEVICE[type].shapes.length > 1)
+            dev.color2 = GEOMETRY.DEVICE[type].shapes[1].color;
     }
 
     return dev;
@@ -1916,9 +1914,40 @@ function init_diagram() {
                 });
 
                 // Create the toolbox to add the shapes on this shape group.
+                let toolbox_struct = {
+                    init_left: -190, left: -190, width: 170,
+                    name: "Add " + data.name + " elements.",
+                    components: [],
+                }
+                for(let key in data.shapes) {
+                    toolbox_struct.components.push({
+                        n: data.shapes[key].name,
+                        d: data.shapes[key].description,
+                        s: "AD" + shapegroup_id + "_" + key,
+                        il: path + key + ".png",
+                        f: null,
+                    })
+                }
+                init_window_addtoolbox(toolbox_struct);
+                d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
 
+/*        new_device_shapes: {
+            init_left: -190, left: -190, width: 170,
+            name: "Add Basic Shapes",
+            components: [
+                {n: "Cube",     s: "AD_BC",    i: "device_cube.png",      f: null},
+                {n: "Cube/2",     s: "AD_BC2",    i: "device_cube2.png",   f: null, d: "Half cube"},
+                {n: "Cylinder", s: "AD_BY",    i: "device_cylinder.png",      f: null},
+                {n: "Cylind/2", s: "AD_BY2",    i: "device_cylinder2.png",     f: null, d: "Half cylinder."},
+                {n: "Sphere",   s: "AD_BS",    i: "device_sphere.png",      f: null},
+                {n: "Cone",     s: "AD_BO",    i: "device_cone.png",      f: null},
+                {n: "Piramid",    s: "AD_BP",    i: "device_pyramid.png",      f: null},
+            ]},
+*/
                 // Add shapes to the list of available geometries and update the shapes on the diagram
                 d.wgl.addShapes("DEVICE", shapegroup_id, data);
+
+                position_elements(false);
             }
         };
     })
