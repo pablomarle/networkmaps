@@ -44,13 +44,13 @@ user_struct:
         }
     }
     shape_group_data: {
+        categories: ["3dshapes", "networking", "clients", "servers", "security"],
         shape_group {
             id: {
                 name:
                 description:
                 owner: <email of owner>,
                 public: false,
-                icon: "sample.png",
                 category: "",
                 tags: [],
             }

@@ -6,7 +6,7 @@
 	"shapes":
 		local_id: {
 			name: "Name of shape",
-			type: "l3device",      										-> Options: "l3device", "l2device".
+			type: "l3device",      										-> Options: "l3device", "l2device", "basic".
 			description: "A longer description of the shape",
 			base_scale: [1,1,1],
 			subshapes: [

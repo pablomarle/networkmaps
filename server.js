@@ -52,11 +52,11 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 					return;
 				}
 				else {
-                    sendMail(email, "MaSSHandra account has been confirmed.", 
-                                `Welcome to MaSSHandra.\n\nYour account has been activated.\n\n
+                    sendMail(email, "NetworkMaps account has been confirmed.", 
+                                `Welcome to NetworkMaps.\n\nYour account has been activated.\n\n
                                 A temporary password has been assigned to you:\n
                                 Username: ` + email + `\n
-                                Password: ` + newpassword + `\n\nRegards,\nPablo.`)
+                                Password: ` + newpassword + `\n\nRegards,\n`)
 					sendresponse(200, "text/html", html.user_validated(config), session.sessionid);
 					return;
 				}
@@ -80,7 +80,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 				}
 
 				else {
-                    sendMail(email, "MaSSHandra password has been reset.", 
+                    sendMail(email, "NetworkMaps password has been reset.", 
                         `Your password has been reset.\n\n
                         Username: ` + email + `\n
                         Password: ` + password + `\n`);
@@ -107,12 +107,21 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 			sendresponse(200, "text/html", html.diagram(config, surl[2]), session.sessionid);
 			return;
 		}
-		else if((url == "/favicon.ico") && (method === "GET")) {
+		else if((url === "/favicon.ico") && (method === "GET")) {
 			staticcontent.get("/static/img/favicon.ico", sendresponse, session.sessionid);
 		}
 		// Serving static content
 		else if ((config.serve_static_locally) && url.startsWith("/static/") && (method === "GET"))  {
 			staticcontent.get(url, sendresponse, session.sessionid);
+		}
+		// Get list of shapes available for this user
+		else if((url === "/3dshapes/list") && (method === "GET")) {
+			usermgt.listShapes(session.sessionid, (error, result) => {
+				if(error)
+					sendresponse(401, "application/json", JSON.stringify({error: error}), session.sessionid);
+				else
+					sendresponse(200, "application/json", JSON.stringify(result), session.sessionid);
+			})
 		}
 		// Get a group of 3d shapes
 		else if (url.startsWith("/3dshapes/") && (method === "GET")) {
@@ -122,7 +131,7 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 				staticcontent.get_file(path + "/" + surl[2] + "/" + surl[3], sendresponse, session.sessionid);
 			}
 			else {
-				sendresponse(404, "application/json", html.not_found(config), session.sessionid);
+				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
 				return;
 			}
 		}

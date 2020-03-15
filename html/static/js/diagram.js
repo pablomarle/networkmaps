@@ -30,9 +30,9 @@ function createDefaultDevice(x, y, z, type, base) {
     dev.color1 = d.wgl.global_settings.format.color1;
     dev.color2 = d.wgl.global_settings.format.color2;
     if(type in GEOMETRY.DEVICE) {
-        dev.color1 = GEOMETRY.DEVICE[type].shapes[0].color;
-        if(GEOMETRY.DEVICE[type].shapes.length > 1)
-            dev.color2 = GEOMETRY.DEVICE[type].shapes[1].color;
+        dev.color1 = GEOMETRY.DEVICE[type].subshapes[0].color;
+        if(GEOMETRY.DEVICE[type].subshapes.length > 1)
+            dev.color2 = GEOMETRY.DEVICE[type].subshapes[1].color;
     }
 
     return dev;
@@ -241,6 +241,27 @@ function process_message(message) {
             break;
         case "DT":
             d.wgl.dataMesh(message.d.v, message.d.t, message.d.i, message.d.infobox_type, message.d.data);
+            break;
+        case "S":
+            if(message.d.m === "L") {
+                d.list_shapegroups = message.d.d;
+                WIN_showShapeGroups(d.diagram_settings.shapes, d.list_shapegroups, sendAddShapeGroup, sendRemoveShapeGroup);
+            }
+            else if(message.d.m === "A") {
+                d.diagram_settings.shapes.push(message.d.id);
+                if(WIN_closeShapeGroups())
+                    WIN_showShapeGroups(d.diagram_settings.shapes, d.list_shapegroups, sendAddShapeGroup, sendRemoveShapeGroup);
+            }
+            else if(message.d.m === "D") {
+                for(let x = 0; x < d.diagram_settings.shapes.length; x++) {
+                    if(d.diagram_settings.shapes[x] === message.d.id) {
+                        d.diagram_settings.shapes.splice(x,1);
+                        break;
+                    }
+                }
+                if(WIN_closeShapeGroups())
+                    WIN_showShapeGroups(d.diagram_settings.shapes, d.list_shapegroups, sendAddShapeGroup, sendRemoveShapeGroup);
+            }
             break;
         case "E":
             DOM.showError("Error Received", message.d.error);
@@ -1256,6 +1277,43 @@ function sendDeleteJoint(view, element_type, link_id, joint_index) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
+function sendListShapeGroups() {
+    let message = {
+        m: "S",
+        d: {
+            m: "L",
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending shape list request to server.", true);
+}
+
+function sendAddShapeGroup(id) {
+    let message = {
+        m: "S",
+        d: {
+            m: "A",
+            id: id,
+        }
+    }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendRemoveShapeGroup(id) {
+    let message = {
+        m: "S",
+        d: {
+            m: "D",
+            id: id,
+        }
+    }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
 function animate() {
     let needs_redraw = false;
 
@@ -1833,6 +1891,10 @@ function toolbox_activatetool(tool) {
         WIN_showFormatSettingsText(d.wgl.global_settings.format, (win) => { d.wgl.updateFormatSettingsText(win) });
     else if(code === "FL")
         WIN_showFormatSettingsLink(d.wgl.global_settings.format, (win) => { d.wgl.updateFormatSettingsLink(win) });
+    else if(code === "ES") {
+        sendListShapeGroups();
+    }
+
     else {
         tool.className += " tool-active";
         d.dom.tools.active_t = code;
@@ -1893,6 +1955,8 @@ function init_diagram() {
     // Background
     d.wgl.setBGColor(d.diagram.settings.bg_color);
 
+    // Store diagram settings
+    d.diagram_settings = d.diagram.settings;
     // Load the shapes of this diagram
     d.diagram.settings.shapes.forEach((shapegroup_id) => {
         let path = "/3dshapes/" + shapegroup_id + "/";
@@ -1931,26 +1995,13 @@ function init_diagram() {
                 init_window_addtoolbox(toolbox_struct);
                 d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
 
-/*        new_device_shapes: {
-            init_left: -190, left: -190, width: 170,
-            name: "Add Basic Shapes",
-            components: [
-                {n: "Cube",     s: "AD_BC",    i: "device_cube.png",      f: null},
-                {n: "Cube/2",     s: "AD_BC2",    i: "device_cube2.png",   f: null, d: "Half cube"},
-                {n: "Cylinder", s: "AD_BY",    i: "device_cylinder.png",      f: null},
-                {n: "Cylind/2", s: "AD_BY2",    i: "device_cylinder2.png",     f: null, d: "Half cylinder."},
-                {n: "Sphere",   s: "AD_BS",    i: "device_sphere.png",      f: null},
-                {n: "Cone",     s: "AD_BO",    i: "device_cone.png",      f: null},
-                {n: "Piramid",    s: "AD_BP",    i: "device_pyramid.png",      f: null},
-            ]},
-*/
                 // Add shapes to the list of available geometries and update the shapes on the diagram
                 d.wgl.addShapes("DEVICE", shapegroup_id, data);
 
                 position_elements(false);
             }
         };
-    })
+    });
     // ********************************
     // Draw the L2 diagram
     // ********************************
@@ -2256,7 +2307,6 @@ function mousedown(x, y, dx, dy, dom_element) {
                 mouse_px: x,
                 mouse_py: y,
             }
-            console.log(objlist[0].mesh.userData.e.px)
         }
         else if((objlist.length > 0) && (["link", "l2link", "interface", "svi_interface", "p2p_interface"].indexOf(objlist[0].mesh.userData.type) !== -1) && 
                 (objlist[0].mesh.userData.e.type === 0)) {

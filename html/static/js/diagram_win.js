@@ -255,6 +255,20 @@ function WIN_input_nopropagate(event) {
 		event.stopPropagation();
 }
 
+function WIN_destroy(view, type, obj_id) {
+	let id = view + "_" + type + "_" + obj_id;
+
+	for(let x = 0; x < WIN_data.l.length; x++) {
+		if(WIN_data.l[x].id == id) {
+			DOM.removeElement(WIN_data.l[x].w);
+			WIN_data.l.splice(x,1);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 function WIN_create(view, type, obj_id, title, width, height) {
 	let id = view + "_" + type + "_" + obj_id;
 
@@ -334,9 +348,20 @@ function WIN_addSection(win, px, py) {
 	return d;
 }
 
-function WIN_addLabel(win, px, py, label) {
+function WIN_addLabel(win, px, py, label, width) {
 	let l = DOM.cdiv(win, null, "win_label", label);
 	DOM.setElementPos(l, px, py);
+	if(width)
+		l.style.width = "" + width + "px";
+
+	return l;
+}
+
+function WIN_addText(win, px, py, label, width) {
+	let l = DOM.cdiv(win, null, null, label);
+	DOM.setElementPos(l, px, py);
+	if(width)
+		l.style.width = "" + width + "px";
 
 	return l;
 }
@@ -688,6 +713,60 @@ function WIN_addDictList(win, px, py, sx, sy, label, value, fields, changelength
 	}
 
 	WIN_dictListDraw(container, changelength_callback);
+
+	return value_element;
+}
+
+function WIN_addSelectList(win, px, py, sx, sy, label, value, fields, description_field, select_callback) {
+	let container = DOM.cdiv(win);
+	DOM.setElementPos(container, px+10, py+16);
+	container.style.width = "" + (sx-10) + "px";
+	container.style.height = "" + (sy-16) + "px";
+	container.style.overflow = "hidden auto";
+
+	let value_element = DOM.ci_text(container, null, "dictlist_value");
+	DOM.setElementPos(value_element, 0, 0);
+	value_element.value = JSON.stringify(value);
+	value_element.style.display = "none";
+
+	let fields_element = DOM.ci_text(container, null, "dictlist_fields");
+	DOM.setElementPos(fields_element, 0, 0);
+	fields_element.value = JSON.stringify(fields);
+	fields_element.style.display = "none";
+
+	// Add Labels
+	WIN_addLabel(win, px, py, label, sx)
+
+	let listfields = Object.keys(fields);
+
+	let mc = DOM.cdiv(container, null, "selectlist_headerc");
+	DOM.setElementPos(mc, 0, 0);
+	for(let key in fields) {
+		let l = DOM.cdiv(mc, null, "selectlist_header", fields[key].name);
+		l.style.width = "" + fields[key].width + "px";
+	}
+
+	let mc1 = DOM.cdiv(container, null, "selectlist_headerc");
+	DOM.setElementPos(mc1, 0, 18);
+	mc1.style.width = "" + (sx-14) + "px";
+	mc1.style.height = "" + (sy-36) + "px";
+	mc1.style.overflow = "hidden auto";
+	mc1.style.border = "1px solid #888";
+
+	let count = 0;
+	for(let id in value) {
+		mc = DOM.cdiv(mc1, null, "selectlist_minic");
+		WIN_addBasicMouseDescriptionActions(mc, value[id][description_field]);
+		mc.addEventListener("click", () => {
+			select_callback(id);
+		})
+		DOM.setElementPos(mc, 0, count * 20);
+		for(let y = 0; y < listfields.length; y++) {
+			let d = DOM.cdiv(mc, null, "selectlist_value", value[id][listfields[y]]);
+			d.style.width = "" + fields[listfields[y]].width + "px";
+		}
+		count++;
+	}
 
 	return value_element;
 }
@@ -1581,4 +1660,41 @@ function WIN_showData(view, type, id, e, callback) {
 	wdata.d.apply = WIN_addButton(w, 230, 250, "Apply", () => {
 		callback(wdata);
 	}, "Apply changes.");	
+}
+
+function WIN_closeShapeGroups() {
+	return WIN_destroy("global", "shape", "list");
+}
+
+function WIN_showShapeGroups(diagram_shapegroups, networkmaps_shapegroups, callback_addshapegroup, callback_removeshapegroup) {
+	let wdata = WIN_create("global", "shape", "list", "Edit Shapes available on this diagram", 560, 200);
+	if(!wdata)
+		return;
+	let w = wdata.w;
+
+	// Create the struct to show existing and available shape groups
+	let existing = {}, available = {};
+	for(let id in networkmaps_shapegroups) {
+		if(diagram_shapegroups.indexOf(id) === -1)
+			available[id] = networkmaps_shapegroups[id];
+		else
+			existing[id] = networkmaps_shapegroups[id];
+	}
+
+	wdata.d.callback_addshapegroup = callback_addshapegroup;
+	wdata.d.callback_removeshapegroup = callback_removeshapegroup;
+
+	wdata.d.existing = WIN_addSelectList(w, 10, 20, 240, 150, "Shape Groups on this diagram", existing, {
+		"name": {name: "Shape Name", width: 100},
+		//"description": {name: "Description", width: 400},
+		"category": {name: "Category", width: 100},
+	}, "description", callback_removeshapegroup);
+
+	wdata.d.available = WIN_addSelectList(w, 300, 20, 240, 150, "Select Shape Groups to Add", available, {
+		"name": {name: "Shape Name", width: 100},
+		//"description": {name: "Description", width: 400},
+		"category": {name: "Category", width: 100},
+	}, "description", callback_addshapegroup);
+
+	WIN_addText(w, 10, 180, "Click on a shape group to move it between boxes.", 520)
 }

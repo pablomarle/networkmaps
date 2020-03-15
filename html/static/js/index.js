@@ -429,8 +429,8 @@ function screen_about_us() {
     a.href = "https://github.com/pablomarle/networkmaps";
     a.target = "_blank";
     div2 = DOM.cdiv(div, null, "aboutus", "If you are interested in the project, let me know: ");
-    a = DOM.c(div2, "a", null, null, "pablo@masshandra.com");
-    a.href = "mailto:pablo@masshandra.com";
+    a = DOM.c(div2, "a", null, null, "pablo@networkmaps.org");
+    a.href = "mailto:pablo@networkmaps.org";
     DOM.cdiv(div, null, "aboutus", "Do you want to help in the development?");
     ul = DOM.c(div, "ul");
     DOM.c(ul, "li", null, null, "Make a donation.");

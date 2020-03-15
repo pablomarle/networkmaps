@@ -20,8 +20,9 @@ MENU = {
                 {n: "Delete",   s: "ED",    i: "delete.png",    f: null, d: "Delete an element of the diagram\nQuick access key: 'c'", q: "KeyC"},
                 {n: "Base",     s: null,    i: "base.png",      f: "base_change", d: "Modify Floors and walls."},
                 {n: "Format",   s: null,    i: "brush.png",     f: "format", d: "Format Elements, links, text and symbols."},
-                {n: "V.Move",   s: "EMV",   i: "move_v.png",    f: null, d: "Move diagram elements vertically.\nCurrently only available for Symbols."},
+                {n: "V.Move",   s: "EMV",   i: "move_v.png",    f: null, d: "Move diagram elements vertically."},
                 {n: "Data",     s: "EDT",   i: "text.png",      f: null, d: "Element Data and Mouse Over Info."},
+                {n: "Shapes",   s: "ES",    i: "element_b.png",   f: null, d: "Add and remove groups of 3D shapes that are available on this diagram.\nA shape group is a collection of \"objects\" that can be added to the diagram with the \"New elements\" tool."},
             ]},
         format: {
             init_left: -142, left: -142, width: 128,

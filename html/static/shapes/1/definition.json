@@ -7,6 +7,7 @@
 		"0": {
 			"name": "Cube",
 			"description": "Cube",
+			"type": "basic",
 			"base_scale": [1, 1, 1],
 			"subshapes": [
 				{
@@ -28,6 +29,7 @@
 		"1": {
 			"name": "Cube/2",
 			"description": "Half Cube",
+			"type": "basic",
 			"base_scale": [1, 1, 1],
 			"subshapes": [
 				{
@@ -49,6 +51,7 @@
 		"2": {
 			"name": "Cylinder",
 			"description": "Cylinder",
+			"type": "basic",
 			"base_scale": [1, 1, 1],
 			"subshapes": [
 				{
@@ -84,6 +87,7 @@
 		"3": {
 			"name": "Cylind/2",
 			"description": "Half Cylinder",
+			"type": "basic",
 			"base_scale": [1,0.4,1],
 			"subshapes": [
 				{
@@ -119,6 +123,7 @@
 		"4": {
 			"name": "Sphere",
 			"description": "Sphere",
+			"type": "basic",
 			"base_scale": [1,1,1],
 			"subshapes": [
 				{
@@ -140,6 +145,7 @@
 		"5": {
 			"name": "Cone",
 			"description": "Cone",
+			"type": "basic",
 			"base_scale": [1,1,1],
 			"subshapes": [
 				{
@@ -161,6 +167,7 @@
 		"6": {
 			"name": "Pyramid",
 			"description": "Pyramid",
+			"type": "basic",
 			"base_scale": [0.8,1,0.8],
 			"subshapes": [
 				{
