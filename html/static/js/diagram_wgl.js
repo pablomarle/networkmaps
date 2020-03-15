@@ -156,13 +156,13 @@ class WGL {
 			current: "persp",
 		}
 
-		this.camera.L2.persp.position.y = 30;
-		this.camera.L2.persp.position.z = 30;
+		this.camera.L2.persp.position.y = 50;
+		this.camera.L2.persp.position.z = 50;
 		this.camera.L2.persp.rotation.x = -Math.PI/4.0;
 		this.camera.L2.persp.rotation.order="YXZ";
 
-		this.camera.L3.persp.position.y = 30;
-		this.camera.L3.persp.position.z = 30;
+		this.camera.L3.persp.position.y = 50;
+		this.camera.L3.persp.position.z = 50;
 		this.camera.L3.persp.rotation.x = -Math.PI/4.0;
 		this.camera.L3.persp.rotation.order="YXZ";
 
@@ -335,7 +335,7 @@ class WGL {
 							}
 						})
 					}
-				});					
+				});
 			}
 			// Remove and re add devices and vrfs
 			to_update.forEach((meshgroup) => {
@@ -345,6 +345,44 @@ class WGL {
 			});
 		}
 	}
+
+	removeShapes(geometry_type, shapegroup_id) {
+		for(let dev_type in GEOMETRY[geometry_type]) {
+			if(dev_type.split("_")[0] === shapegroup_id) {
+				let to_update = [];
+				delete GEOMETRY[geometry_type][dev_type];			
+				if(geometry_type === "DEVICE") {
+					// Mark devices that need to be updated
+					this.scene.L2.children.forEach((base_element) => {
+						if(base_element.userData.type === "base") {
+							base_element.children.forEach((meshgroup) => {
+								if((meshgroup.userData.type === "device") && (meshgroup.userData.e.type === dev_type)) {
+									to_update.push(meshgroup);
+								}
+							})
+						}
+					});
+					// Mark vrfs that need to be updated
+					this.scene.L3.children.forEach((base_element) => {
+						if(base_element.userData.type === "base") {
+							base_element.children.forEach((meshgroup) => {
+								if((meshgroup.userData.type === "vrf") && (meshgroup.userData.e.type === dev_type)) {
+									to_update.push(meshgroup);
+								}
+							})
+						}
+					});
+				}
+				// Remove and re add devices and vrfs
+				to_update.forEach((meshgroup) => {
+					let base_element = meshgroup.parent;
+					base_element.remove(meshgroup);
+					this.addDevice(meshgroup.userData.type, meshgroup.userData.id, (meshgroup.userData.type === "device") ? "L2" : "L3", meshgroup.userData.e, false);
+				});
+			}
+		}
+	}
+
 	// ***********************************************
 	// Camera Functions
 	// ***********************************************

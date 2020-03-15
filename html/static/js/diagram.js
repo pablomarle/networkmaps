@@ -249,10 +249,12 @@ function process_message(message) {
             }
             else if(message.d.m === "A") {
                 d.diagram_settings.shapes.push(message.d.id);
+                load_shapegroup(message.d.id);
                 if(WIN_closeShapeGroups())
                     WIN_showShapeGroups(d.diagram_settings.shapes, d.list_shapegroups, sendAddShapeGroup, sendRemoveShapeGroup);
             }
             else if(message.d.m === "D") {
+                unload_shapegroup(message.d.id);
                 for(let x = 0; x < d.diagram_settings.shapes.length; x++) {
                     if(d.diagram_settings.shapes[x] === message.d.id) {
                         d.diagram_settings.shapes.splice(x,1);
@@ -1951,6 +1953,63 @@ function init_wgl() {
     d.wgl.setView("L2");
 }
 
+function unload_shapegroup(shapegroup_id) {
+    // Remove the tool to add shapes on this shapegroup on the "add device" tool
+    for(let x = 0; x < d.dom.tools.toolboxes["new_device"].dom.children.length; x++) {
+        let e = d.dom.tools.toolboxes["new_device"].dom.children[x];
+        if(e.getAttribute("data-newtoolbox") === ("new_device_" + shapegroup_id)) {
+            DOM.removeElement(e);
+            break;
+        }
+    }
+    d.wgl.removeShapes("DEVICE", shapegroup_id);
+}
+
+function load_shapegroup(shapegroup_id) {
+    let path = "/3dshapes/" + shapegroup_id + "/";
+    if(shapegroup_id < 1000)
+        path = staticurl + "/static/shapes/" + shapegroup_id + "/";
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", path + "definition.json", true);
+    xmlhttp.send();
+    xmlhttp.onreadystatechange = () => {
+        if(xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            // Add tool too add shapes on this shape group on the "add device" tool
+            let data = JSON.parse(xmlhttp.responseText);
+            init_window_addtool(d.dom.tools.toolboxes["new_device"].dom, {
+                n: data.name,
+                s: null,
+                il: path + "0.png",
+                f: "new_device_" + shapegroup_id,
+                d: data.description ? data.description : "",
+            });
+
+            // Create the toolbox to add the shapes on this shape group.
+            let toolbox_struct = {
+                init_left: -190, left: -190, width: 170,
+                name: "Add " + data.name + " elements.",
+                components: [],
+            }
+            for(let key in data.shapes) {
+                toolbox_struct.components.push({
+                    n: data.shapes[key].name,
+                    d: data.shapes[key].description,
+                    s: "AD" + shapegroup_id + "_" + key,
+                    il: path + key + ".png",
+                    f: null,
+                })
+            }
+            init_window_addtoolbox(toolbox_struct);
+            d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
+
+            // Add shapes to the list of available geometries and update the shapes on the diagram
+            d.wgl.addShapes("DEVICE", shapegroup_id, data);
+
+            position_elements(false);
+        }
+    };
+}
+
 function init_diagram() {
     // Background
     d.wgl.setBGColor(d.diagram.settings.bg_color);
@@ -1959,48 +2018,7 @@ function init_diagram() {
     d.diagram_settings = d.diagram.settings;
     // Load the shapes of this diagram
     d.diagram.settings.shapes.forEach((shapegroup_id) => {
-        let path = "/3dshapes/" + shapegroup_id + "/";
-        if(shapegroup_id < 1000)
-            path = staticurl + "/static/shapes/" + shapegroup_id + "/";
-        let xmlhttp = new XMLHttpRequest();
-        xmlhttp.open("GET", path + "definition.json", true);
-        xmlhttp.send();
-        xmlhttp.onreadystatechange = () => {
-            if(xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-                // Add tool too add shapes on this shape group on the "add device" tool
-                let data = JSON.parse(xmlhttp.responseText);
-                init_window_addtool(d.dom.tools.toolboxes["new_device"].dom, {
-                    n: data.name,
-                    s: null,
-                    il: path + "0.png",
-                    f: "new_device_" + shapegroup_id,
-                    d: data.description ? data.description : "",
-                });
-
-                // Create the toolbox to add the shapes on this shape group.
-                let toolbox_struct = {
-                    init_left: -190, left: -190, width: 170,
-                    name: "Add " + data.name + " elements.",
-                    components: [],
-                }
-                for(let key in data.shapes) {
-                    toolbox_struct.components.push({
-                        n: data.shapes[key].name,
-                        d: data.shapes[key].description,
-                        s: "AD" + shapegroup_id + "_" + key,
-                        il: path + key + ".png",
-                        f: null,
-                    })
-                }
-                init_window_addtoolbox(toolbox_struct);
-                d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
-
-                // Add shapes to the list of available geometries and update the shapes on the diagram
-                d.wgl.addShapes("DEVICE", shapegroup_id, data);
-
-                position_elements(false);
-            }
-        };
+        load_shapegroup(shapegroup_id);
     });
     // ********************************
     // Draw the L2 diagram
