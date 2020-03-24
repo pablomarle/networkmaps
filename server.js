@@ -23,7 +23,7 @@ function sendMail(to, subject, content) {
         });
 }
 
-function HTTP_callback(method, url, sessionid, sendresponse) {
+function HTTP_callback(method, url, sessionid, content_type, body, sendresponse) {
 	usermgt.getSession(sessionid, (error, session) => {
 		if(error) {
 			sendresponse(500, "text/html", html.not_found(config), "");
@@ -114,14 +114,24 @@ function HTTP_callback(method, url, sessionid, sendresponse) {
 		else if ((config.serve_static_locally) && url.startsWith("/static/") && (method === "GET"))  {
 			staticcontent.get(url, sendresponse, session.sessionid);
 		}
+		// Serving the screen to manage shapegroups
+		else if((url === "/shapegroups") && (method === "GET")) {
+			sendresponse(200, "text/html", html.shapegroups(config), session.sessionid);
+			return;
+		}
 		// Get list of shapes available for this user
-		else if((url === "/3dshapes/list") && (method === "GET")) {
+		else if((url === "/shapegroups/list") && (method === "GET")) {
 			usermgt.listShapes(session.sessionid, (error, result) => {
 				if(error)
 					sendresponse(401, "application/json", JSON.stringify({error: error}), session.sessionid);
 				else
 					sendresponse(200, "application/json", JSON.stringify(result), session.sessionid);
 			})
+		}
+		// Create a group of 3d shapes
+		else if((url === "/shapegroups/new") && (method === "POST")) {
+			console.log(content_type)
+			console.log(body);
 		}
 		// Get a group of 3d shapes
 		else if (url.startsWith("/3dshapes/") && (method === "GET")) {
