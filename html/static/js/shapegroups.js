@@ -80,12 +80,12 @@ function screen_init() {
 }
 
 function screen_init_shapegroups() {
-    DOM.removeChilds(shapegroups_data.dom_shapegroups);
+    DOM.removeChilds(shapegroups_data.dom_shapegroups, true);
 
-    for(let key in shapegroups_data.shapegroups) if(!shapegroups_data.shapegroups[key].am_i_owner) {
+    for(let key in shapegroups_data.shapegroups) if(shapegroups_data.shapegroups[key].am_i_owner) {
         let element = shapegroups_data.shapegroups[key];
         let div = DOM.cdiv(shapegroups_data.dom_shapegroups, null, "diagram");
-        let i = DOM.cdiv(div, null, "diagram_name", DOM.esc(element.name) + " (" + DOM.esc(element.category) + ")");
+        let i = DOM.cdiv(div, null, "diagram_name", element.name + " (" + DOM.esc(element.category) + ")");
         set_node_infobox(i, element.description + "<br>Owner: " + element.owner);
         i.setAttribute("data-key", key);
         i.addEventListener("click", (e) => {
@@ -98,15 +98,103 @@ function screen_init_shapegroups() {
             set_node_infobox(dom_delete, "Delete Shape Group");
                 DOM.cimg(dom_delete, staticurl + "/static/img/delete.png", null, "diagram_button_img");
             dom_delete.setAttribute("data-key", key);
-            dom_delete.addEventListener("click", (e) => {
-            });
+            dom_delete.addEventListener("click", screen_delete);
+
+            // Settings button
+            let dom_settings = DOM.cdiv(dom_actions, null, "diagram_button");
+            set_node_infobox(dom_settings, "Settings Shape Group");
+                DOM.cimg(dom_settings, staticurl + "/static/img/settings.png", null, "diagram_button_img");
+            dom_settings.setAttribute("data-key", key);
+            dom_settings.addEventListener("click", screen_settings);
 
     }
 }
 
+function screen_settings() {
+    let div, body, t, tr, td;
+    let key = this.getAttribute("data-key");
+    let shapegroup = shapegroups_data.shapegroups[key];
+
+    let category_options = [];
+    for(let x = 0; x < SHAPEGROUP_CATEGORIES.length; x++)
+        category_options.push([SHAPEGROUP_CATEGORIES[x], SHAPEGROUP_CATEGORIES[x]]);
+
+    div = add_message_box("Settings Shape Group");
+    t = DOM.ctable(div, null, "t_center");
+        tr = DOM.ctr(t);
+            td = DOM.ctd(tr, null, null, "Name");
+            td = DOM.ctd(tr);
+            shapegroups_data.dom_name = DOM.ci_text(td, null, "input");
+            shapegroups_data.dom_name.style.width = "230px";
+            shapegroups_data.dom_name.value = shapegroup.name;
+        tr = DOM.ctr(t);
+            td = DOM.ctd(tr, null, null, "Description");
+            td = DOM.ctd(tr);
+            shapegroups_data.dom_description = DOM.ci_text(td, null, "input");
+            shapegroups_data.dom_description.style.width = "230px";
+            shapegroups_data.dom_description.value = shapegroup.description;
+        tr = DOM.ctr(t);
+            td = DOM.ctd(tr, null, null, "Category");
+            td = DOM.ctd(tr);
+            shapegroups_data.dom_category = DOM.cselect(td, null, "input", category_options);
+            shapegroups_data.dom_category.style.width = "230px";
+            shapegroups_data.dom_category.value = shapegroup.category;
+        tr = DOM.ctr(t);
+            td = DOM.ctd(tr);
+                DOM.cbutton(td, null, "button", "Update", null, update_shape_group)
+                    .setAttribute("data-key", key);
+                DOM.cbutton(td, null, "button", "Cancel", null, () => {
+                    delete_message_box();
+                });
+
+            td.colSpan = "2";
+}
+
+function update_shape_group() {
+    let key = this.getAttribute("data-key");
+    let name = shapegroups_data.dom_name.value;
+    let description = shapegroups_data.dom_description.value;
+    let category = shapegroups_data.dom_category.value;
+
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", "/shapegroups/update", true);
+    xmlhttp.setRequestHeader("Content-Type", "application/json");
+    xmlhttp.send(JSON.stringify({
+        "id": key,
+        "name": name,
+        "description": description,
+        "category": category,
+    }));
+    xmlhttp.onreadystatechange = () => {
+        if(xmlhttp.readyState == 4) {
+            if(xmlhttp.status == 200) {
+                let data = JSON.parse(xmlhttp.responseText);
+                if("error" in data) {
+                    DOM.showError("Error", data.error);
+                }
+                else {
+                    delete_message_box();
+                    shapegroups_data.shapegroups[key].name = name;
+                    shapegroups_data.shapegroups[key].description = description;
+                    shapegroups_data.shapegroups[key].category = category;
+                    screen_init_shapegroups();
+                }
+            }
+            else {
+                DOM.showError("Connection Error", "There was an error sending the request: " + xmlhttp.status);
+            }
+        }
+    };
+}
+
 function screen_create_new() {
     let div, t, tr, td;
-    div = add_message_box("New Shape Group")
+
+    let category_options = [];
+    for(let x = 0; x < SHAPEGROUP_CATEGORIES.length; x++)
+        category_options.push([SHAPEGROUP_CATEGORIES[x], SHAPEGROUP_CATEGORIES[x]]);
+
+    div = add_message_box("New Shape Group");
     t = DOM.ctable(div, null, "t_center");
         tr = DOM.ctr(t);
             td = DOM.ctd(tr, null, null, "Name");
@@ -114,15 +202,14 @@ function screen_create_new() {
             shapegroups_data.dom_name = DOM.ci_text(td, null, "input");
             shapegroups_data.dom_name.style.width = "230px";
         tr = DOM.ctr(t);
+            td = DOM.ctd(tr, null, null, "Description");
+            td = DOM.ctd(tr);
+            shapegroups_data.dom_description = DOM.ci_text(td, null, "input");
+            shapegroups_data.dom_description.style.width = "230px";
+        tr = DOM.ctr(t);
             td = DOM.ctd(tr, null, null, "Category");
             td = DOM.ctd(tr);
-            shapegroups_data.dom_category = DOM.cselect(td, null, "input", [
-                ["3dshapes","3dshapes"],
-                ["networking","networking"],
-                ["clients","clients"],
-                ["servers","servers"],
-                ["security","security"],
-            ]);
+            shapegroups_data.dom_category = DOM.cselect(td, null, "input", category_options);
             shapegroups_data.dom_category.style.width = "230px";
 
         tr = DOM.ctr(t);
@@ -137,6 +224,7 @@ function screen_create_new() {
 
 function create_shape_group() {
     let name = shapegroups_data.dom_name.value;
+    let description = shapegroups_data.dom_description.value;
     let category = shapegroups_data.dom_category.value;
 
     let xmlhttp = new XMLHttpRequest();
@@ -144,14 +232,70 @@ function create_shape_group() {
     xmlhttp.setRequestHeader("Content-Type", "application/json");
     xmlhttp.send(JSON.stringify({
         "name": name,
+        "description": description,
         "category": category,
     }));
     xmlhttp.onreadystatechange = () => {
-        if(xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            let data = JSON.parse(xmlhttp.responseText);
+        if(xmlhttp.readyState == 4) {
+            if(xmlhttp.status == 200) {
+                let data = JSON.parse(xmlhttp.responseText);
+                if("error" in data) {
+                    DOM.showError("Error", data.error);
+                }
+                else {
+                    delete_message_box();
+                    shapegroups_data.shapegroups[data.key] = data.data;
+                    shapegroups_data.shapegroups[data.key].am_i_owner = true;
+                    screen_init_shapegroups();
+                }
+            }
+            else {
+                DOM.showError("Connection Error", "There was an error sending the request: " + xmlhttp.status);
+            }
         }
-        else {
-            DOM.showError("Connection Error", "There was an error sending the request: " + xmlhttp.status);
+    };
+}
+
+function screen_delete() {
+    let div, body, t, tr, td, i, form;
+    let key = this.getAttribute("data-key");
+    
+    div = add_message_box("Delete Shape Group")
+        DOM.cdiv(div, null, "paragraph", "Are you sure you want to delete this shape group?")
+        DOM.cdiv(div, null, "paragraph", "This action can't be undone")
+        t = DOM.cdiv(div, null, "t_center");
+            i = DOM.cbutton(t, null, "button", "Yes", null, () => {
+                delete_shape_group(key);
+            });
+            i.setAttribute("data-key", key);
+            DOM.cbutton(t, null, "button", "No", null, () => {
+                delete_message_box();
+            });
+}
+
+function delete_shape_group(key) {
+    let xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", "/shapegroups/delete", true);
+    xmlhttp.setRequestHeader("Content-Type", "application/json");
+    xmlhttp.send(JSON.stringify({
+        "id": key,
+    }));
+    xmlhttp.onreadystatechange = () => {
+        if(xmlhttp.readyState == 4) {
+            if(xmlhttp.status == 200) {
+                let data = JSON.parse(xmlhttp.responseText);
+                if("error" in data) {
+                    DOM.showError("Error", data.error);
+                }
+                else {
+                    delete_message_box();
+                    delete shapegroups_data.shapegroups[key];
+                    screen_init_shapegroups();
+                }
+            }
+            else {
+                DOM.showError("Connection Error", "There was an error sending the request: " + xmlhttp.status);
+            }
         }
     };
 }

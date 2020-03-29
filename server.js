@@ -11,7 +11,8 @@ const usermgt = new UserMGT(
 	config.timers.usertimeout,
 	config.timers.usersavetimeout,
 	config.timers.ldap_grouprefresh,
-	config.users
+	config.users,
+	config.diagrams.shapes,
 );
 const fs = require('fs');
 
@@ -116,7 +117,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 		}
 		// Serving the screen to manage shapegroups
 		else if((url === "/shapegroups") && (method === "GET")) {
-			sendresponse(200, "text/html", html.shapegroups(config), session.sessionid);
+			sendresponse(200, "text/html", html.shapegroups(config, usermgt.data.shape_group_data.categories), session.sessionid);
 			return;
 		}
 		// Get list of shapes available for this user
@@ -130,8 +131,52 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 		}
 		// Create a group of 3d shapes
 		else if((url === "/shapegroups/new") && (method === "POST")) {
-			console.log(content_type)
-			console.log(body);
+			let new_data;
+			try {
+				new_data = JSON.parse(body);
+			} catch {
+				sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
+				return;
+			}
+			usermgt.newShape(session.sessionid, new_data.name, new_data.description, new_data.category, (err, result) => {
+				if(err) {
+					sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+					return;
+				}
+				sendresponse(200, "application/json", JSON.stringify(result));
+			})
+		}
+		else if((url === "/shapegroups/delete") && (method === "POST")) {
+			let new_data;
+			try {
+				new_data = JSON.parse(body);
+			} catch {
+				sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
+				return;
+			}
+			usermgt.deleteShape(session.sessionid, new_data.id, (err, result) => {
+				if(err) {
+					sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+					return;
+				}
+				sendresponse(200, "application/json", "{}");
+			})
+		}
+		else if((url === "/shapegroups/update") && (method === "POST")) {
+			let new_data;
+			try {
+				new_data = JSON.parse(body);
+			} catch {
+				sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
+				return;
+			}
+			usermgt.updateShape(session.sessionid, new_data.id, new_data.name, new_data.description, new_data.category, (err, result) => {
+				if(err) {
+					sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+					return;
+				}
+				sendresponse(200, "application/json", "{}");
+			})
 		}
 		// Get a group of 3d shapes
 		else if (url.startsWith("/3dshapes/") && (method === "GET")) {
