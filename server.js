@@ -24,6 +24,92 @@ function sendMail(to, subject, content) {
         });
 }
 
+function multiIndexOf(s, m) {
+	let result = [];
+
+	let i = s.indexOf(m);
+	while(i !== -1) {
+		result.push(i);
+		i = s.indexOf(m, i+1);
+	}
+	return result;
+}
+
+function findLineWith(s, m, i_start, i_end) {
+	let lindex = s.indexOf(m, i_start);
+	if((lindex === -1) || (lindex >= i_end))
+		return null;
+	lindex_end = s.indexOf("\r\n", lindex);
+	if(lindex_end === -1)
+		lindex_end = i_end;
+
+	return s.substring(lindex, lindex_end);
+}
+
+function findContent(s, i_start, i_end) {
+	let lindex = s.indexOf("\r\n\r\n");
+	if((lindex === -1) || (lindex >= i_end))
+		return null;
+	return lindex + 4;
+}
+
+function removeDoubleQuote(s) {
+	if(s.length === 0)
+		return s;
+	if(s[0] === "\"") {
+		if((s.length > 2) && (s[s.length-1] === "\""))
+			return s.substr(1, s.length-2);
+		else
+			return null;
+	}
+
+	return s;
+}
+
+function process_multipart_formdata(content_type, body) {
+	let result = {};
+
+	let sct = content_type.split(";");
+	if((sct.length < 2) || (sct[0] !== "multipart/form-data"))
+		return null;
+
+	let boundary = null;
+	for(let x = 0; x < sct.length; x++) {
+		let sct_2 = sct[x].trim().split("=");
+		if((sct_2.length === 2) && (sct_2[0] === "boundary"))
+			boundary = sct_2[1];
+	}
+	if(boundary === null) return null;
+
+	let boundary_index = multiIndexOf(body, "--" + boundary);
+	for(let x = 0; x < boundary_index.length-1; x++) {
+		// Find file name and parameter name in content-disposition
+		let filename = null, name = null;
+		let cd = findLineWith(body, "Content-Disposition: form-data", boundary_index[x], boundary_index[x+1]);
+		let scd = cd.split(";");
+		for(let y = 1; y < scd.length; y++) {
+			let scd_2 = scd[y].trim().split("=");
+			if((scd_2.length === 2) && (scd_2[0] === "filename"))
+				filename = removeDoubleQuote(scd_2[1]);
+			if((scd_2.length === 2) && (scd_2[0] === "name"))
+				name = removeDoubleQuote(scd_2[1]);
+		}
+		if((filename === null) || (name === null))
+			return null;
+
+		// Find the start and end index of the file contents
+		let cindex = findContent(body, boundary_index[x], boundary_index[x+1])
+
+		result[name] = {
+			filename: filename,
+			content_index_start: cindex,
+			content_index_end: boundary_index[x+1] - 2,
+		}
+	}
+
+	return result;
+}
+
 function HTTP_callback(method, url, sessionid, content_type, body, sendresponse) {
 	usermgt.getSession(sessionid, (error, session) => {
 		if(error) {
@@ -146,6 +232,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 				sendresponse(200, "application/json", JSON.stringify(result));
 			})
 		}
+		// Delete a shapegroup
 		else if((url === "/shapegroups/delete") && (method === "POST")) {
 			let new_data;
 			try {
@@ -162,6 +249,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 				sendresponse(200, "application/json", "{}");
 			})
 		}
+		// Update properties of a shapegroup (name, description, category)
 		else if((url === "/shapegroups/update") && (method === "POST")) {
 			let new_data;
 			try {
@@ -177,6 +265,86 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 				}
 				sendresponse(200, "application/json", "{}");
 			})
+		}
+		// Shapegroup editor
+		else if (url.startsWith("/shapegroups/edit/") && (method === "GET")) {
+			let surl = url.split("/");
+			if(surl.length === 4) {
+				let key = surl[3];
+				if(key in usermgt.data.shape_group_data.shape_group) {
+					sendresponse(200, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+				}
+				else {
+					sendresponse(404, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+				}
+			}
+			else {
+				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+			}
+		}
+		// Remove texture from shapegroup
+		else if((url === "/shapegroups/removetexture") && (method === "POST")) {
+			let new_data;
+			try {
+				new_data = JSON.parse(body);
+			} catch {
+				sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
+				return;
+			}
+			usermgt.removeShapeTexture(session.sessionid, new_data.key, new_data.filename, (err) => {
+				if(err) {
+					sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+					return;
+				}
+				sendresponse(200, "application/json", "{}");
+			})
+		}
+		// Upload texture to shapegroup
+		else if (url.startsWith("/shapegroups/uploadtexture/") && (method === "POST")) {
+			let surl = url.split("/");
+			if(surl.length === 4) {
+				let key = surl[3];
+				if(key in usermgt.data.shape_group_data.shape_group) {
+					let result = process_multipart_formdata(content_type, body);
+					if(result === null) {
+						sendresponse(400, "text/plain", "Invalid request", session.sessionid);
+						return;
+					}
+					else {
+						if("img" in result) {
+							usermgt.uploadShapeTexture(
+								session.sessionid,
+								key,
+								result["img"].filename,
+								body.substring(result["img"].content_index_start, result["img"].content_index_end),
+								(err, filename) => {
+									if(err) {
+										console.log("Error uploading texture to shapegroup: " + err);
+										sendresponse(400, "text/plain", "Upload error: " + err, session.sessionid);
+										return;
+									}
+									else {
+										console.log("Uploaded texture file to shapegroup " + key);
+										console.log("File name: " + result["img"].filename);
+										console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start));	
+										sendresponse(200, "text/plain", filename, session.sessionid);
+										return;
+									}
+								}
+							);
+						}
+						else {
+							sendresponse(400, "text/plain", "Invalid Format", session.sessionid);
+						}
+					}
+				}
+				else {
+					sendresponse(404, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+				}
+			}
+			else {
+				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+			}
 		}
 		// Get a group of 3d shapes
 		else if (url.startsWith("/3dshapes/") && (method === "GET")) {

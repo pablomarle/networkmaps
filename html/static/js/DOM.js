@@ -37,6 +37,10 @@ DOM = {
 		return DOM.c(parent, "div", eid, eclass, etext);
 	},
 
+	cform : (parent, eid=null, eclass=null, etext=null) => {
+		return DOM.c(parent, "form", eid, eclass, etext);
+	},
+
 	ctable : (parent, eid=null, eclass=null, etext=null) => {
 		return DOM.c(parent, "table", eid, eclass, etext);
 	},
@@ -59,6 +63,12 @@ DOM = {
 
 	ci_ta : (parent, eid=null, eclass=null, etext=null) => {
 		return DOM.c(parent, "textarea", eid, eclass, etext);
+	},
+
+	ci_f : (parent, eid=null, eclass=null, etext=null) => {
+		let input = DOM.c(parent, "input", eid, eclass, etext);
+		input.type = "file";
+		return input;
 	},
 
 	ci_pwd : (parent, eid=null, eclass=null, etext=null) => {
@@ -239,5 +249,22 @@ DOM = {
 		}
 
 		return childlist;
+	},
+
+	cg: (parent, eid, eclass, list_columns, list_rows) => {
+		let element = DOM.c(parent, "div", eid, eclass);
+		element.style.display = "grid";
+		element.style.gridTemplateColumns = list_columns.join(" ");
+		element.style.gridTemplateRows = list_rows.join(" ");
+		return element;
+	},
+
+	cge: (parent, eid, eclass, startx, endx, starty, endy) => {
+		let element = DOM.c(parent, "div", eid, eclass);
+		element.style.gridColumnStart = startx;
+		element.style.gridColumnEnd = endx;
+		element.style.gridRowStart = starty;
+		element.style.gridRowEnd = endy;
+		return element;
 	},
 }

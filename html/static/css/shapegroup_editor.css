@@ -1,0 +1,74 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.full_screen {
+    width: 100vw;
+    height: 100vh;  
+}
+
+#header {
+    background: #4484CE;
+}
+
+.navigation {
+    background: #ECEEF2;
+    border: 2px solid #ccc;
+    overflow: auto;
+    display:flex;
+    flex-direction: column;
+}
+.navigation_title {
+    background: #4484CE;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.navigation_title_text {
+    margin: 0 10px;
+    color: #eee;
+    font-weight: bold;
+}
+
+#drawing, #config, #edit {
+    border: 1px solid #f0f0ff;
+}
+
+#list_shapes, #list_textures {
+    overflow: auto;
+}
+
+.shapelist_shape {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;    
+    margin: 5px 5px;
+    padding: 0px 0px 0px 10px;
+    background: #ffc78e;
+    border-radius: 5px;    
+}
+.shapelist_shape:hover {
+    color: #666;
+    background: #ffd7ae;
+}
+
+.shapelist_shape_text {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.texture_container {
+    display: flex;
+    flex-direction: row;
+    font-size: 12px;
+    align-items: center;
+}
+
+.texture {
+    cursor: crosshair;
+    margin: 0 20px; padding: 0;
+}

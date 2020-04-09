@@ -3,6 +3,7 @@
 	"description": "Basic shapes like cubes, spheres, ...",
 	"category": "3dshapes",
 	"tags": [],
+	"textures": ["basic.png"],
 	"shapes": {
 		"0": {
 			"name": "Cube",

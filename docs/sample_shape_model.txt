@@ -2,7 +2,8 @@
 	"name": "",
 	"description": "",
 	"category": "networking",											-> Current Categories: "networking", "servers", "clients", "security", "3dshapes"
-	"tags": [], 															-> user defined list of strings
+	"tags": [], 														-> user defined list of strings
+	"textures": ["", ...] 												-> list of textures available on this shapegroup
 	"shapes":
 		local_id: {
 			name: "Name of shape",

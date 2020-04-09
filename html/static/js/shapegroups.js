@@ -89,7 +89,7 @@ function screen_init_shapegroups() {
         set_node_infobox(i, element.description + "<br>Owner: " + element.owner);
         i.setAttribute("data-key", key);
         i.addEventListener("click", (e) => {
-            window.location.href = "/shapegroups/" + e.currentTarget.getAttribute("data-key");
+            window.location.href = "/shapegroups/edit/" + e.currentTarget.getAttribute("data-key");
         })
 
         let dom_actions = DOM.cdiv(div, null, "diagram_actions");
