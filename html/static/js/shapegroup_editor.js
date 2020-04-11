@@ -32,7 +32,9 @@ const DEVICE_FRAGMENT_SHADER = `
     uniform vec3 mycolor;
 
     void main() {
-        vec4 tex_color = texture2D(map, vUv) + vec4(mycolor, 1.0);
+        vec4 textureColor = texture2D(map, vUv);
+        vec4 tex_color = vec4(textureColor.r + (1.0-textureColor.r) * mycolor.r, textureColor.g + (1.0-textureColor.g) * mycolor.g, textureColor.b + (1.0-textureColor.b) * mycolor.b, 1.0);
+        //vec4 tex_color = texture2D(map, vUv) + vec4(mycolor, 1.0);
         vec4 light = vec4(0, 0, 0, 1.0);
         
         vec3 norm = normalize(vNormal);
@@ -92,6 +94,10 @@ function loadTexture(texture_url) {
         return texture;
 }
 
+function $WGL_V3(x,y,z) {return new THREE.Vector3(x,y,z)}
+function $WGL_V2(x,y) {return new THREE.Vector2(x,y)}
+function $WGL_F3(a,b,c) {return new THREE.Face3(a,b,c)}
+
 function wgl_mousedown(x, y, dx, dy, dom_element) {
     data_editor.mouse.buttondown = true;
 }
@@ -140,7 +146,7 @@ function init_wgl() {
     // Camera
     let cam_ratio = domelement.clientWidth / domelement.clientHeight;
     data_editor.camera = new THREE.PerspectiveCamera( 15, cam_ratio, 0.1, 1000 );
-    data_editor.camera_position = { rx: -Math.PI/8, ry: Math.PI/4, distance: 8 }
+    data_editor.camera_position = { rx: -Math.PI/8, ry: Math.PI/4, distance: 10 }
     update_camera_position();
     data_editor.camera.rotation.order="YXZ";
 
@@ -205,6 +211,7 @@ function xmlhttp_call(method, url, data, function_result, function_error) {
  */
 function empty_all() {
     DOM.removeChilds(data_editor.dom.edit, true);
+    DOM.removeChilds(data_editor.dom.edit2, true);
     DOM.removeChilds(data_editor.dom.config, true);
 
     if(data_editor.active_3dshape) {
@@ -214,14 +221,158 @@ function empty_all() {
     }
 }
 
+function mesh_addData(mesh, type, shape_key, subshape_index, element_index, additional_index) {
+    mesh.userData.type = type;
+    mesh.userData.shape_key = shape_key;
+    mesh.userData.subshape_index = subshape_index;
+    mesh.userData.element_index = element_index;
+    mesh.userData.additional_index = additional_index;
+}
+
+function show_shape_wgl(shape_key) {
+    if(data_editor.active_3dshape) {
+        data_editor.scene.remove(data_editor.active_3dshape);
+        data_editor.active_3dshape = null;
+    }
+    let group = new THREE.Group();
+    let shape = data_editor.definition.shapes[shape_key];
+    data_editor.active_3dshape = group;
+    data_editor.scene.add(group);
+    group.position.y = -shape.base_scale[1]/2;
+
+    // Create vertex
+    let vertex_texture = new THREE.MeshPhongMaterial( {color: 0x880000} );
+    for(let ss_index = 0; ss_index < shape.subshapes.length; ss_index ++) {
+        let ss = shape.subshapes[ss_index];
+        for(let element_index = 0; element_index < ss.elements.length; element_index ++) {
+            let element = ss.elements[element_index];
+
+            for(let x = 0; x < element.v.length; x++) {
+                let geometry = new THREE.BoxGeometry( .05, .05, .05 );
+                let mesh = new THREE.Mesh(geometry, vertex_texture);
+                mesh.position.x = element.v[x][0] * shape.base_scale[0];
+                mesh.position.y = element.v[x][1] * shape.base_scale[1];
+                mesh.position.z = element.v[x][2] * shape.base_scale[2];
+                group.add(mesh);
+                mesh_addData(mesh, "vertex", shape_key, ss_index, element_index, x);
+            }
+        }
+    }
+
+    // Create Object
+    let texture_path = "/3dshapes/" + shapegroup_key + "/";
+    for(let ss_index = 0; ss_index < shape.subshapes.length; ss_index ++) {
+        let ss = shape.subshapes[ss_index];
+        let texture = loadTexture(texture_path + ss.texture);
+        let material = WGL_createDeviceMaterial({map: texture, mycolor: ss.color});
+
+        for(let element_index = 0; element_index < ss.elements.length; element_index ++) {
+            let element = ss.elements[element_index];
+            let g = new THREE.Geometry();
+            for(let x = 0; x < element.v.length; x++) {
+                let v = element.v[x];
+                g.vertices.push($WGL_V3(v[0] * shape.base_scale[0], v[1] * shape.base_scale[1], v[2] * shape.base_scale[2]))
+            }
+            for(let x = 0; x < element.f.length; x++) {
+                let f = element.f[x];
+                let uv = element.uv[x];
+                g.faces.push($WGL_F3(f[0], f[1], f[2]))
+                g.faceVertexUvs[0].push([ $WGL_V2(uv[0][0], uv[0][1]), $WGL_V2(uv[1][0], uv[1][1]), $WGL_V2(uv[2][0], uv[2][1])])
+            }
+            let mesh = new THREE.Mesh( g, material );
+            mesh_addData(mesh, "element", shape_key, ss_index, element_index, null);
+
+            g.verticesNeedUpdate = true;
+            g.elementsNeedUpdate = true;
+            g.uvsNeedUpdate = true;
+
+            g.computeBoundingBox();
+            g.computeBoundingSphere();
+            if(ss.flat_normals) {
+                g.computeFaceNormals();
+                g.computeFlatVertexNormals();
+            }
+            else {
+                g.computeVertexNormals();
+            }
+
+            group.add(mesh);
+        }
+    }
+
+    requestDraw();
+}
+
 /**
  * Function to show the interface to modify a shape
  */
 function show_shape() {
-    let key = this.getAttribute("data-key");
+    let shape_key = this.getAttribute("data-key");
+    let shape = data_editor.definition.shapes[shape_key];
+
     empty_all();
 
-    alert("show_shape not implemented: " + key);
+    let button, element;
+    let shape_config = DOM.cdiv(data_editor.dom.config, null, "shape_config");
+
+    // Shape name
+    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    DOM.clabel(element, null, "shape_config_label", "Name", "shape_name");
+    data_editor.dom.config_shape_name = DOM.ci_text(element, "shape_name", "shape_config_input");
+    data_editor.dom.config_shape_name.value = shape.name;
+
+    // Shape description
+    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    DOM.clabel(element, null, "shape_config_label", "Description", "shape_description");
+    data_editor.dom.config_shape_description = DOM.ci_text(element, "shape_description", "shape_config_input");
+    data_editor.dom.config_shape_description.value = shape.description;
+
+    // Shape type
+    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    DOM.clabel(element, null, "shape_config_label", "Type", "shape_type");
+    data_editor.dom.config_shape_type = DOM.cselect(element, "shape_type", "shape_config_select", [
+        ["L3 Device", "l3device"], ["L2 device", "l2device"], ["Basic shape", "basic"],
+    ]);
+    data_editor.dom.config_shape_type.value = shape.type;
+
+    // Shape base scale
+    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    DOM.clabel(element, null, "shape_config_label", "Base Scale");
+
+    DOM.clabel(element, null, "shape_config_label_s", "X", "shape_base_x");
+    data_editor.dom.config_shape_base_x = DOM.ci_text(element, "shape_base_x", "shape_config_input_s");
+    DOM.clabel(element, null, "shape_config_label_s", "Y", "shape_base_y");
+    data_editor.dom.config_shape_base_y = DOM.ci_text(element, "shape_base_y", "shape_config_input_s");
+    DOM.clabel(element, null, "shape_config_label_s", "Z", "shape_base_z");
+    data_editor.dom.config_shape_base_z = DOM.ci_text(element, "shape_base_z", "shape_config_input_s");
+
+    data_editor.dom.config_shape_base_x.value = shape.base_scale[0];
+    data_editor.dom.config_shape_base_y.value = shape.base_scale[1];
+    data_editor.dom.config_shape_base_z.value = shape.base_scale[2];
+
+    // Apply changes
+    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    button = DOM.cbutton(element, null, "button_mini", "Apply", null, () => {
+        if((isNaN(data_editor.dom.config_shape_base_x.value)) || (isNaN(data_editor.dom.config_shape_base_y.value)) || (isNaN(data_editor.dom.config_shape_base_z.value))) {
+            DOM.showError("Error", "Base scale have to be floats.");
+            return;
+        }
+        shape.name = data_editor.dom.config_shape_name.value;
+        shape.description = data_editor.dom.config_shape_description.value;
+        shape.type = data_editor.dom.config_shape_type.value;
+        shape.base_scale[0] = parseFloat(data_editor.dom.config_shape_base_x.value);
+        shape.base_scale[1] = parseFloat(data_editor.dom.config_shape_base_y.value);
+        shape.base_scale[2] = parseFloat(data_editor.dom.config_shape_base_z.value);
+
+        show_shape_wgl(shape_key);
+
+        data_editor.unsaved_changes = true;
+        data_editor.dom.save.style.display = "block";
+
+        draw_definition();
+    });
+
+    show_shape_wgl(shape_key);
 }
 
 function request_delete_shape(ev) {
@@ -323,9 +474,9 @@ function request_add_texture() {
     img_input.accept="image/x-png,image/gif,image/jpeg";
     img_input.addEventListener("change", () => {
         let file = img_input.files[0];
-        DOM.removeChilds(data_editor.dom.config, true);
-        let height = data_editor.dom.config.offsetHeight - 10;
-        let img = DOM.c(data_editor.dom.config, "img");
+        DOM.removeChilds(data_editor.dom.edit2, true);
+        let height = data_editor.dom.edit2.offsetHeight - 10;
+        let img = DOM.c(data_editor.dom.edit2, "img");
         img.style.width = "" + height + "px";
         img.style.height = "" + height + "px";
         img.file = file;
@@ -352,6 +503,14 @@ function init_screen() {
 
     // Header
     data_editor.dom.header = DOM.cge(grid, "header", null, 1, 4, 1, 2);
+    data_editor.dom.home = DOM.cimg(data_editor.dom.header, staticurl + "/static/img/home_b.png", null, "button button-menu", null, () => {
+        window.location.href = "/shapegroups";
+    });
+    data_editor.dom.save = DOM.cbutton(data_editor.dom.header, null, "button", "Save", null, () => {
+        data_editor.unsaved_changes = false;
+        save_shapes();
+    });
+    data_editor.dom.save.style.display = "none";
 
     // Shape navigation
     ge = DOM.cge(grid, null, "navigation", 1, 2, 2, 3);
@@ -373,8 +532,9 @@ function init_screen() {
     // Config
     data_editor.dom.config = DOM.cge(grid, "config", null, 3, 4, 2, 3);
 
-    // Edit
-    data_editor.dom.edit = DOM.cge(grid, "edit", null, 2, 4, 3, 4);
+    // Edit and edit2
+    data_editor.dom.edit = DOM.cge(grid, "edit", null, 2, 3, 3, 4);
+    data_editor.dom.edit2 = DOM.cge(grid, "edit2", null, 3, 4, 3, 4);
 }
 
 function draw_definition() {
@@ -382,11 +542,11 @@ function draw_definition() {
     DOM.removeChilds(data_editor.dom.list_textures, true);
     let definition = data_editor.definition;
     
-    for(let id in  definition.shapes) {
+    for(let key in  definition.shapes) {
         let element = DOM.cdiv(data_editor.dom.list_shapes, null, "shapelist_shape");
         element.addEventListener("click", show_shape);
-        element.setAttribute("data-id", id)
-        DOM.cdiv(element, null, "shapelist_shape_text", definition.shapes[id].name);
+        element.setAttribute("data-key", key)
+        DOM.cdiv(element, null, "shapelist_shape_text", definition.shapes[key].name);
         element = DOM.cbutton(element, null, "button_mini", "X", null, request_delete_shape);
     }
     
@@ -406,6 +566,34 @@ function load_shape_definition() {
     }, (status) => {
         DOM.showError("Error", "Error loading definition file");
     })
+}
+
+async function save_shapes() {
+    try {
+        let r = await fetch('/shapegroups/update_shapes', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: shapegroup_key,
+                shapes: data_editor.definition.shapes,
+            }),
+        });
+        let body = await r.json();
+        if(r.status !== 200)
+            DOM.showError("Error", "Error updating shapes (" + r.status + ").");
+        else if(body.error) {
+            DOM.showError("Error", "Error updating shapes: " + body.error);
+        }
+        else {
+            DOM.showError("Saved", "Shapes have been saved.");
+            data_editor.dom.save.style.display = "none";
+        }        
+    }
+    catch (e) {
+        DOM.showError("Error", "Failed to save shapes. Connection error.");        
+    }
 }
 
 function main() {

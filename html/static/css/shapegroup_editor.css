@@ -10,6 +10,8 @@ body {
 
 #header {
     background: #4484CE;
+    display: flex;
+    flex-direction: row-reverse;
 }
 
 .navigation {
@@ -71,4 +73,36 @@ body {
 .texture {
     cursor: crosshair;
     margin: 0 20px; padding: 0;
+}
+
+.shape_config {
+    display: flex;
+    flex-direction: column;
+}
+.shape_config_element {
+    display: flex;
+    margin: 2px;
+}
+.shape_config_label {
+    font-weight: bold;
+    font-size: 12px;
+    width: 120px;
+}
+.shape_config_input {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0;
+}
+.shape_config_label_s {
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 10px;
+}
+.shape_config_input_s {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0;
+    width: 40px;
 }

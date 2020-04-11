@@ -32,7 +32,9 @@ const DEVICE_FRAGMENT_SHADER = `
 	uniform vec3 mycolor;
 
 	void main() {
-		vec4 tex_color = texture2D(map, vUv) + vec4(mycolor, 1.0);
+		vec4 textureColor = texture2D(map, vUv);
+		vec4 tex_color = vec4(textureColor.r + (1.0-textureColor.r) * mycolor.r, textureColor.g + (1.0-textureColor.g) * mycolor.g, textureColor.b + (1.0-textureColor.b) * mycolor.b, 1.0);
+		//vec4 tex_color = texture2D(map, vUv) + vec4(mycolor, 1.0);
 		vec4 light = vec4(0, 0, 0, 1.0);
 		
 		vec3 norm = normalize(vNormal);

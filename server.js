@@ -266,6 +266,23 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 				sendresponse(200, "application/json", "{}");
 			})
 		}
+		// Update shapegroup shapes.
+		else if((url === "/shapegroups/update_shapes") && (method === "POST")) {
+			let new_data;
+			try {
+				new_data = JSON.parse(body);
+			} catch {
+				sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
+				return;
+			}
+			usermgt.updateShapeShapes(session.sessionid, new_data.key, new_data.shapes, (err, result) => {
+				if(err) {
+					sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+					return;
+				}
+				sendresponse(200, "application/json", "{}");
+			})
+		}
 		// Shapegroup editor
 		else if (url.startsWith("/shapegroups/edit/") && (method === "GET")) {
 			let surl = url.split("/");
