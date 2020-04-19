@@ -330,6 +330,7 @@ function WIN_create(view, type, obj_id, title, width, height) {
 	w.addEventListener("mouseup", WIN_input_nopropagate);
 	w.addEventListener("mousemove", WIN_input_nopropagate);
 	w.addEventListener("mouseout", WIN_input_nopropagate);
+	w.addEventListener("wheel", (ev) => { event.stopPropagation(); });
 	w.addEventListener("touchstart", WIN_input_nopropagate);
 	w.addEventListener("touchend", WIN_input_nopropagate);
 	w.addEventListener("touchmove", WIN_input_nopropagate);

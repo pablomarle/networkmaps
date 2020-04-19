@@ -21,7 +21,8 @@ DOM = {
 		if (etext != null) element.innerHTML = etext;
 		if(eid) element.id = eid;
 		if(eclass) element.className = eclass;
-		parent.appendChild(element);
+		if(parent)
+			parent.appendChild(element);
 
 		return element;
 	},
@@ -35,6 +36,10 @@ DOM = {
 
 	cdiv : (parent, eid=null, eclass=null, etext=null) => {
 		return DOM.c(parent, "div", eid, eclass, etext);
+	},
+
+	cform : (parent, eid=null, eclass=null, etext=null) => {
+		return DOM.c(parent, "form", eid, eclass, etext);
 	},
 
 	ctable : (parent, eid=null, eclass=null, etext=null) => {
@@ -61,6 +66,12 @@ DOM = {
 		return DOM.c(parent, "textarea", eid, eclass, etext);
 	},
 
+	ci_f : (parent, eid=null, eclass=null, etext=null) => {
+		let input = DOM.c(parent, "input", eid, eclass, etext);
+		input.type = "file";
+		return input;
+	},
+
 	ci_pwd : (parent, eid=null, eclass=null, etext=null) => {
 		let input = DOM.c(parent, "input", eid, eclass, etext);
 		input.type = "password";
@@ -82,14 +93,21 @@ DOM = {
 
 	cbutton : (parent, eid=null, eclass=null, etext=null, data=null, clickaction = null) => {
 		let button = DOM.c(parent, "button", eid, eclass, etext);
-
+		let attributes = [];
 		if(data) 
 			for (attr in data) {
 				button.setAttribute("data-" + attr, data[attr]);
+				attributes.push(attr);
 			}
 
 		if(clickaction)
-			button.addEventListener("click", clickaction);
+			button.addEventListener("click", (ev) => {
+				let result_data = {};
+				for(let x = 0; x < attributes.length; x++) {
+					result_data[attributes[x]] = ev.target.getAttribute("data-" + attributes[x]);
+				}
+				clickaction(ev, result_data);
+			});
 		
 		return button;
 	},
@@ -239,5 +257,22 @@ DOM = {
 		}
 
 		return childlist;
+	},
+
+	cg: (parent, eid, eclass, list_columns, list_rows) => {
+		let element = DOM.c(parent, "div", eid, eclass);
+		element.style.display = "grid";
+		element.style.gridTemplateColumns = list_columns.join(" ");
+		element.style.gridTemplateRows = list_rows.join(" ");
+		return element;
+	},
+
+	cge: (parent, eid, eclass, startx, endx, starty, endy) => {
+		let element = DOM.c(parent, "div", eid, eclass);
+		element.style.gridColumnStart = startx;
+		element.style.gridColumnEnd = endx;
+		element.style.gridRowStart = starty;
+		element.style.gridRowEnd = endy;
+		return element;
 	},
 }

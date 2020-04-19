@@ -368,19 +368,20 @@ function remove_infobox() {
 
 function set_node_infobox(node, text) {
 	node.addEventListener("mouseover", (ev) => {
-		add_infobox(text, ev.pageX+10, ev.pageY-10)
+		add_infobox(text, ev.pageX, ev.pageY+20)
 	})
 	node.addEventListener("mouseout", () => {
 		remove_infobox();
 	})
 }
+
 function screen_initialize() {
 	let div, body, t, tr, td, i, form;
-	body = document. getElementsByTagName("body")[0];
+	body = document.getElementsByTagName("body")[0];
 }
 
 function screen_init_notlogged() {
-	let body = document. getElementsByTagName("body")[0];
+	let body = document.getElementsByTagName("body")[0];
 	DOM.removeChilds(body);
 
 	setTimeout(() => {
@@ -559,6 +560,10 @@ function screen_init_logged() {
 				//DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
 				i = DOM.cimg(div, staticurl + "/static/img/account.png", null, "button button-menu", null, () => {set_state("A")});
 				set_node_infobox(i, "Account");
+				i = DOM.cimg(div, staticurl + "/static/img/element_b.png", null, "button button-menu", null, () => {
+					window.location.href = "/shapegroups";
+				});
+				set_node_infobox(i, "Manage your Shape Groups");
 				i = DOM.cimg(div, staticurl + "/static/img/unknown.png", null, "button button-menu", null, () => {set_state("AU")});
 				set_node_infobox(i, "About Us");
 		index_data.content = DOM.cdiv_fade(body, null, "content");
@@ -575,7 +580,6 @@ function screen_init_logged() {
 
 function screen_main(old_state) {
 	let div, body, t, tr, td, i, form;
-	body = document.getElementsByTagName("body")[0];
 	if(old_state == "I" || old_state == "DC") {
 		screen_init_logged();
 		return;
@@ -607,7 +611,7 @@ function screen_main_updatelistdiagrams(list_diagrams) {
 				if(list_diagrams[x].permission == "OWNER") {
 					i = DOM.cdiv(t, null, "diagram_button");
 					set_node_infobox(i, "Delete Diagram");
-						DOM.cimg(i, staticurl + "/static/img/delete.png", null, "diagram_button_img");					
+						DOM.cimg(i, staticurl + "/static/img/delete.png", null, "diagram_button_img");
 					i.addEventListener("click", (e) => {
 						index_data.current_diagram.uuid = e.currentTarget.getAttribute("data-uuid");
 						set_state("DD")

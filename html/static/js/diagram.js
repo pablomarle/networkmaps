@@ -1965,11 +1965,57 @@ function unload_shapegroup(shapegroup_id) {
     d.wgl.removeShapes("DEVICE", shapegroup_id);
 }
 
-function load_shapegroup(shapegroup_id) {
+async function load_shapegroup(shapegroup_id) {
     let path = "/3dshapes/" + shapegroup_id + "/";
     if(shapegroup_id < 1000)
         path = staticurl + "/static/shapes/" + shapegroup_id + "/";
-    let xmlhttp = new XMLHttpRequest();
+
+    try {
+        let r = await fetch(path + "definition.json", {cache: "no-store"});
+        let data = await r.json();
+        if(r.status !== 200)
+            DOM.showError("Error", "Error loading definition file (" + r.status + ").");
+        else if(data.error) {
+            DOM.showError("Error", "Error loading definition file: " + body.error);
+        }
+        else {
+            init_window_addtool(d.dom.tools.toolboxes["new_device"].dom, {
+                n: data.name,
+                s: null,
+                il: path + "0.png",
+                f: "new_device_" + shapegroup_id,
+                d: data.description ? data.description : "",
+            });
+
+            // Create the toolbox to add the shapes on this shape group.
+            let toolbox_struct = {
+                init_left: -190, left: -190, width: 170,
+                name: "Add " + data.name + " elements.",
+                components: [],
+            }
+            for(let key in data.shapes) {
+                toolbox_struct.components.push({
+                    n: data.shapes[key].name,
+                    d: data.shapes[key].description,
+                    s: "AD" + shapegroup_id + "_" + key,
+                    il: path + key + ".png",
+                    f: null,
+                })
+            }
+            init_window_addtoolbox(toolbox_struct);
+            d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
+
+            // Add shapes to the list of available geometries and update the shapes on the diagram
+            d.wgl.addShapes("DEVICE", shapegroup_id, data);
+
+            position_elements(false);
+        }
+    }
+    catch (e) {
+        DOM.showError("Error", "Error loading definition file for shape group " + shapegroup_id + ". Connection error.");
+    }
+
+/*    let xmlhttp = new XMLHttpRequest();
     xmlhttp.open("GET", path + "definition.json", true);
     xmlhttp.send();
     xmlhttp.onreadystatechange = () => {
@@ -2007,7 +2053,7 @@ function load_shapegroup(shapegroup_id) {
 
             position_elements(false);
         }
-    };
+    }; */
 }
 
 function init_diagram() {

@@ -1,6 +1,6 @@
 let INPUT = {}
 
-function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_callback) {
+function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_callback, mw_callback) {
 	INPUT.dom = domelement;
 	INPUT.px = 0;
 	INPUT.py = 0;
@@ -11,6 +11,8 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_
 	INPUT.mu_callback = mu_callback;
 	INPUT.mm_callback = mm_callback;
 	INPUT.mo_callback = mo_callback;
+	INPUT.mw_callback = mw_callback;
+
 	INPUT.actionrunning = "";
 	INPUT.domclass = {};
 	INPUT.domid = {};
@@ -19,6 +21,7 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_
 	domelement.addEventListener("mouseup", Input_mouseup);
 	domelement.addEventListener("mouseout", Input_mouseout);
 	domelement.addEventListener("mousemove", Input_mousemove);
+	domelement.addEventListener("wheel", Input_mousewheel, {passive: false});
 
 	domelement.addEventListener("touchstart", Input_touchstart, {passive: false});
 	domelement.addEventListener("touchend", Input_touchend, {passive: false});
@@ -30,21 +33,23 @@ function Input_initialize(domelement, md_callback, mu_callback, mm_callback, mo_
 	domelement.addEventListener("contextmenu", Input_contextmenu, {passive: false});
 }
 
-function Input_registerclass(classname, callback_md, callback_mu, callback_mm, callback_mo) {
+function Input_registerclass(classname, callback_md, callback_mu, callback_mm, callback_mo, callback_mw) {
 	INPUT.domclass[classname] = {
 		"md": callback_md,
 		"mu": callback_mu,
 		"mm": callback_mm,
 		"mo": callback_mo,
+		"mw": callback_mw,
 	}
 }
 
-function Input_registerid(id, callback_md, callback_mu, callback_mm, callback_mo) {
+function Input_registerid(id, callback_md, callback_mu, callback_mm, callback_mo, callback_mw) {
 	INPUT.domid[id] = {
 		"md": callback_md,
 		"mu": callback_mu,
 		"mm": callback_mm,
 		"mo": callback_mo,
+		"mw": callback_mw,
 	}
 }
 
@@ -58,6 +63,7 @@ function Input_findtarget(path) {
 			INPUT.click_dom_mu = INPUT.domid[id]["mu"];
 			INPUT.click_dom_mm = INPUT.domid[id]["mm"];
 			INPUT.click_dom_mo = INPUT.domid[id]["mo"];
+			INPUT.click_dom_mw = INPUT.domid[id]["mw"];
 			return true;
 		}
 
@@ -70,6 +76,7 @@ function Input_findtarget(path) {
 				INPUT.click_dom_mu = INPUT.domclass[cl]["mu"];
 				INPUT.click_dom_mm = INPUT.domclass[cl]["mm"];
 				INPUT.click_dom_mo = INPUT.domclass[cl]["mo"];
+				INPUT.click_dom_mw = INPUT.domclass[cl]["mw"];
 				return true;
 			}
 		}
@@ -80,6 +87,7 @@ function Input_findtarget(path) {
 			INPUT.click_dom_mu = INPUT.mu_callback;
 			INPUT.click_dom_mm = INPUT.mm_callback;
 			INPUT.click_dom_mo = INPUT.mo_callback;
+			INPUT.click_dom_mw = INPUT.mw_callback;
 			return false;			
 		}
 	}
@@ -101,6 +109,8 @@ function Input_callback(event_type) {
 		INPUT.click_dom_mm(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom);
 	else if ((event_type == "mo") && (INPUT.click_dom_mo != null))
 		INPUT.click_dom_mo(INPUT.px, INPUT.py, INPUT.click_dom);
+	else if ((event_type == "mw") && (INPUT.click_dom_mw != null))
+		INPUT.click_dom_mw(INPUT.dx, INPUT.dy, INPUT.click_dom);
 }
 
 function Input_getComposedPath(ev) {
@@ -184,14 +194,20 @@ function Input_mousemove(ev) {
 function Input_mouseout(ev) {
 	if(ev.relatedTarget == document.body.parentNode)
 		Input_mouseup(ev);
-	//if((ev.button == 0) && (INPUT.actionrunning == "ML")) {
-	//	console.log("Mouse out");
-	//}
+}
+
+function Input_mousewheel(ev) {
+	INPUT.dx = ev.deltaX;
+	INPUT.dy = ev.deltaY;
+	
+	let composedPath = Input_getComposedPath(ev);
+	
+	ev.preventDefault();
+
+	Input_callback("mw");
 }
 
 function Input_touchstart(ev) {
-	
-
 	if(INPUT.actionrunning != "" || (ev.changedTouches < 1))
 		return false;
 

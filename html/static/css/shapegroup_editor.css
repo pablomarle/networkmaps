@@ -1,0 +1,168 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.full_screen {
+    width: 100vw;
+    height: 100vh;  
+}
+
+#header {
+    background: #4484CE;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.navigation {
+    background: #ECEEF2;
+    border: 2px solid #ccc;
+    overflow: auto;
+    display:flex;
+    flex-direction: column;
+}
+.navigation_title {
+    background: #4484CE;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.navigation_title_text {
+    margin: 0 10px;
+    color: #eee;
+    font-weight: bold;
+}
+
+#edit, #edit2 {
+    padding: 1px;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+#list_shapes, #list_textures {
+    overflow: auto;
+}
+
+.shapelist_shape {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;    
+    margin: 5px 5px;
+    padding: 0px 0px 0px 10px;
+    background: #ffc78e;
+    border-radius: 5px;    
+}
+.shapelist_shape:hover {
+    color: #666;
+    background: #ffd7ae;
+}
+
+.shapelist_shape_text {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.texture_container {
+    display: flex;
+    flex-direction: row;
+    font-size: 12px;
+    align-items: center;
+}
+
+.texture {
+    cursor: crosshair;
+    margin: 0 20px; padding: 0;
+}
+
+.shape_config {
+    display: flex;
+    flex-direction: column;
+}
+.shape_config_element {
+    display: flex;
+    margin: 2px;
+}
+.shape_config_element_end {
+    width: 100%;
+    text-align: center;
+}
+.shape_config_label {
+    font-weight: bold;
+    font-size: 12px;
+    width: 120px;
+}
+.shape_config_input {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0;
+}
+.shape_config_label_s {
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 10px;
+}
+.shape_config_input_s {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0;
+    width: 40px;
+}
+
+.edit_title {
+    width: 100%;
+    font-size: 12px;
+    text-align: center;
+    background: #4484ce;
+    color: #eee;
+    margin: 1px solid #000;
+}
+.edit_section {
+    display: flex;
+}
+
+.edit_label {
+    font-weight: bold;
+    font-size: 12px;
+    min-width: 120px;
+}
+.edit_label_s {
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 10px;
+}
+.edit_input {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0;
+}
+.edit_input_s {
+    font-size: 12px;
+    border: 0px;
+    padding: 0;
+    margin: 0 4px;
+    width: 40px;
+}
+
+.edit_input_ss {
+    font-size: 10px;
+    border: 0px;
+    padding: 0;
+    margin: 0 2px;
+    width: 40px;
+}
+
+.edit_section_end {
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid #000;
+}
+.vertex_list {
+    width: 100%;
+}
