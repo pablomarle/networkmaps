@@ -114,6 +114,20 @@ function wgl_mousemove(x, y, dx, dy, dom_element) {
     }
 }
 
+function wgl_mouseout(x, y, dom_element) {
+    data_editor.mouse.buttondown = false;
+}
+
+function wgl_mousewheel(dx, dy, dom_element) {
+    data_editor.camera_position.distance += dy*.2;
+    if((data_editor.camera_position.distance < 2) && (dy < 0))
+        data_editor.camera_position.distance = 2;
+    if((data_editor.camera_position.distance > 20) && (dy > 0))
+        data_editor.camera_position.distance = 20;
+    
+    update_camera_position();
+}
+
 function update_camera_position() {
     let euler = new THREE.Euler(data_editor.camera_position.rx, data_editor.camera_position.ry, 0, "YXZ");
     let vector = new THREE.Vector3(0,0, data_editor.camera_position.distance).applyEuler(euler);
@@ -125,19 +139,17 @@ function update_camera_position() {
     requestDraw();
 }
 
-function wgl_mouseout(x, y, dom_element) {
-    data_editor.mouse.buttondown = false;
-}
-
 function init_wgl() {
     let domelement = data_editor.dom.drawing;
 
     // Renderer
     data_editor.renderer = new THREE.WebGLRenderer({
         antialias:true,
+        preserveDrawingBuffer: true,
+        alpha: true,
     });
     data_editor.renderer.setSize(domelement.clientWidth, domelement.clientHeight);
-    data_editor.renderer.setClearColor(0xf0f0f0);
+    data_editor.renderer.setClearColor(0xf0f0f0, 0);
     domelement.appendChild(data_editor.renderer.domElement);
 
     // Scene
@@ -146,7 +158,7 @@ function init_wgl() {
     // Camera
     let cam_ratio = domelement.clientWidth / domelement.clientHeight;
     data_editor.camera = new THREE.PerspectiveCamera( 15, cam_ratio, 0.1, 1000 );
-    data_editor.camera_position = { rx: -Math.PI/8, ry: Math.PI/4, distance: 10 }
+    data_editor.camera_position = { rx: -Math.PI/8, ry: Math.PI/4, distance: 8 }
     update_camera_position();
     data_editor.camera.rotation.order="YXZ";
 
@@ -159,8 +171,9 @@ function init_wgl() {
     data_editor.scene.add(data_editor.directionallight);
 
     // Controls
-    Input_initialize(document.body, null, null, null);
-    Input_registerid("drawing", wgl_mousedown, wgl_mouseup, wgl_mousemove, wgl_mouseout);
+    //Input_initialize(document.body, null, null, null, null);
+    //Input_registerid("drawing", wgl_mousedown, wgl_mouseup, wgl_mousemove, wgl_mouseout, wgl_mousewheel);
+    Input_initialize(domelement, wgl_mousedown, wgl_mouseup, wgl_mousemove, wgl_mouseout, wgl_mousewheel);
 
     // Final request draw.
     requestDraw();
@@ -188,24 +201,6 @@ function WGL_createDeviceMaterial(parameters) {
     return material;
 }
 
-function xmlhttp_call(method, url, data, function_result, function_error) {
-    let xmlhttp = new XMLHttpRequest();
-    xmlhttp.open(method, url, true);
-    xmlhttp.setRequestHeader("Content-Type", "application/json");
-    if(data)
-        xmlhttp.send(JSON.stringify(data));
-    else
-        xmlhttp.send();
-    xmlhttp.onreadystatechange = () => {
-        if(xmlhttp.readyState == 4) {
-            if(xmlhttp.status == 200)
-                function_result(JSON.parse(xmlhttp.responseText));
-            else
-                function_error(xmlhttp.status);
-        }
-    };    
-}
-
 /**
  * Function to remove all dom elements from the draw, edit and config panels
  */
@@ -219,6 +214,7 @@ function empty_all() {
         data_editor.active_3dshape = null;
         requestDraw();
     }
+    data_editor.dom.drawing_capture.style.display = "none";
 }
 
 function mesh_addData(mesh, type, shape_key, subshape_index, element_index, additional_index) {
@@ -227,6 +223,19 @@ function mesh_addData(mesh, type, shape_key, subshape_index, element_index, addi
     mesh.userData.subshape_index = subshape_index;
     mesh.userData.element_index = element_index;
     mesh.userData.additional_index = additional_index;
+}
+
+function show_vertex_wgl(shape_key, subshape_index, vertex_index, visible) {
+    data_editor.active_3dshape.children.forEach((element) => {
+        if(
+            (element.userData.type === "vertex") &&
+            (element.userData.shape_key == shape_key) &&
+            (element.userData.subshape_index == subshape_index) &&
+            (element.userData.additional_index == vertex_index)
+            )
+            element.visible = visible;
+    });
+    requestDraw();
 }
 
 function show_shape_wgl(shape_key) {
@@ -241,20 +250,22 @@ function show_shape_wgl(shape_key) {
     group.position.y = -shape.base_scale[1]/2;
 
     // Create vertex
-    let vertex_texture = new THREE.MeshPhongMaterial( {color: 0x880000} );
+    let vertex_texture = new THREE.MeshPhongMaterial( {color: 0x000000} );
     for(let ss_index = 0; ss_index < shape.subshapes.length; ss_index ++) {
         let ss = shape.subshapes[ss_index];
         for(let element_index = 0; element_index < ss.elements.length; element_index ++) {
             let element = ss.elements[element_index];
 
             for(let x = 0; x < element.v.length; x++) {
-                let geometry = new THREE.BoxGeometry( .05, .05, .05 );
+                let geometry = new THREE.BoxGeometry( .02, .02, .02 );
                 let mesh = new THREE.Mesh(geometry, vertex_texture);
                 mesh.position.x = element.v[x][0] * shape.base_scale[0];
                 mesh.position.y = element.v[x][1] * shape.base_scale[1];
                 mesh.position.z = element.v[x][2] * shape.base_scale[2];
                 group.add(mesh);
                 mesh_addData(mesh, "vertex", shape_key, ss_index, element_index, x);
+
+                mesh.visible = false;
             }
         }
     }
@@ -351,7 +362,7 @@ function show_shape() {
     data_editor.dom.config_shape_base_z.value = shape.base_scale[2];
 
     // Apply changes
-    element = DOM.cdiv(shape_config, null, "shape_config_element");
+    element = DOM.cdiv(shape_config, null, "shape_config_element_end");
     button = DOM.cbutton(element, null, "button_mini", "Apply", null, () => {
         if((isNaN(data_editor.dom.config_shape_base_x.value)) || (isNaN(data_editor.dom.config_shape_base_y.value)) || (isNaN(data_editor.dom.config_shape_base_z.value))) {
             DOM.showError("Error", "Base scale have to be floats.");
@@ -366,23 +377,439 @@ function show_shape() {
 
         show_shape_wgl(shape_key);
 
-        data_editor.unsaved_changes = true;
-        data_editor.dom.save.style.display = "block";
+        unsaved_changes();
 
         draw_definition();
     });
 
     show_shape_wgl(shape_key);
+    data_editor.dom.drawing_capture.style.display = "block";
+    data_editor.dom.drawing_capture.setAttribute("data-shape_key", shape_key);
+    show_shape_edit(shape_key, 0);
+    show_shape_edit(shape_key, 1);
+}
+
+function show_shape_vertexlist_insertvertex(ev, data) {
+    // Create the dom element
+    data.index = parseInt(data.index);
+    let dom_list = data_editor.dom["vertex_list_" + data.subshape_index];
+
+    let div3 = DOM.cdiv();
+    let l = DOM.clabel(div3, null, "edit_label_s", data.index);
+    let px = DOM.ci_text(div3, null, "edit_input_ss"); px.value = 0;
+    let py = DOM.ci_text(div3, null, "edit_input_ss"); py.value = 0;
+    let pz = DOM.ci_text(div3, null, "edit_input_ss"); pz.value = 0;
+
+    let b1 = DOM.cbutton(div3, null, "button_mini", "+", {shape_key: data.shape_key, subshape_index: data.subshape_index, element_index: data.element_index, index: data.index + 1},
+        show_shape_vertexlist_insertvertex);
+    let b2 = DOM.cbutton(div3, null, "button_mini", "-", {shape_key: data.shape_key, subshape_index: data.subshape_index, element_index: data.element_index, index: data.index},
+        show_shape_vertexlist_deletevertex);
+
+    if(data.index >= dom_list.length) {
+        dom_list[0][0].parentNode.appendChild(div3);
+        dom_list.push([div3, l, px, py, pz, b1, b2]);
+    }
+    else {
+        dom_list[0][0].parentNode.insertBefore(div3, dom_list[data.index][0]);
+        dom_list.splice(data.index, 0, [div3, l, px, py, pz, b1, b2]);
+    }
+
+    // Update the indexes of all the elements (labels and buttons)
+    for(let x = 0; x < dom_list.length; x++) {
+        dom_list[x][1].innerHTML = x;
+        dom_list[x][5].setAttribute("data-index", x+1);
+        dom_list[x][6].setAttribute("data-index", x);
+    }
+}
+
+function show_shape_vertexlist_deletevertex(ev, data) {
+    let dom_list = data_editor.dom["vertex_list_" + data.subshape_index];
+    if(dom_list.length === 1) {
+        DOM.showError("Error", "You can't remove the last vertex.");
+        return;
+    }
+    DOM.removeElement(dom_list[data.index][0]);
+
+    dom_list.splice(data.index, 1);
+
+    // Update the indexes of all the elements (labels and buttons)
+    for(let x = 0; x < dom_list.length; x++) {
+        dom_list[x][1].innerHTML = x;
+        dom_list[x][5].setAttribute("data-index", x+1);
+        dom_list[x][6].setAttribute("data-index", x);
+    }
+}
+
+function show_shape_vertexlist_insertface(ev, data) {
+    data.index = parseInt(data.index);
+    let dom_list = data_editor.dom["face_list_" + data.subshape_index];
+
+    div3 = DOM.cdiv();
+    DOM.clabel(div3, null, "edit_label", "V");
+    let v1 = DOM.ci_text(div3, null, "edit_input_ss"); v1.value = 0;
+    let v2 = DOM.ci_text(div3, null, "edit_input_ss"); v2.value = 0;
+    let v3 = DOM.ci_text(div3, null, "edit_input_ss"); v3.value = 0;
+
+    DOM.clabel(div3, null, "edit_label", "UVs");
+    let uv0_x = DOM.ci_text(div3, null, "edit_input_ss"); uv0_x.value = 0;
+    let uv0_y = DOM.ci_text(div3, null, "edit_input_ss"); uv0_y.value = 0;
+    let uv1_x = DOM.ci_text(div3, null, "edit_input_ss"); uv1_x.value = 0;
+    let uv1_y = DOM.ci_text(div3, null, "edit_input_ss"); uv1_y.value = 0;
+    let uv2_x = DOM.ci_text(div3, null, "edit_input_ss"); uv2_x.value = 0;
+    let uv2_y = DOM.ci_text(div3, null, "edit_input_ss"); uv2_y.value = 0;
+    let b1 = DOM.cbutton(div3, null, "button_mini", "+", {shape_key: data.shape_key, subshape_index: data.subshape_index, element_index: data.element_index, index: data.index+1}, show_shape_vertexlist_insertface);
+    let b2 = DOM.cbutton(div3, null, "button_mini", "-", {shape_key: data.shape_key, subshape_index: data.subshape_index, element_index: data.element_index, index: data.index}, show_shape_vertexlist_deleteface);
+
+    if(data.index >= dom_list.length) {
+        dom_list[0][0].parentNode.appendChild(div3);
+        dom_list.push([div3, v1, v2, v3, uv0_x, uv0_y, uv1_x, uv1_y, uv2_x, uv2_y, b1, b2]);
+    }
+    else {
+        dom_list[0][0].parentNode.insertBefore(div3, dom_list[data.index][0]);
+        dom_list.splice(data.index, 0, [div3, v1, v2, v3, uv0_x, uv0_y, uv1_x, uv1_y, uv2_x, uv2_y, b1, b2]);
+    }
+
+    // Update the indexes of all the elements (labels and buttons)
+    for(let x = 0; x < dom_list.length; x++) {
+        dom_list[x][10].setAttribute("data-index", x+1);
+        dom_list[x][11].setAttribute("data-index", x);
+    }    
+}
+
+function show_shape_vertexlist_deleteface(ev, data) {
+    let dom_list = data_editor.dom["face_list_" + data.subshape_index];
+    if(dom_list.length === 1) {
+        DOM.showError("Error", "You can't remove the last face.");
+        return;
+    }
+    DOM.removeElement(dom_list[data.index][0]);
+
+    dom_list.splice(data.index, 1);
+
+    // Update the indexes of all the elements (labels and buttons)
+    for(let x = 0; x < dom_list.length; x++) {
+        dom_list[x][10].setAttribute("data-index", x+1);
+        dom_list[x][11].setAttribute("data-index", x);
+    }
+}
+
+function show_shape_vertexlist_apply(ev, data) {
+    let dom_list_v = data_editor.dom["vertex_list_" + data.subshape_index];
+    let dom_list_f = data_editor.dom["face_list_" + data.subshape_index];
+    let vl = [];
+    let fl = [];
+    let uvl = [];
+
+    let vertex_error = false, face_error = false;
+    for(let x = 0; x < dom_list_v.length; x++) {
+        let v = [dom_list_v[x][2].value, dom_list_v[x][3].value, dom_list_v[x][4].value];
+        vl.push(v);
+        for(let i = 0; i < v.length; i++) {
+            dom_list_v[x][2+i].style.background = null;
+            if(isNaN(v[i])) {
+                vertex_error = true;
+                dom_list_v[x][2+i].style.background = "#ffc4a8";
+                continue;
+            }
+            v[i] = parseFloat(v[i]);
+            if((v[i] < -1) || (v[i] > 1)) {
+                vertex_error = true;
+                dom_list_v[x][2+i].style.background = "#ffc4a8";
+                continue;
+            }
+        }
+    }
+
+    for(let x = 0; x < dom_list_f.length; x++) {
+        let f = [dom_list_f[x][1].value, dom_list_f[x][2].value, dom_list_f[x][3].value];
+        let uv = [[dom_list_f[x][4].value, dom_list_f[x][5].value], [dom_list_f[x][6].value, dom_list_f[x][7].value], [dom_list_f[x][8].value, dom_list_f[x][9].value]];
+        fl.push(f);
+        uvl.push(uv);
+
+        for(let i = 0; i < f.length; i++) {
+            dom_list_f[x][1+i].style.background = null;
+            if(isNaN(f[i])) {
+                face_error = true;
+                dom_list_f[i][1+i].style.background = "#ffc4a8";
+                continue;
+            }
+            f[i] = parseFloat(f[i]);
+            if((!Number.isInteger(f[i])) || (f[i] < 0) || (f[i] >= vl.length) ) {
+                face_error = true;
+                dom_list_f[x][1+i].style.background = "#ffc4a8";
+                continue;                
+            }
+        }
+
+        for(let i1 = 0; i1 < 3; i1++) {
+            for(let i2 = 0; i2 < 2; i2++) {
+                dom_list_f[x][4 + i1 * 2 + i2].style.background = null;
+                if(isNaN(uv[i1][i2])) {
+                    face_error = true;
+                    dom_list_f[x][4 + i1 * 2 + i2].style.background = "#ffc4a8";
+                    continue;
+                }
+                uv[i1][i2] = parseFloat(uv[i1][i2]);
+            }
+        }
+    }
+
+    if(vertex_error) {
+        DOM.showError("Error", "Some vertex don't have valid values.");
+        return;
+    }
+    if(face_error) {
+        DOM.showError("Error", "Some faces don't have valid values.");
+        return;
+    }
+
+    // Update the subshape element
+    data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements[data.element_index].v = vl;
+    data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements[data.element_index].f = fl;
+    data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements[data.element_index].uv = uvl;
+
+    show_shape_wgl(data.shape_key);
+    show_shape_vertexlist(data.shape_key, data.subshape_index, data.element_index);
+    unsaved_changes();
+}
+
+function show_shape_vertexlist(shape_key, subshape_index, element_index) {
+    let div, div2, div3, i;
+    let element = data_editor.definition.shapes[shape_key].subshapes[subshape_index].elements[element_index];
+
+    let dom_element = (subshape_index == 0) ? data_editor.dom.edit : data_editor.dom.edit2;
+        DOM.removeChilds(dom_element, true);
+
+    DOM.cdiv(dom_element, null, "edit_title", "SubShape " + subshape_index + " element " + element_index);
+
+    // Vertex list
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Vertex list (x, y, z)");
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    div2 = DOM.cdiv(div, null, "vertex_list");
+
+    data_editor.dom["vertex_list_" + subshape_index] = [];
+    div3 = DOM.cdiv(div2);
+    DOM.cbutton(div3, null, "button_mini", "+", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: 0},
+        show_shape_vertexlist_insertvertex);
+    for(let x = 0; x < element.v.length; x++) {
+        div3 = DOM.cdiv(div2);
+        div3.addEventListener("mouseover", () => { show_vertex_wgl(shape_key, subshape_index, x, true); });
+        div3.addEventListener("mouseout", () => { show_vertex_wgl(shape_key, subshape_index, x, false); });
+
+        let l = DOM.clabel(div3, null, "edit_label_s", x);
+        let px = DOM.ci_text(div3, null, "edit_input_ss"); px.value = element.v[x][0];
+        let py = DOM.ci_text(div3, null, "edit_input_ss"); py.value = element.v[x][1];
+        let pz = DOM.ci_text(div3, null, "edit_input_ss"); pz.value = element.v[x][2];
+        let b1 = DOM.cbutton(div3, null, "button_mini", "+", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: x+1},
+            show_shape_vertexlist_insertvertex);
+        let b2 = DOM.cbutton(div3, null, "button_mini", "-", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: x},
+            show_shape_vertexlist_deletevertex);
+        data_editor.dom["vertex_list_" + subshape_index].push([div3, l, px, py, pz, b1, b2]);
+    }
+
+    // Faces list
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Faces list (v0, v1, v2, uv0_x, uv0_y, uv1_x, uv1_y, uv2_x, uv2_y)");
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    div2 = DOM.cdiv(div, null, "vertex_list");
+
+    data_editor.dom["face_list_" + subshape_index] = [];
+    div3 = DOM.cdiv(div2);
+    DOM.cbutton(div3, null, "button_mini", "+", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: 0}, show_shape_vertexlist_insertface);
+    for(let x = 0; x < element.f.length; x++) {
+        div3 = DOM.cdiv(div2);
+        DOM.clabel(div3, null, "edit_label", "V");
+        let v1 = DOM.ci_text(div3, null, "edit_input_ss"); v1.value = element.f[x][0];
+        let v2 = DOM.ci_text(div3, null, "edit_input_ss"); v2.value = element.f[x][1];
+        let v3 = DOM.ci_text(div3, null, "edit_input_ss"); v3.value = element.f[x][2];
+
+        DOM.clabel(div3, null, "edit_label", "UVs");
+        let uv0_x = DOM.ci_text(div3, null, "edit_input_ss"); uv0_x.value = element.uv[x][0][0];
+        let uv0_y = DOM.ci_text(div3, null, "edit_input_ss"); uv0_y.value = element.uv[x][0][1];
+        let uv1_x = DOM.ci_text(div3, null, "edit_input_ss"); uv1_x.value = element.uv[x][1][0];
+        let uv1_y = DOM.ci_text(div3, null, "edit_input_ss"); uv1_y.value = element.uv[x][1][1];
+        let uv2_x = DOM.ci_text(div3, null, "edit_input_ss"); uv2_x.value = element.uv[x][2][0];
+        let uv2_y = DOM.ci_text(div3, null, "edit_input_ss"); uv2_y.value = element.uv[x][2][1];
+        let b1 = DOM.cbutton(div3, null, "button_mini", "+", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: x+1}, show_shape_vertexlist_insertface);
+        let b2 = DOM.cbutton(div3, null, "button_mini", "-", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index, index: x}, show_shape_vertexlist_deleteface);
+        data_editor.dom["face_list_" + subshape_index].push([div3, v1, v2, v3, uv0_x, uv0_y, uv1_x, uv1_y, uv2_x, uv2_y, b1, b2]);
+    }
+
+    // Buttons to apply and cancel
+    div = DOM.cdiv(dom_element, null, "edit_section_end");
+    DOM.cbutton(div, null, "button_mini", "Apply", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, show_shape_vertexlist_apply);
+    DOM.cbutton(div, null, "button_mini", "Cancel", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, () => {
+        show_shape_edit(shape_key, subshape_index);
+    });
+    DOM.cbutton(div, null, "button_mini", "Remove Element", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, (ev, data) => {
+        data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements.splice(data.element_index, 1);
+        show_shape_edit(shape_key, subshape_index);
+    });
+} 
+
+function show_shape_edit_enable_subshape(ev, data) {
+    let shape_key = data.shape_key;
+    data_editor.definition.shapes[shape_key].subshapes.push({
+        flat_normals: true,
+        texture: data_editor.definition.textures[0],
+        color: 0xff0000,
+        is_texture_light: true,
+        elements: [],
+    });
+    show_shape_edit(shape_key, 0);
+    show_shape_edit(shape_key, 1);    
+}
+
+function show_shape_edit_addelement(ev, data) {
+    data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements.push({
+        type: "vertex_list",
+        v: [[0,0,0]],
+        f: [[0,0,0]],
+        uv: [[[0,0], [0,0], [0,0]]],
+    });
+
+    show_shape_edit(data.shape_key, data.subshape_index);
+}
+
+function show_shape_edit_apply(ev, data) {
+    let subshape = data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index];
+    let dom_colorr = data_editor.dom["ss_colorr_" + data.subshape_index];
+    let dom_colorg = data_editor.dom["ss_colorg_" + data.subshape_index];
+    let dom_colorb = data_editor.dom["ss_colorb_" + data.subshape_index];
+    let flat_normals = data_editor.dom["ss_flat_normals_" + data.subshape_index].checked;
+    let texture = data_editor.dom["ss_texture_" + data.subshape_index].value;
+
+    let color_r = dom_colorr.value;
+    let color_g = dom_colorg.value;
+    let color_b = dom_colorb.value;
+
+    if(isNaN(color_r) || isNaN(color_g) || isNaN(color_b)) {
+        DOM.showError("Error", "Color should be 3 integers between 0 and 255 each one.");
+        return;
+    }
+    color_r = parseFloat(color_r);
+    color_g = parseFloat(color_g);
+    color_b = parseFloat(color_b);
+
+    if(
+        (!Number.isInteger(color_r)) || (color_r < 0) || (color_r > 255) ||
+        (!Number.isInteger(color_g)) || (color_g < 0) || (color_g > 255) ||
+        (!Number.isInteger(color_b)) || (color_b < 0) || (color_b > 255)
+        ) {
+        DOM.showError("Error", "Color should be 3 integers between 0 and 255 each one.");
+        return;
+    }
+
+    subshape.texture = texture;
+    subshape.flat_normals = flat_normals;
+    subshape.color = (color_r << 16) | (color_g << 8) | color_b;
+    show_shape_wgl(data.shape_key);
+
+    unsaved_changes();
+}
+
+/**
+ * Function to edit a subshape.
+ */
+function show_shape_edit(shape_key, subshape_index) {
+    let div, i;
+    let dom_element = (subshape_index == 0) ? data_editor.dom.edit : data_editor.dom.edit2;
+    DOM.removeChilds(dom_element, true);
+
+    DOM.cdiv(dom_element, null, "edit_title", "SubShape " + subshape_index);
+
+    if(subshape_index in data_editor.definition.shapes[shape_key].subshapes) {
+        let ss = data_editor.definition.shapes[shape_key].subshapes[subshape_index];
+        
+        // Flat Normals
+        div = DOM.cdiv(dom_element, null, "edit_section");
+        DOM.clabel(div, null, "edit_label", "Faces are flat.", "ss_flat_normals_" + subshape_index);
+        data_editor.dom["ss_flat_normals_" + subshape_index] = DOM.ci_checkbox(div, null, "ss_flat_normals_" + subshape_index);
+        data_editor.dom["ss_flat_normals_" + subshape_index].checked = ss.flat_normals;
+
+        // Texture
+        let texture_options = [];
+        for(let x = 0; x < data_editor.definition.textures.length; x++)
+            texture_options.push([data_editor.definition.textures[x], data_editor.definition.textures[x]]);
+        div = DOM.cdiv(dom_element, null, "edit_section");
+        DOM.clabel(div, null, "edit_label", "Texture", "ss_texture_" + subshape_index);
+        data_editor.dom["ss_texture_" + subshape_index] = DOM.cselect(div, "ss_texture_" + subshape_index, null, texture_options);
+        data_editor.dom["ss_texture_" + subshape_index].value = ss.texture;
+
+        // Color
+        let r = ss.color >> 16;
+        let g = (ss.color >> 8) & 0xff;
+        let b = ss.color & 0xff;
+        div = DOM.cdiv(dom_element, null, "edit_section");
+        DOM.clabel(div, null, "edit_label", "Color");
+        DOM.clabel(div, null, "edit_label_s", "Red", "ss_colorr_" + subshape_index);
+        data_editor.dom["ss_colorr_" + subshape_index] = DOM.ci_text(div, "ss_colorr_" + subshape_index, "edit_input_s");
+        data_editor.dom["ss_colorr_" + subshape_index].value = r;
+        DOM.clabel(div, null, "edit_label_s", "Green", "ss_colorg_" + subshape_index);
+        data_editor.dom["ss_colorg_" + subshape_index] = DOM.ci_text(div, "ss_colorg_" + subshape_index, "edit_input_s");
+        data_editor.dom["ss_colorg_" + subshape_index].value = g;
+        DOM.clabel(div, null, "edit_label_s", "Blue", "ss_colorb_" + subshape_index);
+        data_editor.dom["ss_colorb_" + subshape_index] = DOM.ci_text(div, "ss_colorb_" + subshape_index, "edit_input_s");
+        data_editor.dom["ss_colorb_" + subshape_index].value = b;
+
+        // Apply button
+        div = DOM.cdiv(dom_element, null, "edit_section_end");
+        DOM.cbutton(div, null, "button_mini", "Apply", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_apply);
+
+        // Elements of this subshape
+        div = DOM.cdiv(dom_element, null, "edit_section");
+        DOM.clabel(div, null, "edit_label", "Elements");
+        for(let x = 0; x < ss.elements.length; x++) {
+            DOM.cbutton(div, null, "button_mini", "" + x, {shape_key: shape_key, subshape_index: subshape_index, element_index: x}, (ev, data) => {
+                show_shape_vertexlist(data.shape_key, data.subshape_index, data.element_index);
+            });
+        }
+        div = DOM.cdiv(dom_element, null, "edit_section");
+        DOM.clabel(div, null, "edit_label", "Add Element");
+        DOM.cbutton(div, null, "button_mini", "Add Vertex List", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_addelement);
+        data_editor.dom["subshape_element_container_" + subshape_index] = DOM.cdiv(div, null, "element_container");
+
+    }
+    else {
+        DOM.cbutton(dom_element, null, "button_mini", "Enable this subshape", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_enable_subshape);
+    }
+
 }
 
 function request_delete_shape(ev) {
-    let id = this.parentNode.getAttribute("data-key");
-    alert("request_delete_shape not implemented: " + key);
+    let key = ev.target.parentNode.getAttribute("data-key");
+    delete data_editor.definition.shapes[key];
+    empty_all();
+    draw_definition();
+    unsaved_changes();
+
     ev.stopPropagation();
 }
 
-function request_add_shape() {
-    alert("request_add_shape not implemented.");
+function request_add_shape(ev) {
+    // Find an available key
+    let key = 0;
+    while(key in data_editor.definition.shapes) key++;
+
+    data_editor.definition.shapes[key] = {
+        name: "New Shape " + key,
+        description: "Description of shape",
+        type: "basic",
+        base_scale: [1,1,1],
+        subshapes: [{
+            flat_normals: true,
+            texture: data_editor.definition.textures[0],
+            color: 0xaaaaaa,
+            is_texture_light: true,
+            elements: [],
+        }]
+    };
+
+    draw_definition();
+    unsaved_changes();
+
+    ev.stopPropagation();
 }
 
 /**
@@ -418,7 +845,7 @@ function show_texture() {
 
 async function request_delete_texture(ev) {
     ev.stopPropagation();
-    let index = this.parentNode.getAttribute("data-index");
+    let index = ev.target.parentNode.getAttribute("data-index");
 
     try {
         let r = await fetch('/shapegroups/removetexture', {
@@ -495,6 +922,123 @@ function request_add_texture() {
     })
 }
 
+function draw_definition() {
+    DOM.removeChilds(data_editor.dom.list_shapes, true);
+    DOM.removeChilds(data_editor.dom.list_textures, true);
+    let definition = data_editor.definition;
+    
+    for(let key in  definition.shapes) {
+        let element = DOM.cdiv(data_editor.dom.list_shapes, null, "shapelist_shape");
+        element.addEventListener("click", show_shape);
+        element.setAttribute("data-key", key)
+        DOM.cdiv(element, null, "shapelist_shape_text", definition.shapes[key].name);
+        element = DOM.cbutton(element, null, "button_mini", "X", null, request_delete_shape);
+    }
+    
+    for(let index = 0; index < definition.textures.length; index++) {
+        let element = DOM.cdiv(data_editor.dom.list_textures, null, "shapelist_shape");
+        element.addEventListener("click", show_texture);
+        element.setAttribute("data-index", index)
+        DOM.cdiv(element, null, "shapelist_shape_text", definition.textures[index]);
+        element = DOM.cbutton(element, null, "button_mini", "X", null, request_delete_texture);
+    }
+}
+
+async function load_shape_definition() {
+    try {
+        let r = await fetch("/3dshapes/" + shapegroup_key + "/definition.json", {cache: "no-store"});
+        let body = await r.json();
+        if(r.status !== 200)
+            DOM.showError("Error", "Error loading definition file (" + r.status + ").");
+        else if(body.error) {
+            DOM.showError("Error", "Error loading definition file: " + body.error);
+        }
+        else {
+            data_editor.definition = body;
+            draw_definition();
+        }
+    }
+    catch (e) {
+        DOM.showError("Error", "Error loading definition file. Connection error.");
+    }
+}
+
+async function save_shapes() {
+    try {
+        let r = await fetch('/shapegroups/update_shapes', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                key: shapegroup_key,
+                shapes: data_editor.definition.shapes,
+            }),
+        });
+        let body = await r.json();
+        if(r.status !== 200)
+            DOM.showError("Error", "Error updating shapes (" + r.status + ").");
+        else if(body.error) {
+            DOM.showError("Error", "Error updating shapes: " + body.error);
+        }
+        else {
+            DOM.showError("Saved", "Shapes have been saved.");
+            data_editor.dom.save.style.display = "none";
+        }
+    }
+    catch (e) {
+        DOM.showError("Error", "Failed to save shapes. Connection error.");        
+    }
+}
+
+function unsaved_changes() {
+    data_editor.unsaved_changes = true;
+    data_editor.dom.save.style.display = "block";
+}
+
+function create_icon_canvas(src_canvas) {
+    let px = 0, py = 0, height = src_canvas.height, width = src_canvas.width;
+    if(width > height) {
+        px += (width-height)/2;
+        width = height;
+    }
+    if(height > width) {
+        py += (height-width)/2;
+        height = width;
+    }
+
+    let dst_canvas = document.createElement("CANVAS");
+    dst_canvas.width = 128;
+    dst_canvas.height = 128;
+    ctx = dst_canvas.getContext('2d');
+
+    ctx.drawImage(src_canvas, px, py, width, height, 0, 0, 128, 128);
+
+    return dst_canvas;
+}
+async function capture_shape_icon(ev, data) {
+    let shape_key = data.shape_key;
+    let canvas = data_editor.renderer.domElement;
+    let icon_canvas = create_icon_canvas(canvas);
+    icon_canvas.toBlob(async (image) => {
+        let formData = new FormData();
+        formData.append("img", image);
+        try {
+            let r = await fetch('/shapegroups/uploadicon/' + shapegroup_key + "/" + shape_key, {method: "POST", body: formData});
+            let body = await r.text();
+            if(r.status !== 200)
+                DOM.showError("Error", "Error uploading file (" + r.status + "): " + body);
+            else {
+                DOM.showError("Success", "Success uploading icon: " + body);
+            }
+        }
+        catch (e) {
+            DOM.showError("Error", "Failed to upload file: " + e);
+        }    
+
+    }, "image/png");
+}
+
 function init_screen() {
     let body = document.body;
     let ge, div;
@@ -528,72 +1072,14 @@ function init_screen() {
     
     // Draving area
     data_editor.dom.drawing = DOM.cge(grid, "drawing", null, 2, 3, 2, 3);
-
+    data_editor.dom.drawing_capture = DOM.cbutton(drawing, null, "button_mini", "Capture as Icon", {shape_key: null}, capture_shape_icon);
+    data_editor.dom.drawing_capture.style.display = "none";
     // Config
     data_editor.dom.config = DOM.cge(grid, "config", null, 3, 4, 2, 3);
 
     // Edit and edit2
     data_editor.dom.edit = DOM.cge(grid, "edit", null, 2, 3, 3, 4);
     data_editor.dom.edit2 = DOM.cge(grid, "edit2", null, 3, 4, 3, 4);
-}
-
-function draw_definition() {
-    DOM.removeChilds(data_editor.dom.list_shapes, true);
-    DOM.removeChilds(data_editor.dom.list_textures, true);
-    let definition = data_editor.definition;
-    
-    for(let key in  definition.shapes) {
-        let element = DOM.cdiv(data_editor.dom.list_shapes, null, "shapelist_shape");
-        element.addEventListener("click", show_shape);
-        element.setAttribute("data-key", key)
-        DOM.cdiv(element, null, "shapelist_shape_text", definition.shapes[key].name);
-        element = DOM.cbutton(element, null, "button_mini", "X", null, request_delete_shape);
-    }
-    
-    for(let index = 0; index < definition.textures.length; index++) {
-        let element = DOM.cdiv(data_editor.dom.list_textures, null, "shapelist_shape");
-        element.addEventListener("click", show_texture);
-        element.setAttribute("data-index", index)
-        DOM.cdiv(element, null, "shapelist_shape_text", definition.textures[index]);
-        element = DOM.cbutton(element, null, "button_mini", "X", null, request_delete_texture);
-    }
-}
-
-function load_shape_definition() {
-    xmlhttp_call("GET", "/3dshapes/" + shapegroup_key + "/definition.json", null, (definition) => {
-        data_editor.definition = definition;
-        draw_definition();
-    }, (status) => {
-        DOM.showError("Error", "Error loading definition file");
-    })
-}
-
-async function save_shapes() {
-    try {
-        let r = await fetch('/shapegroups/update_shapes', {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                key: shapegroup_key,
-                shapes: data_editor.definition.shapes,
-            }),
-        });
-        let body = await r.json();
-        if(r.status !== 200)
-            DOM.showError("Error", "Error updating shapes (" + r.status + ").");
-        else if(body.error) {
-            DOM.showError("Error", "Error updating shapes: " + body.error);
-        }
-        else {
-            DOM.showError("Saved", "Shapes have been saved.");
-            data_editor.dom.save.style.display = "none";
-        }        
-    }
-    catch (e) {
-        DOM.showError("Error", "Failed to save shapes. Connection error.");        
-    }
 }
 
 function main() {

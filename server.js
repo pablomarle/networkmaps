@@ -94,7 +94,7 @@ function process_multipart_formdata(content_type, body) {
 			if((scd_2.length === 2) && (scd_2[0] === "name"))
 				name = removeDoubleQuote(scd_2[1]);
 		}
-		if((filename === null) || (name === null))
+		if(name === null)
 			return null;
 
 		// Find the start and end index of the file contents
@@ -363,6 +363,42 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
 			}
 		}
+		// Upload shape icon to shapegroup
+		else if (url.startsWith("/shapegroups/uploadicon/") && (method === "POST")) {
+			let surl = url.split("/");
+			if(surl.length === 5) {
+				let shapegroup_key = surl[3];
+				let shape_key = surl[4];
+
+				let result = process_multipart_formdata(content_type, body);
+				if((result === null) || (!result.img)) {
+					sendresponse(400, "text/plain", "Invalid request", session.sessionid);
+					console.log(result);
+					return;
+				}
+				usermgt.uploadShapeIcon(session.sessionid, shapegroup_key, shape_key,
+					body.substring(result["img"].content_index_start, result["img"].content_index_end),
+					(err, filename) => {
+						if(err) {
+							console.log("Error uploading icon to shapegroup: " + err);
+							sendresponse(400, "text/plain", "Upload error: " + err, session.sessionid);
+							return;
+						}
+						else {
+							console.log("Uploaded icon file to shapegroup " + shapegroup_key);
+							console.log("File name: " + filename);
+							console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start));	
+							sendresponse(200, "text/plain", filename, session.sessionid);
+							return;
+						}
+					}
+				);
+			}
+			else {
+				sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+			}
+		}
+
 		// Get a group of 3d shapes
 		else if (url.startsWith("/3dshapes/") && (method === "GET")) {
 			let surl = url.split("/");

@@ -21,7 +21,8 @@ DOM = {
 		if (etext != null) element.innerHTML = etext;
 		if(eid) element.id = eid;
 		if(eclass) element.className = eclass;
-		parent.appendChild(element);
+		if(parent)
+			parent.appendChild(element);
 
 		return element;
 	},
@@ -92,14 +93,21 @@ DOM = {
 
 	cbutton : (parent, eid=null, eclass=null, etext=null, data=null, clickaction = null) => {
 		let button = DOM.c(parent, "button", eid, eclass, etext);
-
+		let attributes = [];
 		if(data) 
 			for (attr in data) {
 				button.setAttribute("data-" + attr, data[attr]);
+				attributes.push(attr);
 			}
 
 		if(clickaction)
-			button.addEventListener("click", clickaction);
+			button.addEventListener("click", (ev) => {
+				let result_data = {};
+				for(let x = 0; x < attributes.length; x++) {
+					result_data[attributes[x]] = ev.target.getAttribute("data-" + attributes[x]);
+				}
+				clickaction(ev, result_data);
+			});
 		
 		return button;
 	},
