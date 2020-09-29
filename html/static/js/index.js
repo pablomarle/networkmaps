@@ -188,8 +188,8 @@ function get_diagrams() {
 	})
 }
 
-function delete_diagram() {
-	let uuid = this.getAttribute("data-uuid");
+function delete_diagram(ev, data) {
+	let uuid = data.uuid;
 	send({
 		m: "DD",
 		d: {
@@ -198,8 +198,8 @@ function delete_diagram() {
 	})
 }
 
-function rename_diagram() {
-	let uuid = this.getAttribute("data-uuid");
+function rename_diagram(ev, data) {
+	let uuid = data.uuid;
 	send({
 		m: "DR",
 		d: {
@@ -228,8 +228,8 @@ function delete_permission() {
 	})
 }
 
-function share() {
-	let uuid = this.getAttribute("data-uuid");
+function share(ev, data) {
+	let uuid = data.uuid;
 	let email = index_data.share_email.value;
 	let permission = index_data.share_permission.value;
 	send({
@@ -239,9 +239,9 @@ function share() {
 	
 }
 
-function linkshare() {
-	let uuid = this.getAttribute("data-uuid");
-	let linksharing = (this.getAttribute("data-linksharing") === "1")
+function linkshare(ev, data) {
+	let uuid = data.uuid;
+	let linksharing = (data.linksharing === "1")
 	send({
 		m: "DW",
 		d: {uuid: uuid, ls: linksharing}
@@ -778,8 +778,7 @@ function screen_diagram_delete(old_state) {
 		DOM.cdiv(div, null, "paragraph", "Are you sure you want to delete this diagram?")
 		DOM.cdiv(div, null, "paragraph", "This action can't be undone")
 		t = DOM.cdiv(div, null, "t_center");
-			i = DOM.cbutton(t, null, "button", "Yes", null, delete_diagram);
-			i.setAttribute("data-uuid", uuid);
+			i = DOM.cbutton(t, null, "button", "Yes", {uuid: uuid}, delete_diagram);
 			DOM.cbutton(t, null, "button", "No", null, () => { set_state("P") });
 }
 
