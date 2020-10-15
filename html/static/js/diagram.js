@@ -2204,9 +2204,12 @@ function mousedown(x, y, dx, dy, dom_element) {
             (d.dom.tools.active_t === "CZ")
         )
         ) {
-            d.mouseaction = {
-                m: d.dom.tools.active_t,
-            };
+        d.mouseaction = {
+            m: d.dom.tools.active_t,
+        };
+        if(objlist.length > 0) {
+            d.mouseaction.mesh = objlist[0].mesh;
+        }            
     }
     else if(d.permission === "RO") {
         // Do nothings
@@ -2979,7 +2982,11 @@ function mousemove(x, y, dx, dy, dom_element) {
         d.wgl.moveCamera(dx, dy);
     }
     else if(d.dom.tools.active_t === "CR") {
-        d.wgl.rotateCamera(-dx, -dy);
+        if(d.mouseaction.mesh) {
+            d.wgl.rotateCameraAround(-dx, -dy, d.mouseaction.mesh);
+        }
+        else
+            d.wgl.rotateCamera(-dx, -dy);
     }
     else if(d.dom.tools.active_t === "CZ") {
         d.wgl.zoomCamera(dy);
