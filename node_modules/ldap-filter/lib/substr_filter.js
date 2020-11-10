@@ -1,8 +1,7 @@
 // Copyright 2014 Mark Cavage, Inc.  All rights reserved.
-// Copyright 2014 Patrick Mooney.  All rights reserved.
+// Copyright 2015 Patrick Mooney
 
 var util = require('util');
-
 var assert = require('assert-plus');
 
 var helpers = require('./helpers');
@@ -19,7 +18,8 @@ function escapeRegExp(str) {
 ///--- API
 
 function SubstringFilter(options) {
-  if (typeof (options) === 'object') {
+  assert.optionalObject(options);
+  if (options) {
     assert.string(options.attribute, 'options.attribute');
 
     this.attribute = options.attribute;
@@ -29,22 +29,27 @@ function SubstringFilter(options) {
   } else {
     this.any = [];
   }
-
-  var self = this;
-  this.__defineGetter__('type', function () { return 'substring'; });
-  this.__defineGetter__('json', function () {
-    return {
-      type: 'SubstringMatch',
-      initial: self.initial,
-      any: self.any,
-      final: self.final
-    };
-  });
 }
 util.inherits(SubstringFilter, helpers.Filter);
+Object.defineProperties(SubstringFilter.prototype, {
+  type: {
+    get: function getType() { return 'substring'; },
+    configurable: false
+  },
+  json: {
+    get: function getJson() {
+      return {
+        type: 'SubstringMatch',
+        initial: this.initial,
+        any: this.any,
+        final: this.final
+      };
+    },
+    configurable: false
+  }
+});
 
-
-SubstringFilter.prototype.toString = function () {
+SubstringFilter.prototype.toString = function toString() {
   var str = '(' + helpers.escape(this.attribute) + '=';
 
   if (this.initial)
@@ -64,8 +69,7 @@ SubstringFilter.prototype.toString = function () {
   return str;
 };
 
-
-SubstringFilter.prototype.matches = function (target, strictAttrCase) {
+SubstringFilter.prototype.matches = function matches(target, strictAttrCase) {
   assert.object(target, 'target');
 
   var tv = helpers.getAttrValue(target, this.attribute, strictAttrCase);

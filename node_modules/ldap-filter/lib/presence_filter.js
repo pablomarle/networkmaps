@@ -1,8 +1,7 @@
 // Copyright 2014 Mark Cavage, Inc.  All rights reserved.
-// Copyright 2014 Patrick Mooney.  All rights reserved.
+// Copyright 2015 Patrick Mooney
 
 var util = require('util');
-
 var assert = require('assert-plus');
 
 var helpers = require('./helpers');
@@ -11,30 +10,34 @@ var helpers = require('./helpers');
 ///--- API
 
 function PresenceFilter(options) {
-  if (typeof (options) === 'object') {
-    assert.string(options.attribute, 'options.attribute');
-    this.attribute = options.attribute;
-  }
+  assert.optionalObject(options);
+  options = options || {};
+  assert.optionalString(options.attribute);
 
-
-  var self = this;
-  this.__defineGetter__('type', function () { return 'present'; });
-  this.__defineGetter__('json', function () {
-    return {
-      type: 'PresenceMatch',
-      attribute: self.attribute
-    };
-  });
+  this.attribute = options.attribute;
 }
 util.inherits(PresenceFilter, helpers.Filter);
+Object.defineProperties(PresenceFilter.prototype, {
+  type: {
+    get: function getType() { return 'present'; },
+    configurable: false
+  },
+  json: {
+    get: function getJson() {
+      return {
+        type: 'PresenceMatch',
+        attribute: this.attribute
+      };
+    },
+    configurable: false
+  }
+});
 
-
-PresenceFilter.prototype.toString = function () {
+PresenceFilter.prototype.toString = function toString() {
   return '(' + helpers.escape(this.attribute) + '=*)';
 };
 
-
-PresenceFilter.prototype.matches = function (target, strictAttrCase) {
+PresenceFilter.prototype.matches = function matches(target, strictAttrCase) {
   assert.object(target, 'target');
 
   var value = helpers.getAttrValue(target, this.attribute, strictAttrCase);

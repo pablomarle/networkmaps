@@ -1,8 +1,7 @@
 // Copyright 2014 Mark Cavage, Inc.  All rights reserved.
-// Copyright 2014 Patrick Mooney.  All rights reserved.
+// Copyright 2015 Patrick Mooney
 
 var util = require('util');
-
 var assert = require('assert-plus');
 
 var helpers = require('./helpers');
@@ -11,33 +10,38 @@ var helpers = require('./helpers');
 ///--- API
 
 function ApproximateFilter(options) {
-  if (typeof (options) === 'object') {
+  assert.optionalObject(options);
+  if (options) {
     assert.string(options.attribute, 'options.attribute');
     assert.string(options.value, 'options.value');
     this.attribute = options.attribute;
     this.value = options.value;
   }
-
-  var self = this;
-  this.__defineGetter__('type', function () { return 'approx'; });
-  this.__defineGetter__('json', function () {
-    return {
-      type: 'ApproximateMatch',
-      attribute: self.attribute,
-      value: self.value
-    };
-  });
 }
 util.inherits(ApproximateFilter, helpers.Filter);
+Object.defineProperties(ApproximateFilter.prototype, {
+  type: {
+    get: function getType() { return 'approx'; },
+    configurable: false
+  },
+  json: {
+    get: function getJson() {
+      return {
+        type: 'ApproximateMatch',
+        attribute: this.attribute,
+        value: this.value
+      };
+    },
+    configurable: false
+  }
+});
 
-
-ApproximateFilter.prototype.toString = function () {
+ApproximateFilter.prototype.toString = function toString() {
   return ('(' + helpers.escape(this.attribute) +
           '~=' + helpers.escape(this.value) + ')');
 };
 
-
-ApproximateFilter.prototype.matches = function () {
+ApproximateFilter.prototype.matches = function matches() {
   // Consumers must implement this themselves
   throw new Error('approx match implementation missing');
 };

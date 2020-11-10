@@ -19,9 +19,10 @@ var assert = require('assert-plus');
  * @author [Austin King](https://github.com/ozten)
  */
 function _escape(inp) {
+  var esc = '';
+  var i;
   if (typeof (inp) === 'string') {
-    var esc = '';
-    for (var i = 0; i < inp.length; i++) {
+    for (i = 0; i < inp.length; i++) {
       switch (inp[i]) {
         case '*':
           esc += '\\2a';
@@ -46,7 +47,15 @@ function _escape(inp) {
     return esc;
 
   } else {
-    return inp;
+    assert.buffer(inp, 'input must be string or Buffer');
+    for (i = 0; i < inp.length; i++) {
+      if (inp[i] < 16) {
+        esc += '\\0' + inp[i].toString(16);
+      } else {
+        esc += '\\' + inp[i].toString(16);
+      }
+    }
+    return esc;
   }
 }
 

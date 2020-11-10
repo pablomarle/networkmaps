@@ -447,6 +447,7 @@ function test_directories() {
 }
 
 function main() {
+    console.log("\nIf you like NetworkMaps, consider making a small donation :)\n")
 	test_directories();
 
 	usermgt.initialize();
