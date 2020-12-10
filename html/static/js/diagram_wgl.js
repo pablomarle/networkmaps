@@ -1170,7 +1170,7 @@ class WGL {
         }   
     }
 
-    settingsMesh_Base(view, id, name, subtype, color1, color2, opacity, t1name, t2name, sy, tsx, tsy) {
+    settingsMesh_Base(view, id, name, subtype, color1, color2, opacity, t1name, t2name, t1user, t2user, sy, tsx, tsy) {
         let mesh = this.findMesh("base", id, this.scene[view]);
 
         if (mesh) {
@@ -1180,8 +1180,25 @@ class WGL {
             mesh.userData.e.color1 = color1;
             mesh.userData.e.color2 = color2;
             mesh.userData.e.opacity = opacity;
-            mesh.userData.e.t1name = t1name;
-            mesh.userData.e.t2name = t2name;
+
+            if(t1user) {
+                mesh.userData.e.t1user = t1user;
+                delete mesh.userData.e.t1name;
+            }
+            else {
+                mesh.userData.e.t1name = t1name;
+                delete mesh.userData.e.t1user;
+            }
+
+            if(t2user) {
+                mesh.userData.e.t2user = t2user;
+                delete mesh.userData.e.t2name;
+            }
+            else {
+                mesh.userData.e.t2name = t2name;
+                delete mesh.userData.e.t2user;
+            }
+
             mesh.userData.e.sy = sy;
             mesh.userData.e.tsx = tsx;
             mesh.userData.e.tsy = tsy;
@@ -1785,8 +1802,18 @@ class WGL {
         let sx = meshgroup.userData.e.sx;
         let sz = meshgroup.userData.e.sz;
         let h = meshgroup.userData.e.sy;
-        let tu1 = sx * meshgroup.userData.e.tsx;
-        let tv1 = sz * meshgroup.userData.e.tsy;
+
+        let tu1, tv1;
+        if(meshgroup.userData.e.tsx === null) {
+            tu1 = 1;
+        }
+        else
+            tu1 = sx * meshgroup.userData.e.tsx;
+
+        if(meshgroup.userData.e.tsy === null)
+            tv1 = 1;
+        else
+            tv1 = sz * meshgroup.userData.e.tsy;
 
         let w2 = sx/2.0;
         let d2 = sz/2.0;
@@ -1805,9 +1832,9 @@ class WGL {
         v1.push($WGL_V3(-w2, h, -d2));
 
         f1.push($WGL_F3(0,1,2));
-        uv1.push([$WGL_V2(0,tv1), $WGL_V2(tu1,tv1), $WGL_V2(tu1,0)])
+        uv1.push([$WGL_V2(0,0), $WGL_V2(tu1,0), $WGL_V2(tu1,tv1)])
         f1.push($WGL_F3(0,2,3));
-        uv1.push([$WGL_V2(0,tv1), $WGL_V2(tu1,0), $WGL_V2(0,0)])
+        uv1.push([$WGL_V2(0,0), $WGL_V2(tu1,tv1), $WGL_V2(0,tv1)])
 
         // The elevation part
         g[1].vertices = [];
@@ -1839,9 +1866,20 @@ class WGL {
         let color2 = meshgroup.userData.e.color2;
         let t1name = meshgroup.userData.e.t1name;
         let t2name = meshgroup.userData.e.t2name;
-        
-        let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + t1name + ".png", (t) => {this.processLoadedTexture(t)} );
-        let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + t2name + ".png", (t) => {this.processLoadedTexture(t)} );
+        let t1user = meshgroup.userData.e.t1user;
+        let t2user = meshgroup.userData.e.t2user;
+
+        let texture1, texture2;
+        if(t1user)
+            texture1 = new THREE.TextureLoader().load( appserver + "/usertexture/" + t1user + ".png", (t) => {this.processLoadedTexture(t)} );
+        else
+            texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + t1name + ".png", (t) => {this.processLoadedTexture(t)} );
+
+        if(t2user)
+            texture2 = new THREE.TextureLoader().load( appserver + "/usertexture/" + t2user + ".png", (t) => {this.processLoadedTexture(t)} );
+        else
+            texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + t2name + ".png", (t) => {this.processLoadedTexture(t)} );
+
         //let material1 = new THREE.MeshLambertMaterial({map: texture1})
         //let material2 = new THREE.MeshLambertMaterial({map: texture2})
         let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2, transparent: true})
@@ -1867,8 +1905,17 @@ class WGL {
     addCubeFloor(id, sceneid, e) {
         let geometry1 = new THREE.Geometry();
         let geometry2 = new THREE.Geometry();
-        let texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t1name + ".png", (t) => {this.processLoadedTexture(t)} );
-        let texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t2name + ".png", (t) => {this.processLoadedTexture(t)} );
+
+        let texture1, texture2;
+        if(e.t1user)
+            texture1 = new THREE.TextureLoader().load( appserver + "/usertexture/" + e.t1user + ".png", (t) => {this.processLoadedTexture(t)} );
+        else
+            texture1 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t1name + ".png", (t) => {this.processLoadedTexture(t)} );
+
+        if(e.t2user)
+            texture2 = new THREE.TextureLoader().load( appserver + "/usertexture/" + e.t2user + ".png", (t) => {this.processLoadedTexture(t)} );
+        else
+            texture2 = new THREE.TextureLoader().load( staticurl + "/static/textures/" + e.t2name + ".png", (t) => {this.processLoadedTexture(t)} );
         
         let material1 = new THREE.MeshStandardMaterial({map: texture1, bumpMap: texture1, metalness:.05, bumpScale:.2, transparent: true})
         let material2 = new THREE.MeshStandardMaterial({map: texture2, bumpMap: texture2, metalness:.05, bumpScale:.2, transparent: true})

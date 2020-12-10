@@ -444,6 +444,18 @@ function WIN_addColorInput(win, px, py, label, value) {
 	return i;
 }
 
+function WIN_addImgSelection_setImg(dom_element, img, options) {
+	for(let i = 0; i < options.length; i++) {
+		if(options[i][1] === dom_element.value) {
+			if(options[i].length === 3)
+				img.src = options[i][2]; // appserver + "/usertexture/" + dom_element.value + ".png";
+			else
+				img.src = staticurl + "/static/textures/" + dom_element.value + ".png";
+			return;
+		}
+	}
+}
+
 function WIN_addImgSelection(win, px, py, label, value, options) {
 	let o = []
 	for(let x = 0; x < options.length; x++) {
@@ -454,13 +466,16 @@ function WIN_addImgSelection(win, px, py, label, value, options) {
 
 	let i = DOM.cselect(win, null, null, options);
 	DOM.setElementPos(i, px + 2, py + 15);
+	DOM.setElementSize(i, 130);
 	i.value = value;
 
-	let img = DOM.cimg(win, staticurl + "/static/textures/" + i.value + ".png", null, "win_imgselect");
+	let img = DOM.cimg(win, null, null, "win_imgselect");
 	DOM.setElementPos(img, px + 140, py+5);
-	
+	WIN_addImgSelection_setImg(i, img, options);
+
 	i.addEventListener("change", () => {
-		img.src = staticurl + "/static/textures/" + i.value + ".png";
+		WIN_addImgSelection_setImg(i, img, options);
+		
 	})
 	return i;
 }
@@ -485,6 +500,7 @@ function WIN_addSlider(win, px, py, width, label, value, low, high, step) {
 	let i = DOM.ci_text(container, null, "slider_value");
 	DOM.setElementPos(i, width+10, 13);
 	i.value = value;
+
 	i.readOnly = true;
 
 	return i;
@@ -899,7 +915,7 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
 	});
 }
 
-function WIN_showBaseElementWindow(view, type, id, e, callback) {
+function WIN_showBaseElementWindow(view, type, id, e, user_textures, callback) {
 	let wdata = WIN_create(view, type, id, e.name, 460, 350);
 	if(!wdata)
 		return;
@@ -940,12 +956,17 @@ function WIN_showBaseElementWindow(view, type, id, e, callback) {
 		["Bricks", "b2_t1"], 
 		["Stones", "b2_t2"],
 		];
-	wdata.d.t1name = WIN_addImgSelection(w, 20, 240, "Floor Texture", e.t1name, texture_options);
-	wdata.d.t2name = WIN_addImgSelection(w, 20, 275, "Border Texture", e.t2name, texture_options);
+
+	for(let texture_id in user_textures) {
+		texture_options.push([user_textures[texture_id].name, texture_id, appserver + "/usertexture/" + texture_id + ".png"]);
+	}
+
+	wdata.d.t1name = WIN_addImgSelection(w, 20, 240, "Floor Texture", (e.t1user) ? e.t1user : e.t1name, texture_options);
+	wdata.d.t2name = WIN_addImgSelection(w, 20, 275, "Border Texture", (e.t2user) ? e.t2user : e.t2name, texture_options);
 
 	// Floor Texture size
-	wdata.d.tsx_i = WIN_addSlider(w, 250, 240, 100, "Texture U", 1/e.tsx, .25, 10, .25);
-	wdata.d.tsy_i = WIN_addSlider(w, 250, 275, 100, "Texture V", 1/e.tsy, .25, 10, .25);
+	wdata.d.tsx_i = WIN_addSlider(w, 250, 240, 100, "Texture U", (e.tsx === null) ? 0 : 1/e.tsx, 0, 10, .25);
+	wdata.d.tsy_i = WIN_addSlider(w, 250, 275, 100, "Texture V", (e.tsy === null) ? 0 : 1/e.tsy, 0, 10, .25);
 
 	// Button to apply
 	wdata.d.apply = WIN_addButton(w, 190, 325, "Apply", () => {

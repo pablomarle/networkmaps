@@ -1,0 +1,71 @@
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.full_screen {
+    width: 100vw;
+    height: 100vh;  
+}
+
+#header {
+    background: #4484CE;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.navigation {
+    background: #ECEEF2;
+    border: 2px solid #ccc;
+    overflow: auto;
+    display:flex;
+    flex-direction: column;
+}
+.navigation_title {
+    background: #4484CE;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.navigation_title_text {
+    margin: 0 10px;
+    color: #eee;
+    font-weight: bold;
+}
+
+.texture_cell {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 10px;
+}
+
+#list_textures {
+    overflow: auto;
+}
+
+.usertexture {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;    
+    margin: 5px 5px;
+    padding: 0px 0px 0px 10px;
+    background: #ffc78e;
+    border-radius: 5px;    
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.usertexture:hover {
+    color: #666;
+    background: #ffd7ae;
+}
+
+.usertexture_img {
+	height: 60vmin;
+	width: 60vmin;
+}

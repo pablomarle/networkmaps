@@ -13,6 +13,7 @@ const usermgt = new UserMGT(
     config.timers.ldap_grouprefresh,
     config.users,
     config.diagrams.shapes,
+    config.diagrams.path,
 );
 const fs = require('fs');
 
@@ -69,6 +70,9 @@ function removeDoubleQuote(s) {
 function process_multipart_formdata(content_type, body) {
     let result = {};
 
+    if(content_type === undefined)
+        return null;
+    
     let sct = content_type.split(";");
     if((sct.length < 2) || (sct[0] !== "multipart/form-data"))
         return null;
@@ -434,6 +438,92 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 return;
             }
         }
+
+        // Upload an image to be used as texture
+        else if ((url === "/upload/texture") && (method === "POST")) {
+            let result = process_multipart_formdata(content_type, body);
+            if((result === null) || (!result.img)) {
+                sendresponse(400, "application/json", '{"error": "Invalid request"}', session.sessionid);
+                console.log(result);
+                return;
+            }
+            usermgt.uploadUserTexture(session.sessionid, result.img.filename,
+                body.substring(result["img"].content_index_start, result["img"].content_index_end),
+                (err, filename) => {
+                    if(err) {
+                        console.log("Error uploading user texture: " + err);
+                        console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                        sendresponse(400, "application/json", '{"error": "Upload error"}', session.sessionid);
+                        return;
+                    }
+                    else {
+                        console.log("Uploaded user texture ");
+                        console.log("File name: " + filename);
+                        console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                        sendresponse(200, "application/json", JSON.stringify({filename: filename}), session.sessionid);
+                        return;
+                    }
+                }
+            );
+        }
+
+        // List user textures
+        else if ((url === "/usertextures") && (method === "GET")) {
+            sendresponse(200, "text/html", html.usertextures(config), session.sessionid);
+            return;
+        }
+
+        // Delete user texture
+        else if ((url === "/usertextures/delete") && (method === "POST")) {
+            let new_data;
+            try { new_data = JSON.parse(body) } catch { sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid); return }
+
+            usermgt.deleteUserTexture(session.sessionid, new_data.id, (err, result) => {
+                if(err) {
+                    sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+                    return;
+                }
+                sendresponse(200, "application/json", "{}");
+            })
+        }
+
+        // Rename user texture
+        else if ((url === "/usertextures/rename") && (method === "POST")) {
+            let new_data;
+            try { new_data = JSON.parse(body) } catch { sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid); return }
+
+            usermgt.renameUserTexture(session.sessionid, new_data.id, new_data.name, (err, result) => {
+                if(err) {
+                    sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
+                    return;
+                }
+                sendresponse(200, "application/json", "{}", session.sessionid);
+            })
+        }
+
+        // Rename user texture
+        else if ((url === "/usertextures/list") && (method === "GET")) {
+            let userTextures = usermgt.getUserTextures(session.sessionid);
+            if(userTextures === null) {
+                sendresponse(200, "application/json", JSON.stringify({error: "Couldn't get user textures"}), session.sessionid);
+                return;
+            }
+            sendresponse(200, "application/json", JSON.stringify(userTextures), session.sessionid);
+        }
+
+        // Get user texture
+        else if (url.startsWith("/usertexture/") && (method === "GET")) {
+            let surl = url.split("/");
+            let path = config.diagrams.path;
+            if(surl.length === 3) {
+                staticcontent.get_file(path + "/textures/" + surl[2], sendresponse, session.sessionid);
+            }
+            else {
+                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                return;
+            }
+        }
+
         else {
             sendresponse(404, "text/html", html.not_found(config), session.sessionid);
             return;
@@ -450,18 +540,26 @@ function test_directories() {
         throw("I don't have RW access to diagrams directory " + config.diagrams.path);
     }
 
+    // Create the directory textures on diagrams if it doesn't exist
+    if(!fs.existsSync(config.diagrams.path + "/textures")) {
+        fs.mkdirSync(config.diagrams.path + "/textures");
+    }
+
+    // Check user directory
     try {
         fs.accessSync(config.users.path, fs.constants.R_OK | fs.constants.W_OK);
     } catch(e) {
         throw("I don't have RW access to users directory " + config.users.path);
     }
 
+    // Check shapes directory
     try {
-        fs.accessSync(config.users.path, fs.constants.R_OK | fs.constants.W_OK);
+        fs.accessSync(config.diagrams.shapes, fs.constants.R_OK | fs.constants.W_OK);
     } catch(e) {
-        throw("I don't have RW access to users directory " + config.users.path);
+        throw("I don't have RW access to users directory " + config.diagrams.shapes);
     }
 
+    // Check sendmail queue directory
     try {
         fs.accessSync(config.sendmail.queue, fs.constants.R_OK | fs.constants.W_OK);
     } catch(e) {

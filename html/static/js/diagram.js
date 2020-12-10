@@ -212,7 +212,8 @@ function process_message(message) {
             d.diagram = message.d.d;
             d.name = message.d.n;
             d.permission = message.d.p;
-            
+            d.user_textures = message.d.ut;
+
             init_window();
             break;
         case "A":
@@ -350,7 +351,7 @@ function process_message_resize(data) {
 
 function process_message_settings(data) {
     if(data.t == "base") {
-        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.opacity, data.t1name, data.t2name, data.sy, data.tsx, data.tsy);
+        d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.opacity, data.t1name, data.t2name, data.t1user, data.t2user, data.sy, data.tsx, data.tsy);
     }
     else if((data.v == "L2") && (data.t == "device")) {
         d.wgl.settingsMesh_Device(data.i, data.name, data.color1, data.color2, data.ifnaming);
@@ -732,13 +733,22 @@ function sendSettings_BaseFloor(view, type, id, windata) {
             color1: parseInt(windata.d.color1.value),
             color2: parseInt(windata.d.color2.value),
             opacity: parseFloat(windata.d.opacity.value),
-            t1name: windata.d.t1name.value,
-            t2name: windata.d.t2name.value,
             sy: parseFloat(windata.d.sy.value),
-            tsx: 1/parseFloat(windata.d.tsx_i.value),
-            tsy: 1/parseFloat(windata.d.tsy_i.value),
+            tsx: (windata.d.tsx_i.value === "0") ? null : 1/parseFloat(windata.d.tsx_i.value),
+            tsy: (windata.d.tsy_i.value === "0") ? null : 1/parseFloat(windata.d.tsy_i.value),
         }
     }
+
+    if(windata.d.t1name.value.length === 128)
+        message.d.t1user = windata.d.t1name.value;
+    else
+        message.d.t1name = windata.d.t1name.value;
+
+    if(windata.d.t2name.value.length === 128)
+        message.d.t2user = windata.d.t2name.value;
+    else
+        message.d.t2name = windata.d.t2name.value;
+
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
@@ -2691,12 +2701,12 @@ function mouseup(x, y, dx, dy, dom_element) {
     else if(d.dom.tools.active_t === "BC") {
         if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if(d.current_view === "L2")
-                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
                     (windata) => {
                         sendSettings_BaseFloor("L2", "base", a.obj.mesh.userData.id, windata)
                     });
             else if(d.current_view === "L3")
-                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
                     (windata) => {
                         sendSettings_BaseFloor("L3", "base", a.obj.mesh.userData.id, windata)
                     });

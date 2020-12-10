@@ -580,10 +580,17 @@ function screen_init_logged() {
                 //DOM.cbutton(div, null, "button headbutton", "About Us", null, () => { set_state("AU"); });
                 i = DOM.cimg(div, staticurl + "/static/img/account.png", null, "button button-menu", null, () => {set_state("A")});
                 set_node_infobox(i, "Account");
+                
                 i = DOM.cimg(div, staticurl + "/static/img/element_b.png", null, "button button-menu", null, () => {
                     window.location.href = "/shapegroups";
                 });
                 set_node_infobox(i, "Manage your Shape Groups");
+                
+                i = DOM.cimg(div, staticurl + "/static/img/usertexture.png", null, "button button-menu", null, () => {
+                    window.location.href = "/usertextures";
+                });
+                set_node_infobox(i, "Manage your Textures");
+
                 i = DOM.cimg(div, staticurl + "/static/img/unknown.png", null, "button button-menu", null, () => {set_state("AU")});
                 set_node_infobox(i, "About Us");
         index_data.content = DOM.cdiv_fade(body, null, "content");
