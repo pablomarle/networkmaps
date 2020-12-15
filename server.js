@@ -124,7 +124,28 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 
         // This is the index. The main page where users register, access their account and manage their diagrams
         if ((url == "/") && (method === "GET"))  {
-            sendresponse(200, "text/html", html.index(config), session.sessionid);
+            // If a session is not authenticated and we are doing openid, redirect to the openid provider
+            if((config.users.authentication === "openid") && (!session.data.user)) {
+                let [state, redirect_url] = usermgt.init_openid_auth(session.sessionid, html.get_server());
+                sendresponse(302, null, "", session.sessionid, redirect_url);
+            }
+            else {
+                sendresponse(200, "text/html", html.index(config), session.sessionid);
+            }
+            return;
+        }
+
+        // For openid integration, the page where users are redirected from the openid provider
+        if((url.startsWith("/cb?")) && (method === "GET")) {
+            usermgt.auth_openid(sessionid, url.split("?")[1], html.get_server(), (err) => {
+                if(err) {
+                    sendresponse(403, "text/html", html.not_authorized(config, err), "");
+                    return;
+                }
+                else {
+                    sendresponse(302, null, null, session.sessionid, "/");
+                }
+            });
             return;
         }
 
