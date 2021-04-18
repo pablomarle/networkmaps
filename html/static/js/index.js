@@ -829,8 +829,17 @@ function screen_import_diagram(old_state) {
                     let file = img_input.files[0];
                     const reader = new FileReader();
                     reader.addEventListener("load", (e) => {
-                        console.log(JSON.parse(e.target.result));
-                        index_data.diagram_import = JSON.parse(e.target.result);
+                        try {
+                            index_data.diagram_import = JSON.parse(e.target.result);
+                            if(! index_data.diagram_import.name) {
+                                alert("Invalid JSON format.");
+                                img_input.value = "";
+                            }
+                        } catch {
+                            alert("Invalid JSON file.");
+                            img_input.value = "";
+                        }
+
                     });
                     reader.readAsText(file);
                 });

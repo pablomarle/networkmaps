@@ -22,6 +22,7 @@ MENU = {
                 {n: "Format",   s: null,    i: "brush.png",     f: "format", d: "Format Elements, links, text and symbols."},
                 {n: "V.Move",   s: "EMV",   i: "move_v.png",    f: null, d: "Move diagram elements vertically."},
                 {n: "Data",     s: "EDT",   i: "text.png",      f: null, d: "Element Data and Mouse Over Info."},
+                {n: "URLs",     s: "EU",    i: "linksharing.png", f: null, d: "URLs of elements."},
                 {n: "Shapes",   s: "ES",    i: "element_b.png",   f: null, d: "Add and remove groups of 3D shapes that are available on this diagram.\nA shape group is a collection of \"objects\" that can be added to the diagram with the \"New elements\" tool."},
             ]},
         format: {

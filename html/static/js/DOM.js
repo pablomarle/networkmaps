@@ -18,7 +18,7 @@ DOM = {
 	
 	c : (parent, etype, eid=null, eclass=null, etext=null) => {
 		let element = document.createElement(etype);
-		if (etext != null) element.innerHTML = etext;
+		if (etext != null) element.innerHTML = DOM.esc(etext);
 		if(eid) element.id = eid;
 		if(eclass) element.className = eclass;
 		if(parent)

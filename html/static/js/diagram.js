@@ -243,6 +243,9 @@ function process_message(message) {
         case "DT":
             d.wgl.dataMesh(message.d.v, message.d.t, message.d.i, message.d.infobox_type, message.d.data);
             break;
+        case "U":
+            d.wgl.urlMesh(message.d.v, message.d.t, message.d.i, message.d.urls);
+            break;
         case "S":
             if(message.d.m === "L") {
                 d.list_shapegroups = message.d.d;
@@ -1259,6 +1262,28 @@ function sendData(windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);    
 }
 
+function sendURL(windata) {
+    let message = {
+        m: "U",
+        d: {
+            v: windata.obj.view,
+            t: windata.obj.type,
+            i: windata.obj.id,
+
+            urls: {},
+        }
+    }
+
+    let urls_dl = JSON.parse(windata.d.urls.value);
+
+    for(let url_data of urls_dl) {
+        message.d.urls[url_data.name] = url_data.url;
+    }
+
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);    
+}
+
 function sendDelete(type, id) {
     let message = {
         m: "D",
@@ -2195,6 +2220,15 @@ function init_window_addtoolbox(toolbox) {
     }
 }
 
+function contextmenu(x, y) {
+    let objlist = d.wgl.pickObject(x, y);
+    if(objlist.length > 0) {
+        if(Object.keys(objlist[0].mesh.userData.e.urls).length > 0) {
+            WIN_showURL(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0].mesh.userData.e);
+        }
+    }
+}
+
 function mousedown(x, y, dx, dy, dom_element) {
     // Make focus element lose focus 
     let f_el = document.querySelector( ':focus' );
@@ -2550,7 +2584,7 @@ function mousedown(x, y, dx, dy, dom_element) {
         }
     }
     else if(
-            (d.dom.tools.active_t === "EDT") && 
+            ((d.dom.tools.active_t === "EDT") || (d.dom.tools.active_t === "EU")) && 
             (objlist.length > 0) &&
             (
                 (objlist[0].mesh.userData.type === "symbol") || 
@@ -2791,6 +2825,15 @@ function mouseup(x, y, dx, dy, dom_element) {
             WIN_showData(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                 (windata) => {
                     sendData(windata);
+                }
+            );
+        }
+    }
+    else if(d.dom.tools.active_t === "EU") {
+        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
+            WIN_showEditURL(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendURL(windata);
                 }
             );
         }
@@ -3207,19 +3250,23 @@ function mouseover(x, y, dom_element) {
     if(p.length > 0) {
         let obj = p[0].mesh;
         if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
-            if(d.mouseover !== null)
+            if(d.mouseover !== null) {
                 infobox_clear();
+                d.wgl.deselect(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+            }
             d.mouseover = {
                 view: d.current_view,
                 type: obj.userData.type,
                 id: obj.userData.id,
             }
             infobox_show_element(obj);
+            d.wgl.select(d.mouseover.view, d.mouseover.type, d.mouseover.id);
         }
         return;
     }
     else if(d.mouseover !== null) {
         infobox_clear();
+        d.wgl.deselect(d.mouseover.view, d.mouseover.type, d.mouseover.id);
         d.mouseover = null;
     }
 }
@@ -3329,6 +3376,7 @@ function init_window() {
     // Initialize input
     Input_initialize(document.body, null, null, null);
     Input_registerid("page", mousedown, mouseup, mousemove, mouseover);
+    Input_registercontextmenuid("page", contextmenu)
     WIN_initialize();
     d.mouseaction = {
         m: "INVALID"
