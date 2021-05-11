@@ -37,6 +37,10 @@ canvas {
     margin-left: 8px;
 }
 
+.box_info_description {
+	margin-bottom: 5px;
+}
+
 .box_info_text {
 	margin-left: 8px;
 }
@@ -52,6 +56,7 @@ canvas {
 	border: 1px solid #000;
 	border-radius: 4px;
 	background: rgba(255,255,255,.9);
+	max-width: 300px;
 	padding: 10px;
 	display: hidden;
 }

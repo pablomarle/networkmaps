@@ -31,15 +31,15 @@ MENU = {
             components: [
                 {n: "Copy",     s: "FC",    i: "palette.png",   f: null, d: "Copy format from element.\nQuick access key: 'r", q: "KeyR"},
                 {n: "Paste",    s: "FP",    i: "brush.png",     f: null, d: "Paste format to element\nQuick access key: 't'", q: "KeyT"},
-                {n: "WinColor",  s: "FW",    i: "settings.png", f: null, d: "Open format color window"},
-                {n: "WinText",   s: "FT",    i: "text.png",     f: null, d: "Open format text window"},
-                {n: "WinLink",   s: "FL",    i: "link.png",     f: null, d: "Open format link window"},
+                {n: "Color",  s: "FW",    i: "settings.png", f: null, d: "Open format color window"},
+                {n: "Text",   s: "FT",    i: "text.png",     f: null, d: "Open format text window"},
+                {n: "Link",   s: "FL",    i: "link.png",     f: null, d: "Open format link window"},
             ]},
         new: {
             init_left: -142, left: -142, width: 128,
-            name: "Add New Elements",
+            name: "Add",
             components: [
-                {n: "Device",   s: null,    i: "device_router.png", f: "new_device",    d: "Add new devices to the diagram." },
+                {n: "Elements",   s: null,    i: "device_router.png", f: "new_device",    d: "Add new elements to the diagram." },
                 {n: "Link",     s: null,    i: "link.png",          f: "new_link",      d: "Add connections between devices." },
                 {n: "Base",     s: null,    i: "base.png",          f: "new_base",      d: "Add new Floors or Walls."},
                 {n: "Text",     s: null,    i: "text.png",          f: "new_text",      d: "Add text to the diagrams." },
@@ -57,7 +57,7 @@ MENU = {
             ]},
         new_device: {
             init_left: -142, left: -142, width: 128,
-            name: "Add New Devices",
+            name: "Add New Elements",
             components: [
 /*                {n: "Shapes",   s: null,    i: "device_cube.png",       f: "new_device_shapes",     d: "Simple devices with geometrical shapes." },
                 {n: "Network",  s: null,    i: "device_router.png", f: "new_device_network",    d: "Network devices like routers and switches."},

@@ -181,10 +181,12 @@ function send(data) {
 
 function create_diagram() {
     let diagram_name = index_data.diagram_name.value;
+    let diagram_type = index_data.diagram_type.value;
     send({
         m: "DN",
         d: {
             n: diagram_name,
+            t: diagram_type,
         }
     })
 }
@@ -799,6 +801,14 @@ function screen_new_diagram(old_state) {
                 td = DOM.ctd(tr);
                 index_data.diagram_name = DOM.ci_text(td, null, "input");
                 index_data.diagram_name.style.width = "230px";
+            tr = DOM.ctr(t);
+                td = DOM.ctd(tr, null, null, "Type");
+                td = DOM.ctd(tr);
+                index_data.diagram_type = DOM.cselect(td, null, "input", [
+                        ["Network Diagram", "network"],
+                        ["Basic Diagram", "basic"],
+                    ]);
+                index_data.diagram_type.style.width = "230px";
             tr = DOM.ctr(t);
                 td = DOM.ctd(tr);
                     DOM.cbutton(td, null, "button", "Create", null, create_diagram);

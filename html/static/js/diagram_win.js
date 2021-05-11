@@ -103,8 +103,11 @@ WIN_data = {
             ["Round", "radio_shaft_round.png", "r"],
             ["Square", "radio_shaft_square.png", "s"],
         ],
-        infobox_type_choices: [
+        infobox_type_choices_network: [
             ["L2/L3 Info", "radio_infobox_l2l3.png", "l"],
+            ["Data", "radio_infobox_data.png", "d"],
+        ],
+        infobox_type_choices: [
             ["Data", "radio_infobox_data.png", "d"],
         ],
     }
@@ -352,8 +355,11 @@ function WIN_addSection(win, px, py) {
 function WIN_addLabel(win, px, py, label, width) {
     let l = DOM.cdiv(win, null, "win_label", label);
     DOM.setElementPos(l, px, py);
-    if(width)
+    if(width) {
         l.style.width = "" + width + "px";
+        l.style.overflow = "hidden";
+        l.style.height = "15px";
+    }
 
     return l;
 }
@@ -579,6 +585,9 @@ function WIN_addStringList(win, px, py, label, value, default_value, help, check
     
     let container = DOM.cdiv(win);
     DOM.setElementPos(container, px, py);
+    container.style.width = "200px";
+    container.style.height = "80px";
+    container.style.overflow = "auto";
 
     let value_element = DOM.ci_text(container, null, "stringlist_value");
     DOM.setElementPos(value_element, 0, 0);
@@ -726,6 +735,8 @@ function WIN_addDictList(win, px, py, sx, sy, label, value, fields, changelength
         let l = DOM.cdiv(win, null, null, fields[key].name);
         DOM.setElementPos(l, px + current_x, py + 16);
         l.style.width = "" + fields[key].width + "px";
+        l.style.height = "15px";
+        l.style.overflow = "hidden";
         current_x += fields[key].width + 10;
     }
 
@@ -974,22 +985,26 @@ function WIN_showBaseElementWindow(view, type, id, e, user_textures, callback) {
     }, "Apply changes.");
 }
 
-function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
+function WIN_showDeviceWindow(diagram_type, view, type, id, e, callback, check_ifnaming) {
     let wdata = WIN_create(view, type, id, e.name, 440, 340);
     if(!wdata)
         return;
     let w = wdata.w;
 
-    // Name
-    wdata.d.name = WIN_addTextInput(w, 200, 20, 155, 35, "Name", e.name);
+    // Name & description
+    wdata.d.name = WIN_addTextArea(w, 200, 20, 110, 35, 210, 30, "Name", e.name);
+    wdata.d.description = WIN_addTextArea(w, 180, 75, 20, 90, 395, 45, "Description", e.description);
+    // wdata.d.name = WIN_addTextInput(w, 200, 20, 155, 35, "Name", e.name);
 
     // Color
-    wdata.d.color1 = WIN_addColorInput(w, 20, 70, "Color 1", e.color1); 
-    wdata.d.color2 = WIN_addColorInput(w, 230, 70, "Color 2", e.color2);    
+    wdata.d.color1 = WIN_addColorInput(w, 20, 145, "Color 1", e.color1); 
+    wdata.d.color2 = WIN_addColorInput(w, 230, 145, "Color 2", e.color2);    
 
     // List of interface naming
-    wdata.d.ifnaming = WIN_addStringList(w, 20, 150, "Interface Naming", e.ifnaming, "Lo0",
-        "Sample: Ethernet{1-32}/{1-4} will generate Ethernet1/1 to Ethernet 32/4", check_ifnaming);
+    if(diagram_type === "network") {
+        wdata.d.ifnaming = WIN_addStringList(w, 20, 220, "Interface Naming", e.ifnaming, "Lo0",
+            "Sample: Ethernet{1-32}/{1-4} will generate Ethernet1/1 to Ethernet 32/4", check_ifnaming);
+    }
 
     // Button to apply
     wdata.d.apply = WIN_addButton(w, 190, 310, "Apply", () => {
@@ -997,7 +1012,12 @@ function WIN_showL2DeviceWindow(view, type, id, e, callback, check_ifnaming) {
     }, "Apply changes.");   
 }
 
-function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
+function WIN_showDeviceConfigWindow(diagram_type, view, type, id, e, callback) {
+    if(diagram_type !== "network") {
+        DOM.showError("Not available", "Config only applies to network diagrams.", false)
+        return;
+    }
+
     let vrf_options = [];
     for(let rd in e.vrfs) {
         vrf_options.push([e.vrfs[rd].name, rd])
@@ -1052,33 +1072,37 @@ function WIN_showDeviceConfigWindow(view, type, id, e, callback) {
 }
 
 function WIN_showLinkWindow(view, type, id, e, callback) {
-    let wdata = WIN_create(view, type, id, "Link", 440, 200);
+    let wdata = WIN_create(view, type, id, "Link", 440, 310);
     if(!wdata)
         return;
     let w = wdata.w;
+
+    // Name & description
+    wdata.d.name = WIN_addTextArea(w, 200, 20, 110, 35, 210, 30, "Name", e.name);
+    wdata.d.description = WIN_addTextArea(w, 180, 75, 20, 90, 395, 45, "Description", e.description);
 
     // Type
     let options = [
         ["Line", "0"], 
         ["Square", "1"]
     ];
-    wdata.d.type = WIN_addSelect(w, 20, 20, "Link Type", options, e.type);
+    wdata.d.type = WIN_addSelect(w, 20, 150, "Link Type", options, e.type);
 
     // Order
     options = [["XY", "XY"], ["XZ", "XZ"], ["YX", "YX"], ["YZ", "YZ"], ["ZX", "ZX"], ["ZY", "ZY"]];
-    wdata.d.order = WIN_addSelect(w, 20, 60, "Square Order", options, e.order);
+    wdata.d.order = WIN_addSelect(w, 20, 190, "Square Order", options, e.order);
 
     // Color
-    wdata.d.color = WIN_addColorInput(w, 230, 20, "Color", e.linedata.color);
+    wdata.d.color = WIN_addColorInput(w, 230, 150, "Color", e.linedata.color);
 
     // Weight
-    wdata.d.weight = WIN_addSlider(w, 20, 100, 100, "Width", e.linedata.weight, .025, .2, .0125);
+    wdata.d.weight = WIN_addSlider(w, 20, 230, 100, "Width", e.linedata.weight, .025, .2, .0125);
 
     // Height
-    wdata.d.height = WIN_addSlider(w, 20, 130, 100, "Height", e.linedata.height, 0, .5, .05);
+    wdata.d.height = WIN_addSlider(w, 230, 230, 100, "Height", e.linedata.height, 0, .5, .05);
 
     // Button to apply
-    wdata.d.apply = WIN_addButton(w, 190, 170, "Apply", () => {
+    wdata.d.apply = WIN_addButton(w, 190, 280, "Apply", () => {
         callback(wdata);
     }, "Apply changes.");   
 }
@@ -1090,7 +1114,12 @@ function WIN_showLinkConfigWindow_lag(wdata) {
         wdata.d.lag_section.style.display = "none";
 }
 
-function WIN_showLinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback, callback_dev) {
+function WIN_showLinkConfigWindow(diagram_type, id, e, dev1, dev2, resolve_ifnaming, callback, callback_dev) {
+    if(diagram_type !== "network") {
+        DOM.showError("Not available", "Config only applies to network diagrams.", false)
+        return;
+    }
+
     // First a bit of cleanup (if data of interfaces of a link is not defined)
     if(e.phy === undefined) {
         e.phy = {
@@ -1115,7 +1144,7 @@ function WIN_showLinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback,
     // Create the window
     let dev1name = (dev1.name == "" ? "unnamed" : dev1.name);
     let dev2name = (dev2.name == "" ? "unnamed" : dev2.name);
-    let wdata = WIN_create("L2", "link-config", id, "Link between '" + dev1name + "' and '" + dev2name + "'.", 360, 310);
+    let wdata = WIN_create("L2", "link-config", id, `Link between '${dev1name}' and '${dev2name}'.`.substring(0,48), 360, 310);
     if(!wdata)
         return;
     let w = wdata.w;
@@ -1152,11 +1181,11 @@ function WIN_showLinkConfigWindow(id, e, dev1, dev2, resolve_ifnaming, callback,
 
     WIN_showLinkConfigWindow_lag(wdata);
 
-    wdata.d.dev1 = WIN_addButton(w, 20, 250, "Edit " + dev1name, (ev) => {
+    wdata.d.dev1 = WIN_addButton(w, 20, 250, "Edit " + dev1name.substring(0,16), (ev) => {
         callback_dev(0);
         ev.stopPropagation();
     });     
-    wdata.d.dev2 = WIN_addButton(w, -20, 250, "Edit " + dev2name, (ev) => {
+    wdata.d.dev2 = WIN_addButton(w, -20, 250, "Edit " + dev2name.substring(0,16), (ev) => {
         callback_dev(1);
         ev.stopPropagation();
     });     
@@ -1372,6 +1401,21 @@ function WIN_showTextWindow(view, type, id, e, callback) {
     wdata.d.apply = WIN_addButton(w, 290, 310, "Apply", () => {
         callback(wdata);
     }, "Apply changes.");   
+}
+
+function WIN_showSymbolWindow(view, type, id, e, callback) {
+    let wdata = WIN_create(view, type, id, "Symbol " + id, 440, 140);
+    if(!wdata)
+        return;
+    let w = wdata.w;
+
+    // Color
+    wdata.d.color = WIN_addColorInput(w, 20, 20, "Color Post", e.color);
+
+    // Button to apply
+    wdata.d.apply = WIN_addButton(w, 190, 110, "Apply", () => {
+        callback(wdata);
+    }, "Apply changes.");
 }
 
 function WIN_showSymbolFlagWindow(view, type, id, e, callback) {
@@ -1655,15 +1699,17 @@ function WIN_showFormatSettingsLink(settings, callback) {
         wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });     
 }
 
-function WIN_showData(view, type, id, e, callback) {
+function WIN_showData(diagram_type, view, type, id, e, callback) {
     let wdata = WIN_create(view, type, id, "Data", 520, 280);
     if(!wdata)
         return;
     let w = wdata.w;
 
     // Infobox_type
-    wdata.d.infobox_type = WIN_addRadioImgInput(w, 220, 20, "Mouse Over:", WIN_data.constants.infobox_type_choices, (e.infobox_type) ? e.infobox_type : "l");
-    
+    if(diagram_type === "network")
+        wdata.d.infobox_type = WIN_addRadioImgInput(w, 220, 20, "Mouse Over:", WIN_data.constants.infobox_type_choices_network, (e.infobox_type) ? e.infobox_type : "l");
+    else
+        wdata.d.infobox_type = WIN_addRadioImgInput(w, 220, 20, "Mouse Over:", WIN_data.constants.infobox_type_choices, (e.infobox_type) ? e.infobox_type : "l");
     // Data. First convert element data to dictlist format, then add the window dictlist
     let data_dl = [];
     if(e.data) {

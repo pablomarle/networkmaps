@@ -306,16 +306,13 @@ class WGL {
     }
 
     deselect(view, type, id) {
-        console.log(`${view} ${type} ${id}`);
         let index = this.select_find(view, type, id);
         if(index === -1) {
-            console.log("not found")
             return;
         }
 
         let mesh = this.getMesh(view, type, id);
         if(!mesh) {
-            console.log("mesh not found");
             return;
         }
 
@@ -605,11 +602,18 @@ class WGL {
         this.requestDraw();
     }
 
-    zoomCamera(dy) {
+    zoomCamera(dy, mesh) {
         let ac = this.camera[this.view][this.camera.current];
 
         if(this.camera.current == "persp") {
-            ac.translateZ(dy*.1);
+            if(mesh) {
+                this.tempVector = ac.position.clone();
+                mesh.getWorldPosition(this.tempVector2);
+                this.tempVector.negate().add(this.tempVector2).normalize().multiplyScalar(-.2 * dy);
+                ac.position.add(this.tempVector);
+            }
+            else
+                ac.translateZ(dy*.1);
         }
         else {
             this.camera[this.view].ortho_size += dy*.1;
@@ -960,7 +964,6 @@ class WGL {
             addressing.push(("ip" in dst_if.e) ? dst_if.e.ip.address : null);
         }
         else {
-            console.log("Unknown combination on findBGPPeerData_createStruct: " + src_if.type + " " + dst_if.type)
             return null
         }
 
@@ -1361,10 +1364,11 @@ class WGL {
         }
     }
 
-    settingsMesh_Device(id, name, color1, color2, ifnaming) {
+    settingsMesh_Device(id, name, description, color1, color2, ifnaming) {
         let mesh = this.findMesh("device", id, this.scene["L2"]);
         if(mesh) {
             mesh.userData.e.name = name;
+            mesh.userData.e.description = description;
             mesh.userData.e.color1 = color1;
             mesh.userData.e.color2 = color2;
             mesh.userData.e.ifnaming = ifnaming
@@ -1476,6 +1480,10 @@ class WGL {
                 mesh.userData.e.cd.shaft_dots = data.shaft_dots;
                 this.updateSymbolColor("symbol", id, view);
                 this.updateSymbolGeometry(mesh);
+            }
+            else {
+                mesh.userData.e.color = data.color;
+                this.updateSymbolColor("symbol", id, view);                
             }
         }
     }
@@ -1647,7 +1655,9 @@ class WGL {
         this.raycaster.setFromCamera( this.pickvector, this.camera[this.view][this.camera.current] );
 
         let plane = new THREE.Plane($WGL_V3(0,1,0), -height);
-        return this.raycaster.ray.intersectPlane( plane );
+
+        this.raycaster.ray.intersectPlane( plane , this.tempVector);
+        return this.tempVector;
     }
 
     convertWorld2MeshCoordinates(view, type, id, x, y, z) {

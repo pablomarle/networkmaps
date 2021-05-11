@@ -357,7 +357,7 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_Base(data.v, data.i, data.name, data.subtype, data.color1, data.color2, data.opacity, data.t1name, data.t2name, data.t1user, data.t2user, data.sy, data.tsx, data.tsy);
     }
     else if((data.v == "L2") && (data.t == "device")) {
-        d.wgl.settingsMesh_Device(data.i, data.name, data.color1, data.color2, data.ifnaming);
+        d.wgl.settingsMesh_Device(data.i, data.name, data.description, data.color1, data.color2, data.ifnaming);
     }
     else if((data.v == "L2") && (data.t == "link")) {
         d.wgl.settingsMesh_Link("L2", "link", data.i, data.type, data.order, data.color, data.weight, data.height);
@@ -756,7 +756,7 @@ function sendSettings_BaseFloor(view, type, id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendMessageSettings_Device(id, name, color1, color2, ifnaming) {
+function sendMessageSettings_Device(id, name, description, color1, color2, ifnaming) {
     let message = {
         m: "P",
         d: {
@@ -765,22 +765,29 @@ function sendMessageSettings_Device(id, name, color1, color2, ifnaming) {
             i: id,
 
             name: name,
+            description: description,
             color1: color1,
             color2: color2,
-            ifnaming: ifnaming,
-        }        
+        }
+    }
+    if(ifnaming) {
+        message.d.ifnaming = ifnaming;
     }
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
 function sendSettings_Device(id, windata) {
+    let ifnaming = null;
+    if(windata.d.ifnaming)
+        ifnaming = windata.d.ifnaming.value.split(",");
+
     sendMessageSettings_Device(id,
         windata.d.name.value,
+        windata.d.description.value,
         parseInt(windata.d.color1.value),
         parseInt(windata.d.color2.value),
-        windata.d.ifnaming.value.split(","));
-
+        ifnaming);
 }
 
 function sendConfig_Device(id, windata) {
@@ -1018,7 +1025,7 @@ function sendConfig_BGPPeer(id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendMessageSettings_Link(view, type, id, line_type, order, color, weight, height) {
+function sendMessageSettings_Link(view, type, id, name, description, line_type, order, color, weight, height) {
     let message = {
         m: "P",
         d: {
@@ -1026,6 +1033,8 @@ function sendMessageSettings_Link(view, type, id, line_type, order, color, weigh
             t: type,
             i: id,
 
+            name: name,
+            description: description,
             type: line_type,
             order: order,
             color: color,
@@ -1039,6 +1048,8 @@ function sendMessageSettings_Link(view, type, id, line_type, order, color, weigh
 
 function sendSettings_Link(view, type, id, windata) {
     sendMessageSettings_Link(view, type, id,
+        windata.d.name.value,
+        windata.d.description.value,
         parseInt(windata.d.type.value),
         windata.d.order.value,
         parseInt(windata.d.color.value),
@@ -1185,30 +1196,80 @@ function sendSettings_Text(view, id, windata) {
     });
 }
 
-function sendSettings_SymbolFlag(view, type, id, windata) {
+function sendMessageSettings_Flag(view, id, data) {
     let message = {
         m: "P",
         d: {
             v: view,
-            t: type,
+            t: "symbol",
             i: id,
 
-            color: parseInt(windata.d.color.value),
-            flagcolor: parseInt(windata.d.flagcolor.value),
+            color: data.color,
+            flagcolor: data.flagcolor,
         }
     }
     if(!d.ws.send(message))
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendSettings_SymbolArrow(view, type, id, windata) {
+function sendMessageSettings_Symbol(view, id, data) {
     let message = {
         m: "P",
         d: {
             v: view,
-            t: type,
+            t: "symbol",
             i: id,
 
+            color: data.color,
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendMessageSettings_Arrow(view, id, data) {
+    let message = {
+        m: "P",
+        d: {
+            v: view,
+            t: "symbol",
+            i: id,
+
+            sx: data.sx,
+            sz: data.sz,
+            color: data.color,
+            head_color: data.head_color,
+            head_type: data.head_type,
+            tail_type: data.tail_type,
+            shaft_type: data.shaft_type,
+            head_sx_per: data.head_sx_per,
+            head_sy_per: data.head_sy_per,
+            head_sz_per: data.head_sz_per,
+            tail_sx_per: data.tail_sx_per,
+            tail_sy_per: data.tail_sy_per,
+            tail_sz_per: data.tail_sz_per,
+            shaft_dots: data.shaft_dots,
+        }
+    }
+    if(!d.ws.send(message))
+        DOM.showError("ERROR", "Error sending update to server.", true);
+}
+
+function sendSettings_SymbolFlag(view, type, id, windata) {
+    sendMessageSettings_Flag(view, id, {
+        color: parseInt(windata.d.color.value),
+        flagcolor: parseInt(windata.d.flagcolor.value),
+    })
+}
+
+function sendSettings_Symbol(view, type, id, windata) {
+    sendMessageSettings_Symbol(view, id, {
+        color: parseInt(windata.d.color.value)
+    })
+}
+
+function sendSettings_SymbolArrow(view, type, id, windata) {
+    sendMessageSettings_Arrow(view, id, {
             sx: parseFloat(windata.d.sx.value),
             sz: parseFloat(windata.d.sz.value),
             color: parseInt(windata.d.color.value),
@@ -1222,11 +1283,8 @@ function sendSettings_SymbolArrow(view, type, id, windata) {
             tail_sx_per: parseInt(windata.d.tail_sx_per.value),
             tail_sy_per: parseInt(windata.d.tail_sy_per.value),
             tail_sz_per: parseInt(windata.d.tail_sz_per.value),
-            shaft_dots: parseInt(windata.d.shaft_dots.value),
-        }
-    }
-    if(!d.ws.send(message))
-        DOM.showError("ERROR", "Error sending update to server.", true);
+            shaft_dots: parseInt(windata.d.shaft_dots.value),        
+    })
 }
 
 function sendData(windata) {
@@ -1413,6 +1471,8 @@ function infobox_clear() {
 function infobox_show(text) {
     DOM.removeChilds(d.dom.infobox, true);
     if(text.title) DOM.cdiv(d.dom.infobox, null, "box_info_title", text.title);
+    if(text.description)
+        text.description.split("\n").forEach((line) => {DOM.cdiv(d.dom.infobox, null, "box_info_description", line)});
     if(text.content) text.content.forEach((p) => {
         if(p.type === "head")
             DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", p.text);
@@ -1458,11 +1518,14 @@ function infobox_show_element(obj) {
 
 function infobox_show_element_data(obj) {
     if(obj.userData.e.data) {
+        if((obj.userData.e.data.length === 0) && ((!obj.userData.e.description) || (obj.userData.e.description.length === 0)))
+            return;
+
         let infobox_data = {
-            title: "Data",
+            title: "",
+            description: obj.userData.e.description,
             content: [],
         }
-
         obj.userData.e.data.forEach((entry) => {
             if(entry.title !== "")
                 infobox_data.content.push({type: "head", text: entry.title});
@@ -1478,8 +1541,10 @@ function infobox_show_element_data(obj) {
 function infobox_show_device(obj) {
     let infobox_data = {
         title: (obj.userData.e.name !== "") ? obj.userData.e.name : "Device",
+        description: (obj.userData.e.description !== "") ? obj.userData.e.description : null,
         content: [],
     };
+
     // Add vlans to the infobox
     let hasvlan = false;
     for(let vlan_tag in obj.userData.e.vlans) {
@@ -1565,6 +1630,7 @@ function infobox_show_device(obj) {
 function infobox_show_link(obj) {
     let infobox_data = {
         title: "Link",
+        description: (obj.userData.e.description !== "") ? obj.userData.e.description : null,
         content: []
     };
 
@@ -1899,7 +1965,8 @@ function position_elements(wglneeded=true) {
 
     // Tabs of the diagram including title
     setBoxPosition(d.dom.tab_l2, 6, sy-20, 100, 16);
-    setBoxPosition(d.dom.tab_l3, 110, sy-20, 100, 16);
+    if(d.dom.tab_l3)
+        setBoxPosition(d.dom.tab_l3, 110, sy-20, 100, 16);
     setBoxPosition(d.dom.title, sx-208, sy-36, 200, 16);
 
     // Info box
@@ -1965,21 +2032,29 @@ function toggle_cam_type() {
 }
 
 function set_current_view(view) {
-    if(view == "L2") {
+    if(d.diagram.type !== "network") {
+        if(view !== "L2") {
+            return;
+        }
         d.dom.tab_l2.className = "box tab_s";
-        d.dom.tab_l3.className = "box tab";
     }
-    else if (view == "L3") {
-        d.dom.tab_l2.className = "box tab";
-        d.dom.tab_l3.className = "box tab_s";
+    else {
+        if(view == "L2") {
+            d.dom.tab_l2.className = "box tab_s";
+            d.dom.tab_l3.className = "box tab";
+        }
+        else if (view == "L3") {
+            d.dom.tab_l2.className = "box tab";
+            d.dom.tab_l3.className = "box tab_s";
+        }
+        else
+            return;
     }
-    else
-        return;
 
     d.wgl.setView(view);
     d.current_view = view;
-
 }
+
 function init_wgl() {
     WGL_initialize();
 
@@ -2050,45 +2125,6 @@ async function load_shapegroup(shapegroup_id) {
         DOM.showError("Error", "Error loading definition file for shape group " + shapegroup_id + ". Connection error.");
     }
 
-/*    let xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("GET", path + "definition.json", true);
-    xmlhttp.send();
-    xmlhttp.onreadystatechange = () => {
-        if(xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            // Add tool too add shapes on this shape group on the "add device" tool
-            let data = JSON.parse(xmlhttp.responseText);
-            init_window_addtool(d.dom.tools.toolboxes["new_device"].dom, {
-                n: data.name,
-                s: null,
-                il: path + "0.png",
-                f: "new_device_" + shapegroup_id,
-                d: data.description ? data.description : "",
-            });
-
-            // Create the toolbox to add the shapes on this shape group.
-            let toolbox_struct = {
-                init_left: -190, left: -190, width: 170,
-                name: "Add " + data.name + " elements.",
-                components: [],
-            }
-            for(let key in data.shapes) {
-                toolbox_struct.components.push({
-                    n: data.shapes[key].name,
-                    d: data.shapes[key].description,
-                    s: "AD" + shapegroup_id + "_" + key,
-                    il: path + key + ".png",
-                    f: null,
-                })
-            }
-            init_window_addtoolbox(toolbox_struct);
-            d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
-
-            // Add shapes to the list of available geometries and update the shapes on the diagram
-            d.wgl.addShapes("DEVICE", shapegroup_id, data);
-
-            position_elements(false);
-        }
-    }; */
 }
 
 function init_diagram() {
@@ -2130,48 +2166,50 @@ function init_diagram() {
     }
 
     // ********************************
-    // Draw the L3 diagram
+    // Draw the L3 diagram (only for diagrams type network )
     // ********************************
-    for(let id in d.diagram.L3.base) {
-        let e = d.diagram.L3.base[id];
-        if(e.type == "F")
-            d.wgl.addCubeFloor(id, "L3", e);
-    }
-    for(let id in d.diagram.L3.vrf) {
-        let e = d.diagram.L3.vrf[id];
-        d.wgl.addDevice("vrf", id, "L3", e);
-    }
-    for(let id in d.diagram.L3.l2segment) {
-        let e = d.diagram.L3.l2segment[id];
-        d.wgl.addL2Segment(id, e);
-    }
-    for(let id in d.diagram.L3.l2link) {
-        let e = d.diagram.L3.l2link[id];
-        d.wgl.addLink("l2link", id, "L3", e);
-    }
-    for(let id in d.diagram.L3.p2p_interface) {
-        let e = d.diagram.L3.p2p_interface[id];
-        d.wgl.addLink("p2p_interface", id, "L3", e);
-    }
-    for(let id in d.diagram.L3.svi_interface) {
-        let e = d.diagram.L3.svi_interface[id];
-        d.wgl.addLink("svi_interface", id, "L3", e);
-    }
-    for(let id in d.diagram.L3.interface) {
-        let e = d.diagram.L3.interface[id];
-        d.wgl.addLink("interface", id, "L3", e);
-    }
-    for(let id in d.diagram.L3.bgp_peering) {
-        let e = d.diagram.L3.bgp_peering[id];
-        d.wgl.addBGPArrow(id, e);
-    }
-    for(let id in d.diagram.L3.text) {
-        let e = d.diagram.L3.text[id];
-        d.wgl.addText(id, "L3", e);
-    }
-    for(let id in d.diagram.L3.symbol) {
-        let e = d.diagram.L3.symbol[id];
-        d.wgl.addSymbol(id, "L3", e);
+    if(d.diagram.type === "network") {
+        for(let id in d.diagram.L3.base) {
+            let e = d.diagram.L3.base[id];
+            if(e.type == "F")
+                d.wgl.addCubeFloor(id, "L3", e);
+        }
+        for(let id in d.diagram.L3.vrf) {
+            let e = d.diagram.L3.vrf[id];
+            d.wgl.addDevice("vrf", id, "L3", e);
+        }
+        for(let id in d.diagram.L3.l2segment) {
+            let e = d.diagram.L3.l2segment[id];
+            d.wgl.addL2Segment(id, e);
+        }
+        for(let id in d.diagram.L3.l2link) {
+            let e = d.diagram.L3.l2link[id];
+            d.wgl.addLink("l2link", id, "L3", e);
+        }
+        for(let id in d.diagram.L3.p2p_interface) {
+            let e = d.diagram.L3.p2p_interface[id];
+            d.wgl.addLink("p2p_interface", id, "L3", e);
+        }
+        for(let id in d.diagram.L3.svi_interface) {
+            let e = d.diagram.L3.svi_interface[id];
+            d.wgl.addLink("svi_interface", id, "L3", e);
+        }
+        for(let id in d.diagram.L3.interface) {
+            let e = d.diagram.L3.interface[id];
+            d.wgl.addLink("interface", id, "L3", e);
+        }
+        for(let id in d.diagram.L3.bgp_peering) {
+            let e = d.diagram.L3.bgp_peering[id];
+            d.wgl.addBGPArrow(id, e);
+        }
+        for(let id in d.diagram.L3.text) {
+            let e = d.diagram.L3.text[id];
+            d.wgl.addText(id, "L3", e);
+        }
+        for(let id in d.diagram.L3.symbol) {
+            let e = d.diagram.L3.symbol[id];
+            d.wgl.addSymbol(id, "L3", e);
+        }
     }
 }
 
@@ -2754,7 +2792,7 @@ function mouseup(x, y, dx, dy, dom_element) {
                 });
             }
             else if (a.obj.mesh.userData.type == "device") {
-                WIN_showL2DeviceWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                WIN_showDeviceWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
                         sendSettings_Device(a.obj.mesh.userData.id, windata);
                     },
@@ -2817,12 +2855,19 @@ function mouseup(x, y, dx, dy, dom_element) {
                             sendSettings_SymbolArrow(view, "symbol", a.obj.mesh.userData.id, windata);
                         });
                 }
+                else {
+                    let view = d.current_view;
+                    WIN_showSymbolWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                        (windata) => {
+                            sendSettings_Symbol(view, "symbol", a.obj.mesh.userData.id, windata);
+                        });
+                }
             }
         }
     }
     else if(d.dom.tools.active_t === "EDT") {
         if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            WIN_showData(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+            WIN_showData(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                 (windata) => {
                     sendData(windata);
                 }
@@ -2841,7 +2886,7 @@ function mouseup(x, y, dx, dy, dom_element) {
     else if(d.dom.tools.active_t === "EI") {
         if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if (a.obj.mesh.userData.type == "device") {
-                WIN_showDeviceConfigWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                WIN_showDeviceConfigWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
                     (windata) => {
                         sendConfig_Device(a.obj.mesh.userData.id, windata);
                     });
@@ -2849,7 +2894,7 @@ function mouseup(x, y, dx, dy, dom_element) {
             else if (a.obj.mesh.userData.type == "link") {
                 let dev1 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[0].id);
                 let dev2 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[1].id);
-                WIN_showLinkConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, dev1.userData.e, dev2.userData.e, resolve_ifnaming,
+                WIN_showLinkConfigWindow(d.diagram.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, dev1.userData.e, dev2.userData.e, resolve_ifnaming,
                     (windata) => {
                         sendConfig_Link(a.obj.mesh.userData.id, windata);
                     },
@@ -2939,7 +2984,7 @@ function mouseup(x, y, dx, dy, dom_element) {
             }
         }
     }
-    else if(d.dom.tools.active_t === "FC") {
+    else if(d.dom.tools.active_t === "FC") {   // Format copy
         if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
             if((a.obj.mesh.userData.type === "device") || (a.obj.mesh.userData.type === "vrf")) {
                 d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
@@ -2969,6 +3014,32 @@ function mouseup(x, y, dx, dy, dom_element) {
             else if(a.obj.mesh.userData.type === "l2segment") {
                 d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
             }
+            else if(a.obj.mesh.userData.type === "symbol") {
+                let obj_data = a.obj.mesh.userData.e;
+                if(obj_data.type === "F") { // If it's a flag
+                    d.wgl.global_settings.format.color1 = obj_data.color;
+                    d.wgl.global_settings.format.color2 = obj_data.cd.flagcolor;
+                }
+                else if(obj_data.type === "A") { // If it's an arrow
+                    d.wgl.global_settings.format.arrow_color = obj_data.color;
+                    d.wgl.global_settings.format.arrow_head_color = obj_data.cd.head_color;
+                    d.wgl.global_settings.format.arrow_head_sx_per = obj_data.cd.head_sx_per;
+                    d.wgl.global_settings.format.arrow_head_sy_per = obj_data.cd.head_sy_per;
+                    d.wgl.global_settings.format.arrow_head_sz_per = obj_data.cd.head_sz_per;
+                    d.wgl.global_settings.format.arrow_head_type = obj_data.cd.head_type;
+                    d.wgl.global_settings.format.arrow_shaft_dots = obj_data.cd.shaft_dots;
+                    d.wgl.global_settings.format.arrow_shaft_type = obj_data.cd.shaft_type;
+                    d.wgl.global_settings.format.arrow_tail_sx_per = obj_data.cd.tail_sx_per;
+                    d.wgl.global_settings.format.arrow_tail_sy_per = obj_data.cd.tail_sy_per;
+                    d.wgl.global_settings.format.arrow_tail_sz_per = obj_data.cd.tail_sz_per;
+                    d.wgl.global_settings.format.arrow_tail_type = obj_data.cd.tail_type;
+                    d.wgl.global_settings.format.arrow_sx = obj_data.sx;
+                    d.wgl.global_settings.format.arrow_sz = obj_data.sz;
+                }
+                else  { // If it's a X or V
+                    d.wgl.global_settings.format.color1 = obj_data.color;
+                }
+            }
         }
     }
     else if(d.dom.tools.active_t === "FP") {
@@ -2976,6 +3047,7 @@ function mouseup(x, y, dx, dy, dom_element) {
             if(a.obj.mesh.userData.type === "device") {
                 sendMessageSettings_Device(a.obj.mesh.userData.id,
                     a.obj.mesh.userData.e.name,
+                    a.obj.mesh.userData.e.description,
                     d.wgl.global_settings.format.color1,
                     d.wgl.global_settings.format.color2,
                     a.obj.mesh.userData.e.ifnaming);
@@ -2986,6 +3058,8 @@ function mouseup(x, y, dx, dy, dom_element) {
                     (a.obj.mesh.userData.type === "svi_interface") ||
                     (a.obj.mesh.userData.type === "p2p_interface")) {
                 sendMessageSettings_Link(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id,
+                    a.obj.mesh.userData.e.name,
+                    a.obj.mesh.userData.e.description,
                     a.obj.mesh.userData.e.type,
                     a.obj.mesh.userData.e.order,
                     d.wgl.global_settings.format.link_color,
@@ -3020,6 +3094,40 @@ function mouseup(x, y, dx, dy, dom_element) {
                     rotation_x: format_data.text_rotation_x,
                 });
             }
+            else if(a.obj.mesh.userData.type === "symbol") {
+                let format_data = d.wgl.global_settings.format;
+                if(a.obj.mesh.userData.e.type === "F") {
+                    sendMessageSettings_Flag(d.current_view, a.obj.mesh.userData.id, {
+                        color: format_data.color1,
+                        flagcolor: format_data.color2,
+                    });
+                }
+                else if(a.obj.mesh.userData.e.type === "A") {
+                    if(!format_data.arrow_sx)
+                        return;
+                    sendMessageSettings_Arrow(d.current_view, a.obj.mesh.userData.id, {
+                        sx: format_data.arrow_sx,
+                        sz: format_data.arrow_sz,
+                        color: format_data.arrow_color,
+                        head_color: format_data.arrow_head_color,
+                        head_type: format_data.arrow_head_type,
+                        tail_type: format_data.arrow_tail_type,
+                        shaft_type: format_data.arrow_shaft_type,
+                        head_sx_per: format_data.arrow_head_sx_per,
+                        head_sy_per: format_data.arrow_head_sy_per,
+                        head_sz_per: format_data.arrow_head_sz_per,
+                        tail_sx_per: format_data.arrow_tail_sx_per,
+                        tail_sy_per: format_data.arrow_tail_sy_per,
+                        tail_sz_per: format_data.arrow_tail_sz_per,
+                        shaft_dots: format_data.arrow_shaft_dots,
+                    })
+                }
+                else {
+                    sendMessageSettings_Symbol(d.current_view, a.obj.mesh.userData.id, {
+                        color: format_data.color1,
+                    });
+                }
+            }
         }
     }
 }
@@ -3042,7 +3150,7 @@ function mousemove(x, y, dx, dy, dom_element) {
             d.wgl.rotateCamera(-dx, -dy);
     }
     else if(d.dom.tools.active_t === "CZ") {
-        d.wgl.zoomCamera(dy);
+        d.wgl.zoomCamera(dy, d.mouseaction.mesh);
     }
     else if(d.dom.tools.active_t === "ABF") {
         p = d.wgl.pickLevel(x, y, 0);
@@ -3299,14 +3407,21 @@ function init_window() {
     let div;
 
     d.dom.page = DOM.cdiv(b, "page", "box white");
-    d.dom.tab_l2 = DOM.cdiv(b, "tab_l2", "box tab_s", "L2 Diagram");
+    if(d.diagram.type === "network")
+        d.dom.tab_l2 = DOM.cdiv(b, "tab_l2", "box tab_s", "L2 Diagram");
+    else
+        d.dom.tab_l2 = DOM.cdiv(b, "tab_l2", "box tab_s", "Diagram");
     d.dom.tab_l2.addEventListener("click", () => { 
         set_current_view("L2")
     });
-    d.dom.tab_l3 = DOM.cdiv(b, "tab_l3", "box tab", "L3 Diagram");
-    d.dom.tab_l3.addEventListener("click", () => { 
-        set_current_view("L3")
-    });
+
+    if(d.diagram.type === "network") {
+        d.dom.tab_l3 = DOM.cdiv(b, "tab_l3", "box tab", "L3 Diagram");
+        d.dom.tab_l3.addEventListener("click", () => { 
+            set_current_view("L3")
+        });
+    }
+
     d.dom.title = DOM.cdiv(b, "title", "box_ns", d.name);
 
     // Home button

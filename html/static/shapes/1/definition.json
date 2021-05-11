@@ -172,7 +172,7 @@
 			"base_scale": [0.8,1,0.8],
 			"subshapes": [
 				{
-					"flat_normals": false,
+					"flat_normals": true,
 					"texture": "basic.png",
 					"color": 4755182,
 					"is_texture_light": true,
