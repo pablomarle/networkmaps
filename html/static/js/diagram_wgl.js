@@ -526,6 +526,24 @@ class WGL {
         this.requestDraw();
     }
 
+    moveCameraToElement(e) {
+        let ac = this.camera[this.view][this.camera.current];
+        let element_coordinates = e.getWorldPosition();
+        if(this.camera.current === "ortho") {
+            ac.position.x = element_coordinates.x;
+            ac.position.z = element_coordinates.z;
+        }
+        else {
+            ac.position.x = element_coordinates.x;
+            ac.position.y = element_coordinates.y + 30;
+            ac.position.z = element_coordinates.z + 30;
+            ac.rotation.y = 0;
+            ac.rotation.x = -Math.PI/4;
+        }
+
+        this.requestDraw();
+    }
+
     adjustLabelsToCamera() {
         let angle = this.camera[this.view][this.camera.current].rotation.y;
         let view = this.scene[this.view];
@@ -658,6 +676,23 @@ class WGL {
         }
 
         return null
+    }
+
+    findMeshByName(type, name, basemesh) {
+        let result = [];
+
+        for(let x = 0; x < basemesh.children.length; x++) {
+            let c = basemesh.children[x];
+            if((c.userData.type === type) && (c.userData.e.name.toLowerCase().indexOf(name.toLowerCase()) !== -1))
+                result.push(c);
+            else {
+                let r = this.findMeshByName(type, name, c);
+                if(r.length > 0)
+                    result.push(...r);
+            }
+        }
+
+        return result
     }
 
     findLinksOfDevice(devid, basemesh) {
@@ -1053,6 +1088,10 @@ class WGL {
 
     getMesh(view, type, id) {
         return this.findMesh(type, id, this.scene[view]);
+    }
+
+    getMeshByName(view, type, name) {
+        return this.findMeshByName(type, name, this.scene[view]);
     }
 
     getMeshPosition(view, type, id) {

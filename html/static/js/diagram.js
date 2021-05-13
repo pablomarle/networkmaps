@@ -1946,6 +1946,9 @@ function position_elements(wglneeded=true) {
     setBoxPosition(d.dom.cam_type, sx-90, 10, 32, 32);
     // Global Settings button
     setBoxPosition(d.dom.global_settings, sx-138, 10, 32, 32);
+    // Search boxes
+    setBoxPosition(d.dom.search_text, sx-138, 55, 120);
+    setBoxPosition(d.dom.search_results, sx-178, 79, 170);
     
     // Tool buttons
     setBoxPosition(d.dom.tool_camera_b,     10+48*0, 10, 32, 32);
@@ -3443,6 +3446,35 @@ function init_window() {
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");
 
+    // Search boxes
+    d.dom.search_text = DOM.ci_text(b, "search_text", "box");
+    d.dom.search_text.placeholder = "Search";
+    d.dom.search_text.addEventListener("keypress", WIN_input_nopropagate);
+
+    d.dom.search_text.addEventListener("input", () => {
+        if(d.dom.search_text.value.length > 2) {
+            DOM.removeChilds(d.dom.search_results, true);
+
+            let search_results = d.wgl.getMeshByName(d.current_view, (d.current_view === "L2") ? "device" : "vrf", d.dom.search_text.value);
+            if(search_results.length > 0) {
+                DOM.show(d.dom.search_results, "flex");
+                for(let x = 0; x < search_results.length && x < 8; x++) {
+                    let search_result = search_results[x];
+                    let dom_element = DOM.cdiv(d.dom.search_results, null, "search_result", search_result.userData.e.name);
+                    dom_element.addEventListener("click", () => {
+                        d.wgl.moveCameraToElement(search_result);
+                    });
+                }
+            }
+            else {
+                DOM.hide(d.dom.search_results);
+            }
+        }
+        else {
+            DOM.hide(d.dom.search_results);
+        }
+    });
+    d.dom.search_results = DOM.cdiv(b, "search_results", "box_ns");
 
     // Set up WGL
     init_wgl();

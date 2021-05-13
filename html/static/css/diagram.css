@@ -61,6 +61,22 @@ canvas {
 	display: hidden;
 }
 
+#search_results {
+	font-size: 12px;
+	overflow: hidden;
+	text-decoration: underline;
+	text-align: right;
+	background: rgba(255,255,255,.3);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+}
+.search_result {
+	cursor: pointer;
+	margin: 5px 5px;
+	white-space: nowrap;
+}
+
 .white {
 	background: #FFF;
 }

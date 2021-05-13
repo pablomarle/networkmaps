@@ -203,8 +203,8 @@ DOM = {
 		node.style.display = "none";
 	},
 
-	show: (node) => {
-		node.style.display = "block";
+	show: (node, display_mode) => {
+		node.style.display = (display_mode) ? display_mode : "block";
 	},
 
 	showError: (errortitle, errortext, is_critical) => {
