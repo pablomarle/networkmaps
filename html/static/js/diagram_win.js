@@ -886,7 +886,7 @@ function WIN_addRadioImgInput(win, px, py, label, choices, value, onchange_callb
 }
 
 function WIN_showGlobalSettingsWindow(gs, callbacks) {
-    let wdata = WIN_create("global", "settings", "0", "Global Settings", 360, 180);
+    let wdata = WIN_create("global", "settings", "0", "Global Settings", 360, 230);
     if(!wdata)
         return;
     let w = wdata.w;
@@ -923,6 +923,12 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
     });
     wdata.d.grid_resize.addEventListener("change", () => {
         callbacks.grid_change(wdata.d.grid_active.checked, wdata.d.grid_x.value, wdata.d.grid_y.value, wdata.d.grid_z.value, wdata.d.grid_angle.value, wdata.d.grid_resize.value)
+    });
+
+    // On mouse over, highlight levels
+    wdata.d.highlight_depth = WIN_addSlider(w, 20, 190, 100, "On MO, highlight depth", gs.highlight_depth, 1, 4, 1);    
+    wdata.d.highlight_depth.addEventListener("change", () => {
+        callbacks.highlight_depth(wdata.d.highlight_depth.value);
     });
 }
 

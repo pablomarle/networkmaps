@@ -105,6 +105,7 @@ class WGL {
                 angle: 15,
                 resize: .25,
             },
+            highlight_depth: 1,
             format: {
                 use_standard_color: true,
                 color1: 0x888888,
@@ -255,44 +256,72 @@ class WGL {
         }
     }
 
-    select(view, type, id) {
-        let index = this.select_find(view, type, id);
-        if(index !== -1)
-            return;
+    find_device_neighbors(dev_id, depth) {
+        let new_devices = [dev_id];
+        let next_devices = [];
+        let all_devices = [dev_id];
+        depth -= 1;
 
+        while(depth > 0) {
+            depth -= 1;
+            for(let dev_id of new_devices) {
+                let listlinks = this.findLinksOfDevice(dev_id, this.scene["L2"]);
+                for(let link of listlinks) {
+                    let other_id = link.userData.e.devs[0].id;
+                    if(other_id === dev_id)
+                        other_id = link.userData.e.devs[1].id;
+
+                    if(all_devices.indexOf(other_id) === -1) {
+                        next_devices.push(other_id);
+                        all_devices.push(other_id);
+                    }
+                }
+            }
+            new_devices = next_devices;
+            next_devices = [];
+        }
+        return all_devices;
+    }
+
+    select(view, type, id) {
         let mesh = this.getMesh(view, type, id);
         if(!mesh)
             return;
-
-        let select_entry = {
-            view: view,
-            type: type,
-            id: id,
+        
+        let index = this.select_find(view, type, id);
+        if(index !== -1) {
+            return;
         }
 
-        this.selected.push(select_entry);
-
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
+            let select_entry = {
+                view: view,
+                type: type,
+                id: id,
+            }
+
+            this.selected.push(select_entry);
+
             for(let child of mesh.children) {
                 this.select_color(child.material.color);
             }
-            this.requestDraw();
         }
-        else if(["device", "vrf", "symbol"].includes(type)) {
-            select_entry.colors = {};
+        else if(["vrf", "symbol"].includes(type)) {
+            let select_entry = {
+                view: view,
+                type: type,
+                id: id,
+            }
+
+            this.selected.push(select_entry);
+
             for(let child of mesh.children) {
-                if((child.userData.submesh == 1) || (child.userData.submesh == 2)) {
+                if((child.userData.submesh == 1) || (child.userData.submesh == 2) || (child.userData.submesh == 3)) {
                     this.select_color(child.material.uniforms.mycolor.value);
                 }
             }
 
-            if(type === "device") {
-                let listlinks = this.findLinksOfDevice(id, this.scene[view]);
-                for(let link of listlinks) {
-                    this.select(view, "link", link.userData.id);
-                }
-            }
-            else if(type === "vrf") {
+            if(type === "vrf") {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
@@ -300,41 +329,60 @@ class WGL {
                     }
                 }
             }
-
-            this.requestDraw();
         }
+        else if(type === "device") {
+            let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
+            for(let neighbor of neighbors) {
+                if(this.select_find(view, "device", neighbor) !== -1)
+                    continue;
+
+                let mesh = this.getMesh(view, "device", neighbor);
+
+                this.selected.push({
+                    view: view,
+                    type: type,
+                    id: neighbor,
+                });
+                for(let child of mesh.children) {
+                    if((child.userData.submesh == 1) || (child.userData.submesh == 2)) {
+                        this.select_color(child.material.uniforms.mycolor.value);
+                    }
+                }
+                let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
+                for(let link of listlinks) {
+                    this.select(view, "link", link.userData.id);
+                }
+            }
+        }
+        this.requestDraw();
     }
 
     deselect(view, type, id) {
-        let index = this.select_find(view, type, id);
-        if(index === -1) {
-            return;
-        }
-
         let mesh = this.getMesh(view, type, id);
         if(!mesh) {
             return;
         }
 
-        let old_entry = this.selected.splice(index, 1)[0];
-
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
+            let index = this.select_find(view, type, id);
+            if(index === -1) {
+                return;
+            }
+            this.selected.splice(index, 1)[0];
             this.updateLinkGeometry(type, mesh, view);
-            this.requestDraw();
         }
-        else if(["device", "vrf", "symbol"].includes(type)) {
+        else if(["vrf", "symbol"].includes(type)) {
+            let index = this.select_find(view, type, id);
+            if(index === -1) {
+                return;
+            }
+            this.selected.splice(index, 1)[0];
             if(type === "symbol")
                 this.updateSymbolColor(type, id, view);
             else
                 this.updateDeviceColor(type, id, view);
 
-            if(type === "device") {
-                let listlinks = this.findLinksOfDevice(id, this.scene[view]);
-                for(let link of listlinks) {
-                    this.deselect(view, "link", link.userData.id);
-                }
-            }
-            else if(type === "vrf") {
+            if(type === "vrf") {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
@@ -342,9 +390,25 @@ class WGL {
                     }
                 }
             }
-
-            this.requestDraw();
         }
+        else if(type === "device") {
+            let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
+            for(let neighbor of neighbors) {
+                let index = this.select_find(view, "device", neighbor);
+                if(index === -1) {
+                    continue;
+                }
+                this.selected.splice(index, 1)[0];
+                this.updateDeviceColor("device", neighbor, view);
+
+                let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
+                for(let link of listlinks) {
+                    this.deselect(view, "link", link.userData.id);
+                }
+            }
+        }
+
+        this.requestDraw();
     }
 
     setBGColor(color) {
@@ -357,6 +421,10 @@ class WGL {
         this.directionallightL2.castShadow = cast_shadow;
         this.directionallightL3.castShadow = cast_shadow;
         this.requestDraw();
+    }
+
+    setHighlightDepth(depth) {
+        this.global_settings.highlight_depth = depth;
     }
 
     resize() {
@@ -528,15 +596,15 @@ class WGL {
 
     moveCameraToElement(e) {
         let ac = this.camera[this.view][this.camera.current];
-        let element_coordinates = e.getWorldPosition();
+        e.getWorldPosition(this.tempVector);
         if(this.camera.current === "ortho") {
-            ac.position.x = element_coordinates.x;
-            ac.position.z = element_coordinates.z;
+            ac.position.x = this.tempVector.x;
+            ac.position.z = this.tempVector.z;
         }
         else {
-            ac.position.x = element_coordinates.x;
-            ac.position.y = element_coordinates.y + 30;
-            ac.position.z = element_coordinates.z + 30;
+            ac.position.x = this.tempVector.x;
+            ac.position.y = this.tempVector.y + 30;
+            ac.position.z = this.tempVector.z + 30;
             ac.rotation.y = 0;
             ac.rotation.x = -Math.PI/4;
         }

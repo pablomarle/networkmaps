@@ -3442,6 +3442,7 @@ function init_window() {
             show_device_name: (e) => { d.wgl.updateGlobalSettings_show_device_name(e); },
             grid_change: (active, x, y, z, angle, resize) => { d.wgl.updateGlobalSettings_grid(active, x, y, z, angle, resize); },
             cast_shadow: (cast_shadow) => { d.wgl.setCastShadow(cast_shadow)},
+            highlight_depth: (depth) => { d.wgl.setHighlightDepth(depth)}
         });
     });
     WIN_addBasicMouseDescriptionActions(d.dom.global_settings, "Global Settings");

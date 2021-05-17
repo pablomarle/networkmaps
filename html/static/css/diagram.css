@@ -69,7 +69,7 @@ canvas {
 	background: rgba(255,255,255,.3);
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
+	align-items: flex-start;
 }
 .search_result {
 	cursor: pointer;
