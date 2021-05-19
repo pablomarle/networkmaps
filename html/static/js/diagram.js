@@ -2264,9 +2264,19 @@ function init_window_addtoolbox(toolbox) {
 function contextmenu(x, y) {
     let objlist = d.wgl.pickObject(x, y);
     if(objlist.length > 0) {
-        if(Object.keys(objlist[0].mesh.userData.e.urls).length > 0) {
-            WIN_showURL(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0].mesh.userData.e);
+        if(!(objlist[0].mesh.userData.e.urls))
+            objlist[0].mesh.userData.e.urls = {};
+
+        let url_struct = {
+            "element": objlist[0].mesh.userData.e.urls,
         }
+        if(objlist[0].mesh.userData.type === "vrf") {
+            let associated_device = d.wgl.getMesh("L2", "device", objlist[0].mesh.userData.e.l2_reference.device_id);
+            if(!(associated_device.userData.e.urls))
+                associated_device.userData.e.urls = {};
+            url_struct["associated device"] = associated_device.userData.e.urls;
+        }
+        WIN_showURL(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0].mesh.userData.e.name, url_struct);
     }
 }
 

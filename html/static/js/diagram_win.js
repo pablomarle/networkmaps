@@ -1762,27 +1762,47 @@ function WIN_showEditURL(view, type, id, e, callback) {
     }, "Apply changes.");
 }
 
-function WIN_showURL(view, type, id, e) {
-    if(!e.urls)
+function WIN_showURL(view, type, id, name, url_struct) {
+    let winname = `URLs of ${type}`;
+    if(name)
+        winname = `URLs of ${type} ${name}`;
+
+    let num_urls = 0;
+    let num_categories = 0;
+
+    for(let url_category in url_struct) {
+        if(Object.keys(url_struct[url_category]).length == 0 )
+            continue;
+
+        num_categories += 1;
+        for(let url_label in url_struct[url_category]) {
+            num_urls += 1;
+        }
+    }
+
+    if(num_urls === 0)
         return;
 
-    let winname = `URLs of ${type}`;
-    if(e.name)
-        winname = `URLs of ${type} ${e.name}`;
-
-    let wdata = WIN_create(view, `${type}_url`, id, winname, 300, 40 + 30 * Object.keys(e.urls).length);
+    let wdata = WIN_create(view, `${type}_url`, id, winname, 300, 40 + 25 * (num_urls + num_categories));
 
     if(!wdata)
         return;
 
     let w = wdata.w;
 
-    let y = 30;
+    let y = 20;
     
-    for(let url_label in e.urls) {
-        let url = e.urls[url_label];
-        WIN_addButton(w, 20, y, url_label, () => { window.open(url); });
-        y += 30;
+    for(let url_category in url_struct) {
+        if(Object.keys(url_struct[url_category]).length == 0 )
+            continue;
+        WIN_addLabel(w, 15, y, `URLs of ${url_category}`, 270);
+        y += 25;
+
+        for(let url_label in url_struct[url_category]) {
+            let url = url_struct[url_category][url_label];
+            WIN_addButton(w, 20, y, url_label, () => { window.open(url); });
+            y += 25;
+        }
     }
 }
 
