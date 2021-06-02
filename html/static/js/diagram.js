@@ -360,7 +360,7 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_Device(data.i, data.name, data.description, data.color1, data.color2, data.ifnaming);
     }
     else if((data.v == "L2") && (data.t == "link")) {
-        d.wgl.settingsMesh_Link("L2", "link", data.i, data.type, data.order, data.color, data.weight, data.height);
+        d.wgl.settingsMesh_Link("L2", "link", data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height);
     }
     else if((data.v == "L3") && (data.t == "vrf")) {
         d.wgl.settingsMesh_Vrf(data.i, data.color1, data.color2);
@@ -372,7 +372,7 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_BGPPeer(data.i, data.color);
     }
     else if((data.v == "L3") && ((data.t == "l2link") || (data.t == "interface") || (data.t == "svi_interface") || (data.t == "p2p_interface"))) {
-        d.wgl.settingsMesh_Link(data.v, data.t, data.i, data.type, data.order, data.color, data.weight, data.height);
+        d.wgl.settingsMesh_Link(data.v, data.t, data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height);
     }
     else if(data.t == "text") {
         d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.color, data.text_align,
@@ -1412,28 +1412,30 @@ function sendRemoveShapeGroup(id) {
 function animate() {
     let needs_redraw = false;
 
-    // Infobox
-    if(d.dom.infobox_data.show && (d.dom.infobox_data.transparency < .05)) {
-        DOM.show(d.dom.infobox);
-        d.dom.infobox_data.transparency = .05;
-        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
-        needs_redraw = true;
+    // Infobox & mouseovebox
+    for(let box_name of ["infobox", "mouseoverbox"]) {
+        let box_data = box_name + "_data";
+        if(d.dom[box_data].show && (d.dom[box_data].transparency < .05)) {
+            DOM.show(d.dom[box_name]);
+            d.dom[box_data].transparency = .05;
+            d.dom[box_name].style.opacity = d.dom[box_data].transparency;
+            needs_redraw = true;
+        }
+        else if(d.dom[box_data].show && (d.dom[box_data].transparency < 1)) {
+            d.dom[box_data].transparency += .05;
+            d.dom[box_name].style.opacity = d.dom[box_data].transparency;
+            needs_redraw = true;
+        }
+        else if((!d.dom[box_data].show) && (d.dom[box_data].transparency < .05)) {
+            DOM.hide(d.dom[box_name]);
+            d.dom[box_data].transparency = 0;
+        }
+        else if((!d.dom[box_data].show) && (d.dom[box_data].transparency > 0)) {
+            d.dom[box_data].transparency -= .05;
+            d.dom[box_name].style.opacity = d.dom[box_data].transparency;
+            needs_redraw = true;
+        }
     }
-    else if(d.dom.infobox_data.show && (d.dom.infobox_data.transparency < 1)) {
-        d.dom.infobox_data.transparency += .05;
-        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
-        needs_redraw = true;
-    }
-    else if((!d.dom.infobox_data.show) && (d.dom.infobox_data.transparency < .05)) {
-        DOM.hide(d.dom.infobox);
-        d.dom.infobox_data.transparency = 0;
-    }
-    else if((!d.dom.infobox_data.show) && (d.dom.infobox_data.transparency > 0)) {
-        d.dom.infobox_data.transparency -= .05;
-        d.dom.infobox.style.opacity = d.dom.infobox_data.transparency;
-        needs_redraw = true;
-    }
-
     // Animate DOM elements if needed
     for(toolboxname in d.dom.tools.toolboxes) {
         let toolbox = d.dom.tools.toolboxes[toolboxname];
@@ -1460,6 +1462,28 @@ function animate() {
         requestAnimationFrame( animate );
 }
 
+/* Mouseover box functions */
+function mouseover_show(element) {
+    if(element && (element.userData.type !== "base")) {
+        d.dom.mouseoverbox_data.show = true;
+        let text = element.userData.type;
+        if(element.userData.type === "device") {
+            text = `Device ${element.userData.e.name}`;
+        }
+
+        if(text !== d.dom.mouseoverbox_data.text) {
+            d.dom.mouseoverbox_data.text = text;
+            DOM.removeChilds(d.dom.mouseoverbox, true);
+            DOM.cdiv(d.dom.mouseoverbox, null, null, text);
+            animate();
+        }
+    }
+    else if(d.dom.mouseoverbox_data.show) {
+        d.dom.mouseoverbox_data.show = false;
+        d.dom.mouseoverbox_data.text = null;
+        animate();
+    }
+}
 /*
     This function will clear the contents of the infobox and will hide it
 */
@@ -1470,6 +1494,9 @@ function infobox_clear() {
 
 function infobox_show(text) {
     DOM.removeChilds(d.dom.infobox, true);
+    let close = DOM.cdiv(d.dom.infobox, null, "box_info_close", "x");
+    close.addEventListener("click", infobox_clear);
+
     if(text.title) DOM.cdiv(d.dom.infobox, null, "box_info_title", text.title);
     if(text.description)
         text.description.split("\n").forEach((line) => {DOM.cdiv(d.dom.infobox, null, "box_info_description", line)});
@@ -1496,10 +1523,10 @@ function infobox_show_element(obj) {
         infobox_show_device(obj);
     else if(obj.userData.type === "link")
         infobox_show_link(obj);
-    else if(obj.userData.type === "text")
-        infobox_show({title: "Text"});
-    else if(obj.userData.type === "symbol")
-        infobox_show({title: "Symbol"});
+    // else if(obj.userData.type === "text")
+    //     infobox_show({title: "Text"});
+    // else if(obj.userData.type === "symbol")
+    //     infobox_show({title: "Symbol"});
     else if(obj.userData.type === "l2segment")
         infobox_show_l2segment(obj);
     else if(obj.userData.type === "l2link")
@@ -1514,15 +1541,21 @@ function infobox_show_element(obj) {
         infobox_show_sviinterface(obj);
     else if(obj.userData.type === "bgp_peering")
         infobox_show_bgppeering(obj);
+    else
+        infobox_clear();
 }
 
 function infobox_show_element_data(obj) {
     if(obj.userData.e.data) {
-        if((obj.userData.e.data.length === 0) && ((!obj.userData.e.description) || (obj.userData.e.description.length === 0)))
+        /*if((obj.userData.e.data.length === 0) && 
+            ((!obj.userData.e.description) || (obj.userData.e.description.length === 0)) && 
+            ((!obj.userData.e.url) || (Objetc.keys(obj.userData.e.urls).length === 0))) {
+            infobox_clear();
             return;
+        }*/
 
         let infobox_data = {
-            title: "",
+            title: obj.userData.e.name,
             description: obj.userData.e.description,
             content: [],
         }
@@ -1535,6 +1568,18 @@ function infobox_show_element_data(obj) {
         })
         // Show the infobox
         infobox_show(infobox_data);
+        infobox_show_urls(obj);
+    }
+}
+
+function infobox_show_urls(obj) {
+    if((obj.userData.e.urls) && (Object.keys(obj.userData.e.urls).length > 0)) {
+        DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", "Urls");
+        for(let label in obj.userData.e.urls) {
+            let div = DOM.cdiv(d.dom.infobox, null, "box_info_link", label);
+            let url = obj.userData.e.urls[label];
+            div.addEventListener("click", () => { window.open(url); })
+        }
     }
 }
 
@@ -1625,6 +1670,7 @@ function infobox_show_device(obj) {
 
     // Show the infobox
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_link(obj) {
@@ -1973,8 +2019,10 @@ function position_elements(wglneeded=true) {
     setBoxPosition(d.dom.title, sx-208, sy-36, 200, 16);
 
     // Info box
-    setBoxPositionRight(d.dom.infobox, 10, 60);
-    //infobox_clear();
+    setBoxPositionRight(d.dom.infobox, 10, 80);
+
+    // Mouse over box
+    setBoxPositionRight(d.dom.mouseoverbox, 10, sy-80);
 
     // Redraw webgl
     if(wglneeded)
@@ -2280,7 +2328,8 @@ function contextmenu(x, y) {
     }
 }
 
-function mousedown(x, y, dx, dy, dom_element) {
+function mousedown(x, y, dx, dy, dom_element, ctrl) {
+    d.mouseaction_isclick = true;
     // Make focus element lose focus 
     let f_el = document.querySelector( ':focus' );
     if( f_el ) f_el.blur();
@@ -2289,8 +2338,14 @@ function mousedown(x, y, dx, dy, dom_element) {
     let pos, v;
 
     d.mouseaction = {
-        m: "INVALID"
+        m: "INVALID",
+        accept_click: true,
     }
+
+    if(objlist.length > 0) {
+        d.mouseaction.mesh = objlist[0].mesh;
+        d.wgl.select(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0], ctrl);
+    }            
 
     if(
         (
@@ -2301,10 +2356,11 @@ function mousedown(x, y, dx, dy, dom_element) {
         ) {
         d.mouseaction = {
             m: d.dom.tools.active_t,
+            accept_click: true,
         };
         if(objlist.length > 0) {
             d.mouseaction.mesh = objlist[0].mesh;
-        }            
+        }
     }
     else if(d.permission === "RO") {
         // Do nothings
@@ -2321,19 +2377,16 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
     else if (d.dom.tools.active_t.startsWith("AD") && (d.current_view === "L2")) {
         // Add a device
-        for(let x = 0; x < objlist.length; x++) {
-            if (objlist[x].mesh.userData.type === "base") {
-                let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
-                    objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
-                d.mouseaction = {
-                    m: d.dom.tools.active_t,
-                    mesh: d.wgl.addDevice("device", "CURSOR", d.current_view, createDefaultDevice(
-                        newcoords.x, newcoords.y, newcoords.z, 
-                        d.dom.tools.active_t.substring(2),
-                        objlist[x].mesh.userData.id
-                    ), true)
-                }
-                break;
+        if ((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
+            let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[0].mesh.userData.id, 
+                objlist[0].p.x, objlist[0].p.y, objlist[0].p.z);
+            d.mouseaction = {
+                m: d.dom.tools.active_t,
+                mesh: d.wgl.addDevice("device", "CURSOR", d.current_view, createDefaultDevice(
+                    newcoords.x, newcoords.y, newcoords.z, 
+                    d.dom.tools.active_t.substring(2),
+                    objlist[0].mesh.userData.id
+                ), true)
             }
         }
     }
@@ -2401,38 +2454,32 @@ function mousedown(x, y, dx, dy, dom_element) {
     }
     else if (d.dom.tools.active_t.startsWith("AT")) {
         // Add a text
-        for(let x = 0; x < objlist.length; x++) {
-            if (objlist[x].mesh.userData.type === "base") {
-                let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
-                    objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
-                d.mouseaction = {
-                    m: d.dom.tools.active_t,
-                    mesh: d.wgl.addText("CURSOR", d.current_view, createDefaultText(
-                        newcoords.x, newcoords.z, 
-                        d.dom.tools.active_t.substring(2),
-                        objlist[x].mesh.userData.id
-                    ), true)
-                }
-                break;
+        if ((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
+            let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[0].mesh.userData.id, 
+                objlist[0].p.x, objlist[0].p.y, objlist[0].p.z);
+            d.mouseaction = {
+                m: d.dom.tools.active_t,
+                mesh: d.wgl.addText("CURSOR", d.current_view, createDefaultText(
+                    newcoords.x, newcoords.z, 
+                    d.dom.tools.active_t.substring(2),
+                    objlist[0].mesh.userData.id
+                ), true)
             }
         }
     }    
     else if (d.dom.tools.active_t.startsWith("AS")) {
         // Add a symbol
-        for(let x = 0; x < objlist.length; x++) {
-            if (objlist[x].mesh.userData.type === "base") {
-                let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
-                    objlist[x].p.x, objlist[x].p.y, objlist[x].p.z);
-                let symboltype = d.dom.tools.active_t.substring(2);
-                d.mouseaction = {
-                    m: d.dom.tools.active_t,
-                    mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbol(
-                        symboltype,
-                        newcoords.x, newcoords.y, newcoords.z, 
-                        objlist[x].mesh.userData.id
-                    ), true)
-                }
-                break;
+        if ((objlist.length > 0) && (objlist[0].mesh.userData.type === "base")) {
+            let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[0].mesh.userData.id, 
+                objlist[0].p.x, objlist[0].p.y, objlist[0].p.z);
+            let symboltype = d.dom.tools.active_t.substring(2);
+            d.mouseaction = {
+                m: d.dom.tools.active_t,
+                mesh: d.wgl.addSymbol("CURSOR", d.current_view, createDefaultSymbol(
+                    symboltype,
+                    newcoords.x, newcoords.y, newcoords.z, 
+                    objlist[0].mesh.userData.id
+                ), true)
             }
         }
     }
@@ -2447,6 +2494,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 diffy: objlist[0].p.y - pos.y,
                 diffz: objlist[0].p.z - pos.z,
                 level: objlist[0].p.y,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2456,18 +2505,36 @@ function mousedown(x, y, dx, dy, dom_element) {
             d.mouseaction = {
                 m: "EM",
                 type: objlist[0].mesh.userData.type,
-                mesh: objlist[0].mesh.userData.id,
+                accept_click: true,
+                mesh: objlist[0].mesh,
+                multimove_data: [],
+            }
+            // Multiobject move
+            if(objlist[0].mesh.userData.type === d.wgl.selected_type) {
+                for(let element of d.wgl.selected) {
+                    if(element.mesh.userData.id === objlist[0].mesh.userData.id)
+                        continue;
+
+                    if(element.mesh.userData.e.base === objlist[0].mesh.userData.e.base) {
+                        d.mouseaction.multimove_data.push({
+                            id: element.mesh.userData.id,
+                            diff_x: element.mesh.userData.e.px - objlist[0].mesh.userData.e.px,
+                            diff_z: element.mesh.userData.e.pz - objlist[0].mesh.userData.e.pz,
+                        });
+                    }
+                }
             }
         }
         else if((objlist.length > 0) && (objlist[0].mesh.userData.type === "bgp_peering")) {
             d.mouseaction = {
                 m: "EM",
                 type: objlist[0].mesh.userData.type,
-                mesh: objlist[0].mesh.userData.id,
                 curve_x: objlist[0].mesh.userData.e.curve_x,
                 curve_y: objlist[0].mesh.userData.e.curve_y,
                 mouse_px: x,
                 mouse_py: y,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
         else if((objlist.length > 0) && (["link", "l2link", "interface", "svi_interface", "p2p_interface"].indexOf(objlist[0].mesh.userData.type) !== -1) && 
@@ -2481,10 +2548,11 @@ function mousedown(x, y, dx, dy, dom_element) {
             if (point_index != -1) {
                 d.mouseaction = {
                     m: "EM",
-                    mesh: objlist[0].mesh.userData.id,
                     joint_index: point_index,
                     type: "joint",
                     element_type: objlist[0].mesh.userData.type,
+                    accept_click: true,
+                    mesh: objlist[0].mesh,
                 }
             }
         }
@@ -2495,9 +2563,10 @@ function mousedown(x, y, dx, dy, dom_element) {
             let mesh = d.wgl.getMesh(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id);
             d.mouseaction = {
                 m: "EMV",
-                mesh: mesh,
                 base_y: mesh.position.y,
                 py: y,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2508,7 +2577,9 @@ function mousedown(x, y, dx, dy, dom_element) {
             d.mouseaction = {
                 m: "BR",
                 id: objlist[0].mesh.userData.id,
-                rx: v.x, ry: v.y, rz: v.z
+                rx: v.x, ry: v.y, rz: v.z,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2526,7 +2597,9 @@ function mousedown(x, y, dx, dy, dom_element) {
                 m: "ER",
                 id: objlist[0].mesh.userData.id,
                 type: objlist[0].mesh.userData.type,
-                rx: v.x, ry: v.y, rz: v.z
+                rx: v.x, ry: v.y, rz: v.z,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
             if(objlist[0].mesh.userData.type === "symbol")
                 d.mouseaction.subtype = objlist[0].mesh.userData.e.type;            
@@ -2539,6 +2612,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 m: "BX",
                 id: objlist[0].mesh.userData.id,
                 y: objlist[0].p.y,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2556,6 +2631,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 id: objlist[0].mesh.userData.id,
                 type: objlist[0].mesh.userData.type,
                 y: d.wgl.getMesh(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id).parent.userData.e.sy,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
             if(objlist[0].mesh.userData.type === "symbol")
                 d.mouseaction.subtype = objlist[0].mesh.userData.e.type;
@@ -2573,6 +2650,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 obj: objlist[0],
                 x: x,
                 y: y,
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2595,6 +2674,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 x: x,
                 y: y,
                 view: "L2",
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
         else if((objlist.length == 0) && (d.dom.tools.active_t === "EC")) {
@@ -2604,6 +2685,7 @@ function mousedown(x, y, dx, dy, dom_element) {
                 x: x,
                 y: y,
                 view: "L2",
+                accept_click: true,
             }
         }
     }
@@ -2631,6 +2713,8 @@ function mousedown(x, y, dx, dy, dom_element) {
                 x: x,
                 y: y,
                 view: "L3",
+                accept_click: true,
+                mesh: objlist[0].mesh,
             }
         }
     }
@@ -2655,6 +2739,8 @@ function mousedown(x, y, dx, dy, dom_element) {
             obj: objlist[0],
             x: x,
             y: y,
+            accept_click: true,
+            mesh: objlist[0].mesh,
         }        
     }
     else if ((objlist.length > 0) && ((d.dom.tools.active_t === "FC") || (d.dom.tools.active_t === "FP"))) {
@@ -2663,8 +2749,368 @@ function mousedown(x, y, dx, dy, dom_element) {
             obj: objlist[0],
             x: x,
             y: y,
+            accept_click: true,
+            mesh: objlist[0].mesh,
         }        
     }
+}
+
+function mouseclick(x, y, a) {
+    if(d.dom.tools.active_t === "BC") {
+        if(d.current_view === "L2")
+            WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
+                (windata) => {
+                    sendSettings_BaseFloor("L2", "base", a.obj.mesh.userData.id, windata)
+                });
+        else if(d.current_view === "L3")
+            WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
+                (windata) => {
+                    sendSettings_BaseFloor("L3", "base", a.obj.mesh.userData.id, windata)
+                });
+    }
+    else if(d.dom.tools.active_t === "EC") {
+        if(a.obj === null) {
+            WIN_showBackgroundSettings(d.diagram.settings, (windata) => {
+                sendSettings_Background(windata);
+            });
+        }
+        else if (a.obj.mesh.userData.type == "device") {
+            WIN_showDeviceWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_Device(a.obj.mesh.userData.id, windata);
+                },
+                check_ifnaming);
+        }
+        else if (a.obj.mesh.userData.type == "link") {
+            WIN_showLinkWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_Link(a.view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if (a.obj.mesh.userData.type == "vrf") {
+            WIN_showVrfWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_Vrf(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if (a.obj.mesh.userData.type == "bgp_peering") {
+            WIN_showBGPPeerWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_BGPPeer(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if (a.obj.mesh.userData.type == "l2segment") {
+            WIN_showL2SegmentWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_L2Segment(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if ((a.obj.mesh.userData.type == "l2link") || (a.obj.mesh.userData.type == "interface") || (a.obj.mesh.userData.type == "p2p_interface") || (a.obj.mesh.userData.type == "svi_interface")) {
+            WIN_showLinkWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendSettings_Link(a.view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if (a.obj.mesh.userData.type == "text") {
+            if(d.current_view === "L2")
+                WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendSettings_Text("L2", a.obj.mesh.userData.id, windata);
+                    });
+            else if(d.current_view === "L3")
+                WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendSettings_Text("L3", a.obj.mesh.userData.id, windata);
+                    });
+        }
+        else if (a.obj.mesh.userData.type == "symbol") {
+            if(a.obj.mesh.userData.e.type == "F") {
+                let view = d.current_view;
+                WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendSettings_SymbolFlag(view, "symbol", a.obj.mesh.userData.id, windata);
+                    });
+            }
+            else if(a.obj.mesh.userData.e.type == "A") {
+                let view = d.current_view;
+                WIN_showSymbolArrowWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendSettings_SymbolArrow(view, "symbol", a.obj.mesh.userData.id, windata);
+                    });
+            }
+            else {
+                let view = d.current_view;
+                WIN_showSymbolWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                    (windata) => {
+                        sendSettings_Symbol(view, "symbol", a.obj.mesh.userData.id, windata);
+                    });
+            }
+        }
+    }
+    else if(d.dom.tools.active_t === "EI") {
+        if (a.obj.mesh.userData.type == "device") {
+            WIN_showDeviceConfigWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendConfig_Device(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if (a.obj.mesh.userData.type == "link") {
+            let dev1 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[0].id);
+            let dev2 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[1].id);
+            WIN_showLinkConfigWindow(d.diagram.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, dev1.userData.e, dev2.userData.e, resolve_ifnaming,
+                (windata) => {
+                    sendConfig_Link(a.obj.mesh.userData.id, windata);
+                },
+                (index) => {
+                    WIN_showLinkConfigDeviceWindow(index, a.obj.mesh.userData.id, a.obj.mesh.userData.e, [dev1, dev2][index].userData.e, 
+                        (windata) => {
+                            sendConfig_LinkDevice(a.obj.mesh.userData.id, index, windata);
+                        });
+                });
+        }
+        else if(a.obj.mesh.userData.type == "interface") {
+            WIN_showInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendConfig_Interface(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if(a.obj.mesh.userData.type == "svi_interface") {
+            WIN_showSVIInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendConfig_SVIInterface(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if(a.obj.mesh.userData.type == "p2p_interface") {
+            let vrf1 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.src_vrf_id);
+            let vrf2 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
+            WIN_showP2PInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, vrf1.userData.e, vrf2.userData.e,
+                (windata) => {
+                    sendConfig_P2PInterface(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if(a.obj.mesh.userData.type == "vrf") {
+            WIN_showVrfConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+                (windata) => {
+                    sendConfig_Vrf(a.obj.mesh.userData.id, windata);
+                });
+        }
+        else if(a.obj.mesh.userData.type == "bgp_peering") {
+            let src_vrf = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.src_vrf_id);
+            let dst_vrf = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
+            let src_ips = d.wgl.findIPsOfVrf(a.obj.mesh.userData.e.l3_reference.src_vrf_id);
+            let dst_ips = d.wgl.findIPsOfVrf(a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
+            WIN_showBGPPeerConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, src_vrf.userData.e, dst_vrf.userData.e, src_ips, dst_ips,
+                (windata) => {
+                    sendConfig_BGPPeer(a.obj.mesh.userData.id, windata);
+                });
+        }
+    }
+    else if(d.dom.tools.active_t === "BD") {
+        sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
+    }
+    else if (d.dom.tools.active_t === "ED") {
+        if (a.obj.mesh.userData.type === "device") {
+            sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
+        }
+        else if (a.obj.mesh.userData.type === "link") {
+            if (a.obj.mesh.userData.e.linedata.points.length == 0) {
+                sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);       
+            }
+            else {
+                let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, "link", a.obj.mesh.userData.id, 
+                    a.obj.p.x, a.obj.p.y, a.obj.p.z);
+
+                if (point_index != -1)
+                    sendDeleteJoint(d.current_view, "link", a.obj.mesh.userData.id, point_index);
+            }
+        }
+        else if (["l2link", "interface", "svi_interface", "p2p_interface"].indexOf(a.obj.mesh.userData.type) !== -1) {
+            if (a.obj.mesh.userData.e.linedata.points.length > 0) {
+                let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, 
+                    a.obj.p.x, a.obj.p.y, a.obj.p.z);
+
+                if (point_index != -1)
+                    sendDeleteJoint(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, point_index);
+            }
+        }
+        else if(a.obj.mesh.userData.type === "bgp_peering") {
+            sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
+        }
+        else if (a.obj.mesh.userData.type === "text") {
+            sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
+        }
+        else if (a.obj.mesh.userData.type === "symbol") {
+            sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
+        }
+    }
+    else if(d.dom.tools.active_t === "EDT") {
+        WIN_showData(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+            (windata) => {
+                sendData(windata);
+            }
+        );
+    }
+    else if(d.dom.tools.active_t === "EU") {
+        WIN_showEditURL(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
+            (windata) => {
+                sendURL(windata);
+            }
+        );
+    }
+    else if(d.dom.tools.active_t === "FC") {   // Format copy
+        if((a.obj.mesh.userData.type === "device") || (a.obj.mesh.userData.type === "vrf")) {
+            d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
+            d.wgl.global_settings.format.color2 = a.obj.mesh.userData.e.color2;
+            d.wgl.global_settings.format.scale = a.obj.mesh.userData.e.sx;
+        }
+        else if((a.obj.mesh.userData.type === "link") || (a.obj.mesh.userData.type === "p2p_interface") || 
+            (a.obj.mesh.userData.type === "svi_interface") || (a.obj.mesh.userData.type === "interface") || 
+            (a.obj.mesh.userData.type === "l2link")) {
+            d.wgl.global_settings.format.link_color = a.obj.mesh.userData.e.linedata.color;
+            d.wgl.global_settings.format.link_height = a.obj.mesh.userData.e.linedata.height;
+            d.wgl.global_settings.format.link_weight = a.obj.mesh.userData.e.linedata.weight;
+        }
+        else if(a.obj.mesh.userData.type === "text") {
+            d.wgl.global_settings.format.text_color = a.obj.mesh.userData.e.color;
+            if(a.obj.mesh.userData.e.rx !== undefined) d.wgl.global_settings.format.text_rx = a.obj.mesh.userData.e.rx;
+            if(a.obj.mesh.userData.e.height !== undefined) d.wgl.global_settings.format.text_height = a.obj.mesh.userData.e.height;
+            if(a.obj.mesh.userData.e.text_align !== undefined) d.wgl.global_settings.format.text_align = a.obj.mesh.userData.e.text_align;
+            if(a.obj.mesh.userData.e.rotation_x !== undefined) d.wgl.global_settings.format.text_rotation_x = a.obj.mesh.userData.e.rotation_x;
+            if(a.obj.mesh.userData.e.bg_color !== undefined) d.wgl.global_settings.format.text_bg_color = a.obj.mesh.userData.e.bg_color;
+            if(a.obj.mesh.userData.e.border_color !== undefined) d.wgl.global_settings.format.text_border_color = a.obj.mesh.userData.e.border_color;
+            if(a.obj.mesh.userData.e.bg_type !== undefined) d.wgl.global_settings.format.text_bg_type = a.obj.mesh.userData.e.bg_type;
+            if(a.obj.mesh.userData.e.bg_show !== undefined) d.wgl.global_settings.format.text_bg_show = a.obj.mesh.userData.e.bg_show;
+            if(a.obj.mesh.userData.e.border_show !== undefined) d.wgl.global_settings.format.text_border_show = a.obj.mesh.userData.e.border_show;
+            if(a.obj.mesh.userData.e.bg_depth !== undefined) d.wgl.global_settings.format.text_bg_depth = a.obj.mesh.userData.e.bg_depth;
+        }
+        else if(a.obj.mesh.userData.type === "l2segment") {
+            d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
+        }
+        else if(a.obj.mesh.userData.type === "symbol") {
+            let obj_data = a.obj.mesh.userData.e;
+            if(obj_data.type === "F") { // If it's a flag
+                d.wgl.global_settings.format.color1 = obj_data.color;
+                d.wgl.global_settings.format.color2 = obj_data.cd.flagcolor;
+            }
+            else if(obj_data.type === "A") { // If it's an arrow
+                d.wgl.global_settings.format.arrow_color = obj_data.color;
+                d.wgl.global_settings.format.arrow_head_color = obj_data.cd.head_color;
+                d.wgl.global_settings.format.arrow_head_sx_per = obj_data.cd.head_sx_per;
+                d.wgl.global_settings.format.arrow_head_sy_per = obj_data.cd.head_sy_per;
+                d.wgl.global_settings.format.arrow_head_sz_per = obj_data.cd.head_sz_per;
+                d.wgl.global_settings.format.arrow_head_type = obj_data.cd.head_type;
+                d.wgl.global_settings.format.arrow_shaft_dots = obj_data.cd.shaft_dots;
+                d.wgl.global_settings.format.arrow_shaft_type = obj_data.cd.shaft_type;
+                d.wgl.global_settings.format.arrow_tail_sx_per = obj_data.cd.tail_sx_per;
+                d.wgl.global_settings.format.arrow_tail_sy_per = obj_data.cd.tail_sy_per;
+                d.wgl.global_settings.format.arrow_tail_sz_per = obj_data.cd.tail_sz_per;
+                d.wgl.global_settings.format.arrow_tail_type = obj_data.cd.tail_type;
+                d.wgl.global_settings.format.arrow_sx = obj_data.sx;
+                d.wgl.global_settings.format.arrow_sz = obj_data.sz;
+            }
+            else  { // If it's a X or V
+                d.wgl.global_settings.format.color1 = obj_data.color;
+            }
+        }
+    }
+    else if(d.dom.tools.active_t === "FP") {
+        if(a.obj.mesh.userData.type === "device") {
+            sendMessageSettings_Device(a.obj.mesh.userData.id,
+                a.obj.mesh.userData.e.name,
+                a.obj.mesh.userData.e.description,
+                d.wgl.global_settings.format.color1,
+                d.wgl.global_settings.format.color2,
+                a.obj.mesh.userData.e.ifnaming);
+        }
+        else if((a.obj.mesh.userData.type === "link") ||
+                (a.obj.mesh.userData.type === "l2link") ||
+                (a.obj.mesh.userData.type === "interface") ||
+                (a.obj.mesh.userData.type === "svi_interface") ||
+                (a.obj.mesh.userData.type === "p2p_interface")) {
+            sendMessageSettings_Link(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id,
+                a.obj.mesh.userData.e.name,
+                a.obj.mesh.userData.e.description,
+                a.obj.mesh.userData.e.type,
+                a.obj.mesh.userData.e.order,
+                d.wgl.global_settings.format.link_color,
+                d.wgl.global_settings.format.link_weight,
+                d.wgl.global_settings.format.link_height);
+        }
+        if(a.obj.mesh.userData.type === "vrf") {
+            sendMessageSettings_Vrf(a.obj.mesh.userData.id,
+                d.wgl.global_settings.format.color1,
+                d.wgl.global_settings.format.color2);
+        }
+        if(a.obj.mesh.userData.type === "l2segment") {
+            sendMessageSettings_L2Segment(a.obj.mesh.userData.id,
+                d.wgl.global_settings.format.color1);
+        }
+        else if(a.obj.mesh.userData.type === "text") {
+            let format_data = d.wgl.global_settings.format;
+            sendMessageSettings_Text(d.current_view, a.obj.mesh.userData.id, {
+                text: a.obj.mesh.userData.e.text,
+                color: format_data.text_color,
+                py: a.obj.mesh.userData.e.py,
+                height: format_data.text_height,
+                depth: format_data.text_depth,
+                text_align: format_data.text_align,
+                bg_type: format_data.text_bg_type,
+                bg_color: format_data.text_bg_color,
+                bg_show: format_data.text_bg_show,
+                border_color: format_data.text_border_color,
+                border_show: format_data.text_border_show,
+                border_width: format_data.text_border_width,
+                bg_depth: format_data.text_bg_depth,
+                rotation_x: format_data.text_rotation_x,
+            });
+        }
+        else if(a.obj.mesh.userData.type === "symbol") {
+            let format_data = d.wgl.global_settings.format;
+            if(a.obj.mesh.userData.e.type === "F") {
+                sendMessageSettings_Flag(d.current_view, a.obj.mesh.userData.id, {
+                    color: format_data.color1,
+                    flagcolor: format_data.color2,
+                });
+            }
+            else if(a.obj.mesh.userData.e.type === "A") {
+                if(!format_data.arrow_sx)
+                    return;
+                sendMessageSettings_Arrow(d.current_view, a.obj.mesh.userData.id, {
+                    sx: format_data.arrow_sx,
+                    sz: format_data.arrow_sz,
+                    color: format_data.arrow_color,
+                    head_color: format_data.arrow_head_color,
+                    head_type: format_data.arrow_head_type,
+                    tail_type: format_data.arrow_tail_type,
+                    shaft_type: format_data.arrow_shaft_type,
+                    head_sx_per: format_data.arrow_head_sx_per,
+                    head_sy_per: format_data.arrow_head_sy_per,
+                    head_sz_per: format_data.arrow_head_sz_per,
+                    tail_sx_per: format_data.arrow_tail_sx_per,
+                    tail_sy_per: format_data.arrow_tail_sy_per,
+                    tail_sz_per: format_data.arrow_tail_sz_per,
+                    shaft_dots: format_data.arrow_shaft_dots,
+                })
+            }
+            else {
+                sendMessageSettings_Symbol(d.current_view, a.obj.mesh.userData.id, {
+                    color: format_data.color1,
+                });
+            }
+        }
+    }
+    else {
+        if(a.mesh) {
+            infobox_show_element(a.mesh);
+        }
+        else {
+            infobox_clear();
+        }
+    }
+}
+
+function mousedoubleclick(x, y, a) {
+    // There's still no function for doubleclick
 }
 
 function mouseup(x, y, dx, dy, dom_element) {
@@ -2678,6 +3124,20 @@ function mouseup(x, y, dx, dy, dom_element) {
 
     if(d.dom.tools.active_t != a.m)
         return;
+
+    if(d.mouseaction_isclick == true) {
+        d.mouseaction_isclick = false;
+        if(d.mouseaction_lastclick && (d.mouseaction_lastclick.x === x) && (d.mouseaction_lastclick.y === y)) {
+            d.mouseaction_lastclick = {x: -1, y: -1};
+            if(a.accept_click)
+                return mousedoubleclick(x, y, a);
+        }
+        else {
+            d.mouseaction_lastclick = {x: x, y: y};
+            if(a.accept_click)
+                return mouseclick(x, y, a);
+        }
+    }
 
     if(d.dom.tools.active_t === "ABF") {
         let mesh = d.wgl.getMesh(d.current_view, "base", "CURSOR");
@@ -2757,14 +3217,20 @@ function mouseup(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "EM") {
         if((a.type === "device") || (a.type === "text") || (a.type === "symbol") || (a.type === "l2segment") || (a.type === "vrf")) {
-            sendMove(d.current_view, a.type, a.mesh);
+            sendMove(d.current_view, a.mesh.userData.type, a.mesh.userData.id);
+            for(let multi_element of a.multimove_data) {
+                if(multi_element.id !== a.mesh.userData.id) {
+                    console.log(multi_element);
+                    sendMove(d.current_view, a.type, multi_element.id);
+                }
+            }
         }
         else if(a.type === "bgp_peering") {
-            let m = d.wgl.getMesh(d.current_view, a.type, a.mesh);
+            let m = d.wgl.getMesh(d.current_view, a.type, a.mesh.userData.id);
             sendMoveBGPPeer(a.mesh, m.userData.e.curve_x, m.userData.e.curve_y);
         }
         else if(a.type === "joint") {
-            let m = d.wgl.getMesh(d.current_view, a.element_type, a.mesh)
+            let m = d.wgl.getMesh(d.current_view, a.element_type, a.mesh.userData.id)
             sendMoveJoint(d.current_view, a.element_type, a.mesh, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
         }
     }    
@@ -2783,371 +3249,13 @@ function mouseup(x, y, dx, dy, dom_element) {
     else if(d.dom.tools.active_t === "EX") {
         sendResize(d.current_view, a.type, a.id);
     }
-    else if(d.dom.tools.active_t === "BC") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if(d.current_view === "L2")
-                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
-                    (windata) => {
-                        sendSettings_BaseFloor("L2", "base", a.obj.mesh.userData.id, windata)
-                    });
-            else if(d.current_view === "L3")
-                WIN_showBaseElementWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, d.user_textures,
-                    (windata) => {
-                        sendSettings_BaseFloor("L3", "base", a.obj.mesh.userData.id, windata)
-                    });
-        }
-    }
-    else if(d.dom.tools.active_t === "EC") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if(a.obj === null) {
-                WIN_showBackgroundSettings(d.diagram.settings, (windata) => {
-                    sendSettings_Background(windata);
-                });
-            }
-            else if (a.obj.mesh.userData.type == "device") {
-                WIN_showDeviceWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_Device(a.obj.mesh.userData.id, windata);
-                    },
-                    check_ifnaming);
-            }
-            else if (a.obj.mesh.userData.type == "link") {
-                WIN_showLinkWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_Link(a.view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if (a.obj.mesh.userData.type == "vrf") {
-                WIN_showVrfWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_Vrf(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if (a.obj.mesh.userData.type == "bgp_peering") {
-                WIN_showBGPPeerWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_BGPPeer(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if (a.obj.mesh.userData.type == "l2segment") {
-                WIN_showL2SegmentWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_L2Segment(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if ((a.obj.mesh.userData.type == "l2link") || (a.obj.mesh.userData.type == "interface") || (a.obj.mesh.userData.type == "p2p_interface") || (a.obj.mesh.userData.type == "svi_interface")) {
-                WIN_showLinkWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendSettings_Link(a.view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if (a.obj.mesh.userData.type == "text") {
-                if(d.current_view === "L2")
-                    WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_Text("L2", a.obj.mesh.userData.id, windata);
-                        });
-                else if(d.current_view === "L3")
-                    WIN_showTextWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_Text("L3", a.obj.mesh.userData.id, windata);
-                        });
-            }
-            else if (a.obj.mesh.userData.type == "symbol") {
-                if(a.obj.mesh.userData.e.type == "F") {
-                    let view = d.current_view;
-                    WIN_showSymbolFlagWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_SymbolFlag(view, "symbol", a.obj.mesh.userData.id, windata);
-                        });
-                }
-                else if(a.obj.mesh.userData.e.type == "A") {
-                    let view = d.current_view;
-                    WIN_showSymbolArrowWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_SymbolArrow(view, "symbol", a.obj.mesh.userData.id, windata);
-                        });
-                }
-                else {
-                    let view = d.current_view;
-                    WIN_showSymbolWindow(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                        (windata) => {
-                            sendSettings_Symbol(view, "symbol", a.obj.mesh.userData.id, windata);
-                        });
-                }
-            }
-        }
-    }
-    else if(d.dom.tools.active_t === "EDT") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            WIN_showData(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                (windata) => {
-                    sendData(windata);
-                }
-            );
-        }
-    }
-    else if(d.dom.tools.active_t === "EU") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            WIN_showEditURL(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                (windata) => {
-                    sendURL(windata);
-                }
-            );
-        }
-    }
-    else if(d.dom.tools.active_t === "EI") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if (a.obj.mesh.userData.type == "device") {
-                WIN_showDeviceConfigWindow(d.diagram.type, d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendConfig_Device(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if (a.obj.mesh.userData.type == "link") {
-                let dev1 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[0].id);
-                let dev2 = d.wgl.getMesh("L2", "device", a.obj.mesh.userData.e.devs[1].id);
-                WIN_showLinkConfigWindow(d.diagram.type, a.obj.mesh.userData.id, a.obj.mesh.userData.e, dev1.userData.e, dev2.userData.e, resolve_ifnaming,
-                    (windata) => {
-                        sendConfig_Link(a.obj.mesh.userData.id, windata);
-                    },
-                    (index) => {
-                        WIN_showLinkConfigDeviceWindow(index, a.obj.mesh.userData.id, a.obj.mesh.userData.e, [dev1, dev2][index].userData.e, 
-                            (windata) => {
-                                sendConfig_LinkDevice(a.obj.mesh.userData.id, index, windata);
-                            });
-                    });
-            }
-            else if(a.obj.mesh.userData.type == "interface") {
-                WIN_showInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendConfig_Interface(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if(a.obj.mesh.userData.type == "svi_interface") {
-                WIN_showSVIInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendConfig_SVIInterface(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if(a.obj.mesh.userData.type == "p2p_interface") {
-                let vrf1 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.src_vrf_id);
-                let vrf2 = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
-                WIN_showP2PInterfaceConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, vrf1.userData.e, vrf2.userData.e,
-                    (windata) => {
-                        sendConfig_P2PInterface(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if(a.obj.mesh.userData.type == "vrf") {
-                WIN_showVrfConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e,
-                    (windata) => {
-                        sendConfig_Vrf(a.obj.mesh.userData.id, windata);
-                    });
-            }
-            else if(a.obj.mesh.userData.type == "bgp_peering") {
-                let src_vrf = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.src_vrf_id);
-                let dst_vrf = d.wgl.getMesh("L3", "vrf", a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
-                let src_ips = d.wgl.findIPsOfVrf(a.obj.mesh.userData.e.l3_reference.src_vrf_id);
-                let dst_ips = d.wgl.findIPsOfVrf(a.obj.mesh.userData.e.l3_reference.dst_vrf_id);
-                WIN_showBGPPeerConfigWindow(a.obj.mesh.userData.id, a.obj.mesh.userData.e, src_vrf.userData.e, dst_vrf.userData.e, src_ips, dst_ips,
-                    (windata) => {
-                        sendConfig_BGPPeer(a.obj.mesh.userData.id, windata);
-                    });
-            }
-        }
-    }
-    else if(d.dom.tools.active_t === "BD") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5))
-            sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
-    }
-    else if (d.dom.tools.active_t === "ED") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if (a.obj.mesh.userData.type === "device") {
-                sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
-            }
-            else if (a.obj.mesh.userData.type === "link") {
-                if (a.obj.mesh.userData.e.linedata.points.length == 0) {
-                    sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);       
-                }
-                else {
-                    let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, "link", a.obj.mesh.userData.id, 
-                        a.obj.p.x, a.obj.p.y, a.obj.p.z);
-
-                    if (point_index != -1)
-                        sendDeleteJoint(d.current_view, "link", a.obj.mesh.userData.id, point_index);
-                }
-            }
-            else if (["l2link", "interface", "svi_interface", "p2p_interface"].indexOf(a.obj.mesh.userData.type) !== -1) {
-                if (a.obj.mesh.userData.e.linedata.points.length > 0) {
-                    let point_index = d.wgl.findClosestLinkJointIndex(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, 
-                        a.obj.p.x, a.obj.p.y, a.obj.p.z);
-
-                    if (point_index != -1)
-                        sendDeleteJoint(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id, point_index);
-                }
-            }
-            else if(a.obj.mesh.userData.type === "bgp_peering") {
-                sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
-            }
-            else if (a.obj.mesh.userData.type === "text") {
-                sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
-            }
-            else if (a.obj.mesh.userData.type === "symbol") {
-                sendDelete(a.obj.mesh.userData.type, a.obj.mesh.userData.id);
-            }
-        }
-    }
-    else if(d.dom.tools.active_t === "FC") {   // Format copy
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if((a.obj.mesh.userData.type === "device") || (a.obj.mesh.userData.type === "vrf")) {
-                d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
-                d.wgl.global_settings.format.color2 = a.obj.mesh.userData.e.color2;
-                d.wgl.global_settings.format.scale = a.obj.mesh.userData.e.sx;
-            }
-            else if((a.obj.mesh.userData.type === "link") || (a.obj.mesh.userData.type === "p2p_interface") || 
-                (a.obj.mesh.userData.type === "svi_interface") || (a.obj.mesh.userData.type === "interface") || 
-                (a.obj.mesh.userData.type === "l2link")) {
-                d.wgl.global_settings.format.link_color = a.obj.mesh.userData.e.linedata.color;
-                d.wgl.global_settings.format.link_height = a.obj.mesh.userData.e.linedata.height;
-                d.wgl.global_settings.format.link_weight = a.obj.mesh.userData.e.linedata.weight;
-            }
-            else if(a.obj.mesh.userData.type === "text") {
-                d.wgl.global_settings.format.text_color = a.obj.mesh.userData.e.color;
-                if(a.obj.mesh.userData.e.rx !== undefined) d.wgl.global_settings.format.text_rx = a.obj.mesh.userData.e.rx;
-                if(a.obj.mesh.userData.e.height !== undefined) d.wgl.global_settings.format.text_height = a.obj.mesh.userData.e.height;
-                if(a.obj.mesh.userData.e.text_align !== undefined) d.wgl.global_settings.format.text_align = a.obj.mesh.userData.e.text_align;
-                if(a.obj.mesh.userData.e.rotation_x !== undefined) d.wgl.global_settings.format.text_rotation_x = a.obj.mesh.userData.e.rotation_x;
-                if(a.obj.mesh.userData.e.bg_color !== undefined) d.wgl.global_settings.format.text_bg_color = a.obj.mesh.userData.e.bg_color;
-                if(a.obj.mesh.userData.e.border_color !== undefined) d.wgl.global_settings.format.text_border_color = a.obj.mesh.userData.e.border_color;
-                if(a.obj.mesh.userData.e.bg_type !== undefined) d.wgl.global_settings.format.text_bg_type = a.obj.mesh.userData.e.bg_type;
-                if(a.obj.mesh.userData.e.bg_show !== undefined) d.wgl.global_settings.format.text_bg_show = a.obj.mesh.userData.e.bg_show;
-                if(a.obj.mesh.userData.e.border_show !== undefined) d.wgl.global_settings.format.text_border_show = a.obj.mesh.userData.e.border_show;
-                if(a.obj.mesh.userData.e.bg_depth !== undefined) d.wgl.global_settings.format.text_bg_depth = a.obj.mesh.userData.e.bg_depth;
-            }
-            else if(a.obj.mesh.userData.type === "l2segment") {
-                d.wgl.global_settings.format.color1 = a.obj.mesh.userData.e.color1;
-            }
-            else if(a.obj.mesh.userData.type === "symbol") {
-                let obj_data = a.obj.mesh.userData.e;
-                if(obj_data.type === "F") { // If it's a flag
-                    d.wgl.global_settings.format.color1 = obj_data.color;
-                    d.wgl.global_settings.format.color2 = obj_data.cd.flagcolor;
-                }
-                else if(obj_data.type === "A") { // If it's an arrow
-                    d.wgl.global_settings.format.arrow_color = obj_data.color;
-                    d.wgl.global_settings.format.arrow_head_color = obj_data.cd.head_color;
-                    d.wgl.global_settings.format.arrow_head_sx_per = obj_data.cd.head_sx_per;
-                    d.wgl.global_settings.format.arrow_head_sy_per = obj_data.cd.head_sy_per;
-                    d.wgl.global_settings.format.arrow_head_sz_per = obj_data.cd.head_sz_per;
-                    d.wgl.global_settings.format.arrow_head_type = obj_data.cd.head_type;
-                    d.wgl.global_settings.format.arrow_shaft_dots = obj_data.cd.shaft_dots;
-                    d.wgl.global_settings.format.arrow_shaft_type = obj_data.cd.shaft_type;
-                    d.wgl.global_settings.format.arrow_tail_sx_per = obj_data.cd.tail_sx_per;
-                    d.wgl.global_settings.format.arrow_tail_sy_per = obj_data.cd.tail_sy_per;
-                    d.wgl.global_settings.format.arrow_tail_sz_per = obj_data.cd.tail_sz_per;
-                    d.wgl.global_settings.format.arrow_tail_type = obj_data.cd.tail_type;
-                    d.wgl.global_settings.format.arrow_sx = obj_data.sx;
-                    d.wgl.global_settings.format.arrow_sz = obj_data.sz;
-                }
-                else  { // If it's a X or V
-                    d.wgl.global_settings.format.color1 = obj_data.color;
-                }
-            }
-        }
-    }
-    else if(d.dom.tools.active_t === "FP") {
-        if ((Math.abs(x-a.x) < 5) && (Math.abs(y-a.y) < 5)) {
-            if(a.obj.mesh.userData.type === "device") {
-                sendMessageSettings_Device(a.obj.mesh.userData.id,
-                    a.obj.mesh.userData.e.name,
-                    a.obj.mesh.userData.e.description,
-                    d.wgl.global_settings.format.color1,
-                    d.wgl.global_settings.format.color2,
-                    a.obj.mesh.userData.e.ifnaming);
-            }
-            else if((a.obj.mesh.userData.type === "link") ||
-                    (a.obj.mesh.userData.type === "l2link") ||
-                    (a.obj.mesh.userData.type === "interface") ||
-                    (a.obj.mesh.userData.type === "svi_interface") ||
-                    (a.obj.mesh.userData.type === "p2p_interface")) {
-                sendMessageSettings_Link(d.current_view, a.obj.mesh.userData.type, a.obj.mesh.userData.id,
-                    a.obj.mesh.userData.e.name,
-                    a.obj.mesh.userData.e.description,
-                    a.obj.mesh.userData.e.type,
-                    a.obj.mesh.userData.e.order,
-                    d.wgl.global_settings.format.link_color,
-                    d.wgl.global_settings.format.link_weight,
-                    d.wgl.global_settings.format.link_height);
-            }
-            if(a.obj.mesh.userData.type === "vrf") {
-                sendMessageSettings_Vrf(a.obj.mesh.userData.id,
-                    d.wgl.global_settings.format.color1,
-                    d.wgl.global_settings.format.color2);
-            }
-            if(a.obj.mesh.userData.type === "l2segment") {
-                sendMessageSettings_L2Segment(a.obj.mesh.userData.id,
-                    d.wgl.global_settings.format.color1);
-            }
-            else if(a.obj.mesh.userData.type === "text") {
-                let format_data = d.wgl.global_settings.format;
-                sendMessageSettings_Text(d.current_view, a.obj.mesh.userData.id, {
-                    text: a.obj.mesh.userData.e.text,
-                    color: format_data.text_color,
-                    py: a.obj.mesh.userData.e.py,
-                    height: format_data.text_height,
-                    depth: format_data.text_depth,
-                    text_align: format_data.text_align,
-                    bg_type: format_data.text_bg_type,
-                    bg_color: format_data.text_bg_color,
-                    bg_show: format_data.text_bg_show,
-                    border_color: format_data.text_border_color,
-                    border_show: format_data.text_border_show,
-                    border_width: format_data.text_border_width,
-                    bg_depth: format_data.text_bg_depth,
-                    rotation_x: format_data.text_rotation_x,
-                });
-            }
-            else if(a.obj.mesh.userData.type === "symbol") {
-                let format_data = d.wgl.global_settings.format;
-                if(a.obj.mesh.userData.e.type === "F") {
-                    sendMessageSettings_Flag(d.current_view, a.obj.mesh.userData.id, {
-                        color: format_data.color1,
-                        flagcolor: format_data.color2,
-                    });
-                }
-                else if(a.obj.mesh.userData.e.type === "A") {
-                    if(!format_data.arrow_sx)
-                        return;
-                    sendMessageSettings_Arrow(d.current_view, a.obj.mesh.userData.id, {
-                        sx: format_data.arrow_sx,
-                        sz: format_data.arrow_sz,
-                        color: format_data.arrow_color,
-                        head_color: format_data.arrow_head_color,
-                        head_type: format_data.arrow_head_type,
-                        tail_type: format_data.arrow_tail_type,
-                        shaft_type: format_data.arrow_shaft_type,
-                        head_sx_per: format_data.arrow_head_sx_per,
-                        head_sy_per: format_data.arrow_head_sy_per,
-                        head_sz_per: format_data.arrow_head_sz_per,
-                        tail_sx_per: format_data.arrow_tail_sx_per,
-                        tail_sy_per: format_data.arrow_tail_sy_per,
-                        tail_sz_per: format_data.arrow_tail_sz_per,
-                        shaft_dots: format_data.arrow_shaft_dots,
-                    })
-                }
-                else {
-                    sendMessageSettings_Symbol(d.current_view, a.obj.mesh.userData.id, {
-                        color: format_data.color1,
-                    });
-                }
-            }
-        }
-    }
 }
 
 function mousemove(x, y, dx, dy, dom_element) {
     let p, level;
     let a = d.mouseaction;
+
+    d.mouseaction_isclick = false;
 
     if(d.dom.tools.active_t != d.mouseaction.m)
         return;
@@ -3251,21 +3359,29 @@ function mousemove(x, y, dx, dy, dom_element) {
     else if(d.dom.tools.active_t === "EM") {
         let objlist = d.wgl.pickObject(x, y);
         if((d.mouseaction.type === "device") || (d.mouseaction.type === "symbol") || (d.mouseaction.type === "vrf") || (d.mouseaction.type === "l2segment")) {
-            let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh);
+
+            //let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh.userData.id);
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
                     let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
                         objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
-                    d.wgl.moveMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh,
-                        newcoords.x, undefined, newcoords.z, 
+                    let newcoords_x = newcoords.x, newcoords_z = newcoords.z;
+
+                    d.wgl.moveMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh.userData.id,
+                        newcoords_x, undefined, newcoords_z, 
                         objlist[x].mesh.userData.id, true);
+                    for(let multi_element of d.mouseaction.multimove_data) {
+                        if(multi_element.id !== d.mouseaction.mesh.userData.id)
+                            d.wgl.moveMesh(d.current_view, d.mouseaction.type, multi_element.id,
+                                newcoords_x + multi_element.diff_x, undefined, newcoords_z + multi_element.diff_z,
+                                objlist[x].mesh.userData.id, true);
+                    }
                     break;
                 }
             }
         }
         else if(d.mouseaction.type === "bgp_peering") {
-            let mesh = d.wgl.getMesh(d.current_view, "bgp_peering", d.mouseaction.mesh);
-            mesh.userData.e
+            let mesh = d.wgl.getMesh(d.current_view, "bgp_peering", d.mouseaction.mesh.userData.id);
             let diff_x = d.mouseaction.mouse_px - x;
             let diff_y = d.mouseaction.mouse_py - y;
             mesh.userData.e.curve_x = d.mouseaction.curve_x + diff_x/25;
@@ -3279,12 +3395,11 @@ function mousemove(x, y, dx, dy, dom_element) {
             d.wgl.updateBGPArrowGeometry(mesh);
         }
         else if(d.mouseaction.type === "text") {
-            let mesh = d.wgl.getMesh(d.current_view, "text", d.mouseaction.mesh);
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
                     let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
                         objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
-                    d.wgl.moveMesh(d.current_view, "text", d.mouseaction.mesh,
+                    d.wgl.moveMesh(d.current_view, "text", d.mouseaction.mesh.userData.id,
                         newcoords.x, undefined, newcoords.z, 
                         objlist[x].mesh.userData.id, true);
                     break;
@@ -3372,22 +3487,24 @@ function mouseover(x, y, dom_element) {
         let obj = p[0].mesh;
         if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
             if(d.mouseover !== null) {
-                infobox_clear();
-                d.wgl.deselect(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+                //infobox_clear();
+                d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
             }
             d.mouseover = {
                 view: d.current_view,
                 type: obj.userData.type,
                 id: obj.userData.id,
             }
-            infobox_show_element(obj);
-            d.wgl.select(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+            // infobox_show_element(obj);
+            mouseover_show(obj);
+            d.wgl.highlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
         }
         return;
     }
     else if(d.mouseover !== null) {
-        infobox_clear();
-        d.wgl.deselect(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+        // infobox_clear();
+        mouseover_show();
+        d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
         d.mouseover = null;
     }
 }
@@ -3520,6 +3637,10 @@ function init_window() {
     // Info box.
     d.dom.infobox = DOM.cdiv(b, null, "box_info", "");
     d.dom.infobox_data = {transparency: 0, show: false};
+
+    // Mouse over box.
+    d.dom.mouseoverbox = DOM.cdiv(b, null, "box_info", "");
+    d.dom.mouseoverbox_data = {transparency: 0, show: false};
 
     // Toolbox states and dom elements
     d.dom.tools = {

@@ -133,7 +133,9 @@ class WGL {
                 text_rotation_x: 0,
             }
         }
+        this.highlighted = [];
         this.selected = [];
+        this.selected_type = null;
 
         this.domelement = domelement;
         this.scene = {
@@ -229,21 +231,123 @@ class WGL {
 
         this.cached_textures = {};
 
+        this.selectMesh_material = new THREE.LineBasicMaterial( {
+            color: 0x000088,
+            linewidth: 2,
+        });
+
         //var helper = new THREE.CameraHelper( this.directionallightL2.shadow.camera );
         //this.scene.L2.add(helper);
         this.requestDraw();
     }
 
+    generateSelectGeometry(sx, sy, sz) {
+        let sx2 = sx/2 * 1.1, sz2 = sz/2 * 1.1, sy2 = sy * 1.1;
+        let geometry = new THREE.BufferGeometry();
+        let vertices = new Float32Array( [
+            -sx2, 0, sz2, sx2, 0, sz2,
+            sx2, sy2, sz2, -sx2, sy2, sz2,
+            -sx2, 0, -sz2, sx2, 0, -sz2,
+            sx2, sy2, -sz2, -sx2, sy2, -sz2,
+        ] );
+        let index = [
+            0, 1, 1, 2, 2, 3, 3, 0,
+            4, 5, 5, 6, 6, 7, 7, 4,
+            0, 4, 1, 5, 2, 6, 3, 7,
+        ];
+        geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+        geometry.setIndex(index);
+        return geometry;
+    }
+
     select_find(view, type, id) {
         for(let x = 0; x < this.selected.length; x++) {
-            if((this.selected[x].view === view) && (this.selected[x].type === type) && (this.selected[x].id === id)) {
+            let element = this.selected[x];
+            if((element.view === view) && (element.type === type) && (element.id === id))
+                return x;
+        }
+        return -1;
+    }
+
+    select(view, type, id, data, multiselect) {
+        if(!multiselect)
+            this.deselect_all();
+        else {
+            // On multiselect, we can only select objects of the same type, so it the 
+            // first object is not the same type, we deselect everything
+            if((this.selected.length > 0) && (this.selected[0].type !== type))
+                this.deselect_all();
+        }
+        if(this.select_find(view, type, id) !== -1) {
+            return;
+        }
+
+        let mesh = this.getMesh(view, type, id);
+        if(!mesh)
+            return;
+
+        if(["device", "vrf", "symbol", "l2segment"].indexOf(type) !== -1) {
+            let geometry = this.generateSelectGeometry(mesh.userData.e.sx, mesh.userData.e.sy, mesh.userData.e.sz);
+            let selectMesh = new THREE.LineSegments( geometry, this.selectMesh_material );
+            mesh.add(selectMesh);
+            selectMesh.userData.type = type;
+            selectMesh.userData.id = id;
+            selectMesh.userData.submesh = "select";
+            selectMesh.userData.e = mesh.userData.e;
+            this.selected.push({
+                view: view, type: type, id: id, mesh: selectMesh, data: data,
+            });
+            this.selected_type = type;
+        }
+        else if(type === "text") {
+            let geometry = this.generateSelectGeometry(2, .1, .2);
+            let selectMesh = new THREE.LineSegments( geometry, this.selectMesh_material );
+            mesh.add(selectMesh);
+            selectMesh.userData.type = type;
+            selectMesh.userData.id = id;
+            selectMesh.userData.submesh = "select";
+            selectMesh.userData.e = mesh.userData.e;
+            this.selected.push({
+                view: view, type: type, id: id, mesh: selectMesh, data: data,
+            });
+            this.selected_type = type;            
+        }
+        this.requestDraw();
+    }
+
+    deselect(view, type, id) {
+        let index = this.select_find(view, type, id);
+        if(index === -1)
+            return;
+
+        let element = this.selected[index];
+        this.selected.splice(index, 1);
+        
+        if(element.mesh)
+            element.mesh.parent.remove(element.mesh);
+
+        if(this.selected.length === 0)
+            this.selected_type = null;
+
+        this.requestDraw();
+    }
+
+    deselect_all() {
+        while(this.selected.length > 0) {
+            this.deselect(this.selected[0].view, this.selected[0].type, this.selected[0].id);
+        }
+    }
+
+    highlight_find(view, type, id) {
+        for(let x = 0; x < this.highlighted.length; x++) {
+            if((this.highlighted[x].view === view) && (this.highlighted[x].type === type) && (this.highlighted[x].id === id)) {
                 return x;
             }
         }
         return -1;
     }
 
-    select_color(color) {
+    highlight_color(color) {
         if((color.r < .5) && (color.g < .5) && (color.b < .5)) {
             color.r = 1;
             color.g = color.g + .4;
@@ -283,41 +387,41 @@ class WGL {
         return all_devices;
     }
 
-    select(view, type, id) {
+    highlight(view, type, id) {
         let mesh = this.getMesh(view, type, id);
         if(!mesh)
             return;
         
-        let index = this.select_find(view, type, id);
+        let index = this.highlight_find(view, type, id);
         if(index !== -1) {
             return;
         }
 
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
-            let select_entry = {
+            let highlight_entry = {
                 view: view,
                 type: type,
                 id: id,
             }
 
-            this.selected.push(select_entry);
+            this.highlighted.push(highlight_entry);
 
             for(let child of mesh.children) {
-                this.select_color(child.material.color);
+                this.highlight_color(child.material.color);
             }
         }
         else if(["vrf", "symbol"].includes(type)) {
-            let select_entry = {
+            let highlight_entry = {
                 view: view,
                 type: type,
                 id: id,
             }
 
-            this.selected.push(select_entry);
+            this.highlighted.push(highlight_entry);
 
             for(let child of mesh.children) {
                 if((child.userData.submesh == 1) || (child.userData.submesh == 2) || (child.userData.submesh == 3)) {
-                    this.select_color(child.material.uniforms.mycolor.value);
+                    this.highlight_color(child.material.uniforms.mycolor.value);
                 }
             }
 
@@ -325,7 +429,7 @@ class WGL {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
-                        this.select(view, if_type, if_id);
+                        this.highlight(view, if_type, if_id);
                     }
                 }
             }
@@ -333,50 +437,50 @@ class WGL {
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
             for(let neighbor of neighbors) {
-                if(this.select_find(view, "device", neighbor) !== -1)
+                if(this.highlight_find(view, "device", neighbor) !== -1)
                     continue;
 
                 let mesh = this.getMesh(view, "device", neighbor);
 
-                this.selected.push({
+                this.highlighted.push({
                     view: view,
                     type: type,
                     id: neighbor,
                 });
                 for(let child of mesh.children) {
                     if((child.userData.submesh == 1) || (child.userData.submesh == 2)) {
-                        this.select_color(child.material.uniforms.mycolor.value);
+                        this.highlight_color(child.material.uniforms.mycolor.value);
                     }
                 }
                 let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
                 for(let link of listlinks) {
-                    this.select(view, "link", link.userData.id);
+                    this.highlight(view, "link", link.userData.id);
                 }
             }
         }
         this.requestDraw();
     }
 
-    deselect(view, type, id) {
+    dehighlight(view, type, id) {
         let mesh = this.getMesh(view, type, id);
         if(!mesh) {
             return;
         }
 
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
-            let index = this.select_find(view, type, id);
+            let index = this.highlight_find(view, type, id);
             if(index === -1) {
                 return;
             }
-            this.selected.splice(index, 1)[0];
+            this.highlighted.splice(index, 1);
             this.updateLinkGeometry(type, mesh, view);
         }
         else if(["vrf", "symbol"].includes(type)) {
-            let index = this.select_find(view, type, id);
+            let index = this.highlight_find(view, type, id);
             if(index === -1) {
                 return;
             }
-            this.selected.splice(index, 1)[0];
+            this.highlighted.splice(index, 1);
             if(type === "symbol")
                 this.updateSymbolColor(type, id, view);
             else
@@ -386,7 +490,7 @@ class WGL {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
-                        this.deselect(view, if_type, if_id);
+                        this.dehighlight(view, if_type, if_id);
                     }
                 }
             }
@@ -394,16 +498,16 @@ class WGL {
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
             for(let neighbor of neighbors) {
-                let index = this.select_find(view, "device", neighbor);
+                let index = this.highlight_find(view, "device", neighbor);
                 if(index === -1) {
                     continue;
                 }
-                this.selected.splice(index, 1)[0];
+                this.highlighted.splice(index, 1)[0];
                 this.updateDeviceColor("device", neighbor, view);
 
                 let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
                 for(let link of listlinks) {
-                    this.deselect(view, "link", link.userData.id);
+                    this.dehighlight(view, "link", link.userData.id);
                 }
             }
         }
@@ -1509,9 +1613,11 @@ class WGL {
         }
     }
 
-    settingsMesh_Link(view, type, id, link_type, order, color, weight, height) {
+    settingsMesh_Link(view, type, id, name, description, link_type, order, color, weight, height) {
         let mesh = this.findMesh(type, id, this.scene[view]);
         if(mesh) {
+            mesh.userData.e.name = name;
+            mesh.userData.e.description = description;
             mesh.userData.e.type = link_type;
             mesh.userData.e.order = order;
             mesh.userData.e.linedata.color = color;
@@ -1744,7 +1850,7 @@ class WGL {
         let result = [];
 
         for ( let i = 0; i < intersects.length; i++ ) {
-            if("id" in intersects[i].object.userData) {
+            if(("id" in intersects[i].object.userData) && (intersects[i].object.userData.submesh !== "select")) {
                 result.push( {
                     view: this.view, 
                     p: intersects[i].point,
@@ -2369,7 +2475,7 @@ class WGL {
             if (group.children[x].userData.submesh === "name") {
                 m = group.children[x];
             }
-            else {
+            else if ([1,2,3].indexOf(group.children[x].userData.submesh) !== -1) {
                 if(group.children[x].geometry.boundingBox.max.y > height)
                     height = group.children[x].geometry.boundingBox.max.y;
             }
