@@ -273,7 +273,7 @@ class WGL {
         if(!multiselect)
             this.deselect_all();
         else {
-            // On multiselect, we can only select objects of the same type, so it the 
+            // On multiselect, we can only select objects of the same type, so if the 
             // first object is not the same type, we deselect everything
             if((this.selected.length > 0) && (this.selected[0].type !== type))
                 this.deselect_all();
@@ -287,6 +287,8 @@ class WGL {
             return;
 
         if(["device", "vrf", "symbol", "l2segment"].indexOf(type) !== -1) {
+            this.highlight(view, type, id, "select");
+
             let geometry = this.generateSelectGeometry(mesh.userData.e.sx, mesh.userData.e.sy, mesh.userData.e.sz);
             let selectMesh = new THREE.LineSegments( geometry, this.selectMesh_material );
             mesh.add(selectMesh);
@@ -329,6 +331,7 @@ class WGL {
         if(this.selected.length === 0)
             this.selected_type = null;
 
+        this.dehighlight(view, type, id, "select");
         this.requestDraw();
     }
 
@@ -338,9 +341,12 @@ class WGL {
         }
     }
 
-    highlight_find(view, type, id) {
+    highlight_find(view, type, id, tag) {
         for(let x = 0; x < this.highlighted.length; x++) {
-            if((this.highlighted[x].view === view) && (this.highlighted[x].type === type) && (this.highlighted[x].id === id)) {
+            if((this.highlighted[x].view === view) && 
+                    (this.highlighted[x].type === type) && 
+                    (this.highlighted[x].id === id) && 
+                    ((this.highlighted[x].tag === tag) || (!tag)) ) {
                 return x;
             }
         }
@@ -387,12 +393,12 @@ class WGL {
         return all_devices;
     }
 
-    highlight(view, type, id) {
+    highlight(view, type, id, tag, ignoreChildren) {
         let mesh = this.getMesh(view, type, id);
         if(!mesh)
             return;
         
-        let index = this.highlight_find(view, type, id);
+        let index = this.highlight_find(view, type, id, tag);
         if(index !== -1) {
             return;
         }
@@ -402,6 +408,7 @@ class WGL {
                 view: view,
                 type: type,
                 id: id,
+                tag: tag,
             }
 
             this.highlighted.push(highlight_entry);
@@ -409,12 +416,18 @@ class WGL {
             for(let child of mesh.children) {
                 this.highlight_color(child.material.color);
             }
+
+            if((!ignoreChildren) && (type === "link")) {
+                this.highlight(view, "device", mesh.userData.e.devs[0].id, tag, true);
+                this.highlight(view, "device", mesh.userData.e.devs[1].id, tag, true);
+            }
         }
         else if(["vrf", "symbol"].includes(type)) {
             let highlight_entry = {
                 view: view,
                 type: type,
                 id: id,
+                tag: tag,
             }
 
             this.highlighted.push(highlight_entry);
@@ -429,15 +442,18 @@ class WGL {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
-                        this.highlight(view, if_type, if_id);
+                        this.highlight(view, if_type, if_id, tag);
                     }
                 }
             }
         }
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
+            if(ignoreChildren)
+                neighbors = [id];
+
             for(let neighbor of neighbors) {
-                if(this.highlight_find(view, "device", neighbor) !== -1)
+                if(this.highlight_find(view, "device", neighbor, tag) !== -1)
                     continue;
 
                 let mesh = this.getMesh(view, "device", neighbor);
@@ -446,51 +462,62 @@ class WGL {
                     view: view,
                     type: type,
                     id: neighbor,
+                    tag: tag,
                 });
                 for(let child of mesh.children) {
                     if((child.userData.submesh == 1) || (child.userData.submesh == 2)) {
                         this.highlight_color(child.material.uniforms.mycolor.value);
                     }
                 }
-                let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
-                for(let link of listlinks) {
-                    this.highlight(view, "link", link.userData.id);
+                if(!ignoreChildren) {
+                    let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
+                    for(let link of listlinks) {
+                        this.highlight(view, "link", link.userData.id, tag, true);
+                    }
                 }
             }
         }
         this.requestDraw();
     }
 
-    dehighlight(view, type, id) {
+    dehighlight(view, type, id, tag, ignoreChildren) {
         let mesh = this.getMesh(view, type, id);
         if(!mesh) {
             return;
         }
 
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
-            let index = this.highlight_find(view, type, id);
+            let index = this.highlight_find(view, type, id, tag);
             if(index === -1) {
                 return;
             }
             this.highlighted.splice(index, 1);
-            this.updateLinkGeometry(type, mesh, view);
+            if(this.highlight_find(view, type, id) === -1)
+                this.updateLinkGeometry(type, mesh, view);
+
+            if((!ignoreChildren) && (type === "link")) {
+                this.dehighlight(view, "device", mesh.userData.e.devs[0].id, tag, true);
+                this.dehighlight(view, "device", mesh.userData.e.devs[1].id, tag, true);
+            }
         }
         else if(["vrf", "symbol"].includes(type)) {
-            let index = this.highlight_find(view, type, id);
+            let index = this.highlight_find(view, type, id, tag);
             if(index === -1) {
                 return;
             }
             this.highlighted.splice(index, 1);
-            if(type === "symbol")
-                this.updateSymbolColor(type, id, view);
-            else
-                this.updateDeviceColor(type, id, view);
+            if(this.highlight_find(view, type, id) === -1) {
+                if(type === "symbol")
+                    this.updateSymbolColor(type, id, view);
+                else
+                    this.updateDeviceColor(type, id, view);
+            }
 
             if(type === "vrf") {
                 let links = this.findLinksOfVrf(id);
                 for(let if_type in links) {
                     for(let if_id in links[if_type]) {
-                        this.dehighlight(view, if_type, if_id);
+                        this.dehighlight(view, if_type, if_id, tag);
                     }
                 }
             }
@@ -498,16 +525,19 @@ class WGL {
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
             for(let neighbor of neighbors) {
-                let index = this.highlight_find(view, "device", neighbor);
+                let index = this.highlight_find(view, "device", neighbor, tag);
                 if(index === -1) {
                     continue;
                 }
                 this.highlighted.splice(index, 1)[0];
-                this.updateDeviceColor("device", neighbor, view);
+
+                if(this.highlight_find(view, "device", neighbor) === -1) {
+                    this.updateDeviceColor("device", neighbor, view);
+                }
 
                 let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
                 for(let link of listlinks) {
-                    this.dehighlight(view, "link", link.userData.id);
+                    this.dehighlight(view, "link", link.userData.id, tag);
                 }
             }
         }

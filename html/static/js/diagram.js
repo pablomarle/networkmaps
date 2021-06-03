@@ -2345,7 +2345,10 @@ function mousedown(x, y, dx, dy, dom_element, ctrl) {
     if(objlist.length > 0) {
         d.mouseaction.mesh = objlist[0].mesh;
         d.wgl.select(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0], ctrl);
-    }            
+    }
+    else {
+        d.wgl.deselect_all();
+    }
 
     if(
         (
@@ -3220,7 +3223,6 @@ function mouseup(x, y, dx, dy, dom_element) {
             sendMove(d.current_view, a.mesh.userData.type, a.mesh.userData.id);
             for(let multi_element of a.multimove_data) {
                 if(multi_element.id !== a.mesh.userData.id) {
-                    console.log(multi_element);
                     sendMove(d.current_view, a.type, multi_element.id);
                 }
             }
@@ -3488,7 +3490,7 @@ function mouseover(x, y, dom_element) {
         if((d.mouseover === null) || (d.mouseover.view !== d.current_view) || (d.mouseover.type !== obj.userData.type) || (d.mouseover.id !== obj.userData.id)) {
             if(d.mouseover !== null) {
                 //infobox_clear();
-                d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+                d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id, "mo");
             }
             d.mouseover = {
                 view: d.current_view,
@@ -3497,14 +3499,14 @@ function mouseover(x, y, dom_element) {
             }
             // infobox_show_element(obj);
             mouseover_show(obj);
-            d.wgl.highlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+            d.wgl.highlight(d.mouseover.view, d.mouseover.type, d.mouseover.id, "mo");
         }
         return;
     }
     else if(d.mouseover !== null) {
         // infobox_clear();
         mouseover_show();
-        d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id);
+        d.wgl.dehighlight(d.mouseover.view, d.mouseover.type, d.mouseover.id, "mo");
         d.mouseover = null;
     }
 }
