@@ -454,6 +454,9 @@ function process_message_l3(l3_changes) {
             else if(message.m === "D") {
                 d.wgl.deleteMesh("L3", "l2segment", message.id);
             }
+            else if(message.m === "CN") {
+                d.wgl.changeNameL2Segment(message.id, message.data.name);
+            }
         }
         else if(message.t === "l2link") {
             if(message.m === "A") {
@@ -1572,14 +1575,23 @@ function infobox_show_element_data(obj) {
     }
 }
 
-function infobox_show_urls(obj) {
+function infobox_show_urls(obj, title) {
+    if(!title)
+        title = "URLs";
     if((obj.userData.e.urls) && (Object.keys(obj.userData.e.urls).length > 0)) {
-        DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", "Urls");
+        DOM.cdiv(d.dom.infobox, null, "box_info_subtitle", title);
         for(let label in obj.userData.e.urls) {
             let div = DOM.cdiv(d.dom.infobox, null, "box_info_link", label);
             let url = obj.userData.e.urls[label];
             div.addEventListener("click", () => { window.open(url); })
         }
+    }
+
+    if(obj.userData.type === "vrf") {
+        // For vrfs, we show also the urls of it's parent device.
+        let device_mesh = d.wgl.getMesh("L2", "device", obj.userData.e.l2_reference.device_id);
+        if(device_mesh)
+            infobox_show_urls(device_mesh, "URLs of parent Device");
     }
 }
 
@@ -1722,6 +1734,7 @@ function infobox_show_link(obj) {
         }
     }
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_vrf(obj) {
@@ -1814,6 +1827,7 @@ function infobox_show_vrf(obj) {
             infobox_data.content.push({type: "text", text: name + " " + ipv4 + ipv6});
         }
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_interface(obj) {
@@ -1851,6 +1865,7 @@ function infobox_show_interface(obj) {
     }
 
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_sviinterface(obj) {
@@ -1876,6 +1891,7 @@ function infobox_show_sviinterface(obj) {
     }
 
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_p2pinterface(obj) {
@@ -1912,6 +1928,7 @@ function infobox_show_p2pinterface(obj) {
     }
 
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_l2segment(obj) {
@@ -1925,6 +1942,7 @@ function infobox_show_l2segment(obj) {
     };
 
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function infobox_show_bgppeering(obj) {
@@ -1966,6 +1984,7 @@ function infobox_show_bgppeering(obj) {
         infobox_data.content.push({type: "text", text: af});
     })
     infobox_show(infobox_data);
+    infobox_show_urls(obj);
 }
 
 function setBoxPosition(e, px, py, sx, sy) {
@@ -2322,7 +2341,7 @@ function contextmenu(x, y) {
             let associated_device = d.wgl.getMesh("L2", "device", objlist[0].mesh.userData.e.l2_reference.device_id);
             if(!(associated_device.userData.e.urls))
                 associated_device.userData.e.urls = {};
-            url_struct["associated device"] = associated_device.userData.e.urls;
+            url_struct["parent device"] = associated_device.userData.e.urls;
         }
         WIN_showURL(d.current_view, objlist[0].mesh.userData.type, objlist[0].mesh.userData.id, objlist[0].mesh.userData.e.name, url_struct);
     }
@@ -3229,11 +3248,11 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
         else if(a.type === "bgp_peering") {
             let m = d.wgl.getMesh(d.current_view, a.type, a.mesh.userData.id);
-            sendMoveBGPPeer(a.mesh, m.userData.e.curve_x, m.userData.e.curve_y);
+            sendMoveBGPPeer(a.mesh.userData.id, m.userData.e.curve_x, m.userData.e.curve_y);
         }
         else if(a.type === "joint") {
             let m = d.wgl.getMesh(d.current_view, a.element_type, a.mesh.userData.id)
-            sendMoveJoint(d.current_view, a.element_type, a.mesh, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
+            sendMoveJoint(d.current_view, a.element_type, a.mesh.userData.id, a.joint_index, m.userData.e.linedata.points[a.joint_index]);
         }
     }    
     else if(d.dom.tools.active_t === "EMV") {
@@ -3360,9 +3379,7 @@ function mousemove(x, y, dx, dy, dom_element) {
     }
     else if(d.dom.tools.active_t === "EM") {
         let objlist = d.wgl.pickObject(x, y);
-        if((d.mouseaction.type === "device") || (d.mouseaction.type === "symbol") || (d.mouseaction.type === "vrf") || (d.mouseaction.type === "l2segment")) {
-
-            //let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.type, d.mouseaction.mesh.userData.id);
+        if(["device", "symbol", "vrf", "l2segment", "text"].indexOf(d.mouseaction.type) !== -1) {
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
                     let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
@@ -3382,6 +3399,20 @@ function mousemove(x, y, dx, dy, dom_element) {
                 }
             }
         }
+/*        else if(d.mouseaction.type === "text") {
+            for(let x = 0; x < objlist.length; x++) {
+                if(objlist[x].mesh.userData.type == "base") {
+                    let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
+                        objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
+                    let newcoords_x = newcoords.x, newcoords_z = newcoords.z;
+
+                    d.wgl.moveMesh(d.current_view, "text", d.mouseaction.mesh.userData.id,
+                        newcoords.x, undefined, newcoords.z, 
+                        objlist[x].mesh.userData.id, true);
+                    break;
+                }
+            }
+        } */
         else if(d.mouseaction.type === "bgp_peering") {
             let mesh = d.wgl.getMesh(d.current_view, "bgp_peering", d.mouseaction.mesh.userData.id);
             let diff_x = d.mouseaction.mouse_px - x;
@@ -3396,20 +3427,8 @@ function mousemove(x, y, dx, dy, dom_element) {
 
             d.wgl.updateBGPArrowGeometry(mesh);
         }
-        else if(d.mouseaction.type === "text") {
-            for(let x = 0; x < objlist.length; x++) {
-                if(objlist[x].mesh.userData.type == "base") {
-                    let newcoords = d.wgl.convertWorld2MeshCoordinates(d.current_view, "base", objlist[x].mesh.userData.id, 
-                        objlist[x].p.x, objlist[x].mesh.userData.e.sy, objlist[x].p.z);
-                    d.wgl.moveMesh(d.current_view, "text", d.mouseaction.mesh.userData.id,
-                        newcoords.x, undefined, newcoords.z, 
-                        objlist[x].mesh.userData.id, true);
-                    break;
-                }
-            }
-        }
         else if(d.mouseaction.type === "joint") {
-            let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.element_type, d.mouseaction.mesh);
+            let mesh = d.wgl.getMesh(d.current_view, d.mouseaction.element_type, d.mouseaction.mesh.userData.id);
             for(let x = 0; x < objlist.length; x++) {
                 if(objlist[x].mesh.userData.type == "base") {
                     let point_vector = new THREE.Vector3(objlist[x].p.x, objlist[x].p.y + mesh.userData.e.linedata.height , objlist[x].p.z);

@@ -119,7 +119,7 @@ function Input_callback(event_type) {
 
     // Run the event
     if((event_type == "md") && (INPUT.click_dom_md != null))
-        INPUT.click_dom_md(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom, INPUT.ctrl);
+        INPUT.click_dom_md(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom, INPUT.shift);
     else if ((event_type == "mu") && (INPUT.click_dom_mu != null))
         INPUT.click_dom_mu(INPUT.px, INPUT.py, INPUT.diffx, INPUT.diffy, INPUT.click_dom);
     else if ((event_type == "mm") && (INPUT.click_dom_mm != null))
@@ -155,6 +155,7 @@ function Input_mousedown(ev) {
         INPUT.diffy = 0;
         INPUT.actionrunning = "ML";
         INPUT.ctrl = ev.ctrlKey;
+        INPUT.shift = ev.shiftKey;
         let composedPath = Input_getComposedPath(ev);
 
         if(Input_findtarget(composedPath))

@@ -232,8 +232,8 @@ class WGL {
         this.cached_textures = {};
 
         this.selectMesh_material = new THREE.LineBasicMaterial( {
-            color: 0x000088,
-            linewidth: 2,
+            color: 0x4488ff,
+            linewidth: 1,
         });
 
         //var helper = new THREE.CameraHelper( this.directionallightL2.shadow.camera );
@@ -241,14 +241,26 @@ class WGL {
         this.requestDraw();
     }
 
-    generateSelectGeometry(sx, sy, sz) {
-        let sx2 = sx/2 * 1.1, sz2 = sz/2 * 1.1, sy2 = sy * 1.1;
+    generateSelectGeometry(mesh) {
+        // Find bounding box
+        let x1 = -.1, x2 = .1, y1 = 0, y2 = .1, z1 = -.1, z2 = .1;
+        for(let child of mesh.children) {
+            if(child.geometry.boundingBox) {
+                if(child.geometry.boundingBox.min.x < x1) x1 = child.geometry.boundingBox.min.x;
+                if(child.geometry.boundingBox.min.y < y1) y1 = child.geometry.boundingBox.min.y;
+                if(child.geometry.boundingBox.min.z < z1) z1 = child.geometry.boundingBox.min.z;
+                if(child.geometry.boundingBox.max.x > x2) x2 = child.geometry.boundingBox.max.x;
+                if(child.geometry.boundingBox.max.y > y2) y2 = child.geometry.boundingBox.max.y;
+                if(child.geometry.boundingBox.max.z > z2) z2 = child.geometry.boundingBox.max.z;
+            }
+        }
+        x1 -= .1, z1 -= .1, x2 += .1, y2 += .1, z2 += .1;
         let geometry = new THREE.BufferGeometry();
         let vertices = new Float32Array( [
-            -sx2, 0, sz2, sx2, 0, sz2,
-            sx2, sy2, sz2, -sx2, sy2, sz2,
-            -sx2, 0, -sz2, sx2, 0, -sz2,
-            sx2, sy2, -sz2, -sx2, sy2, -sz2,
+            x1, y1, z2, x2, y1, z2,
+            x2, y2, z2, x1, y2, z2,
+            x1, y1, z1, x2, y1, z1,
+            x2, y2, z1, x1, y2, z1,
         ] );
         let index = [
             0, 1, 1, 2, 2, 3, 3, 0,
@@ -289,7 +301,7 @@ class WGL {
         if(["device", "vrf", "symbol", "l2segment"].indexOf(type) !== -1) {
             this.highlight(view, type, id, "select");
 
-            let geometry = this.generateSelectGeometry(mesh.userData.e.sx, mesh.userData.e.sy, mesh.userData.e.sz);
+            let geometry = this.generateSelectGeometry(mesh);
             let selectMesh = new THREE.LineSegments( geometry, this.selectMesh_material );
             mesh.add(selectMesh);
             selectMesh.userData.type = type;
@@ -302,7 +314,7 @@ class WGL {
             this.selected_type = type;
         }
         else if(type === "text") {
-            let geometry = this.generateSelectGeometry(2, .1, .2);
+            let geometry = this.generateSelectGeometry(mesh);
             let selectMesh = new THREE.LineSegments( geometry, this.selectMesh_material );
             mesh.add(selectMesh);
             selectMesh.userData.type = type;
@@ -1867,6 +1879,14 @@ class WGL {
         if(mesh) {
             mesh.userData.e.name = newname;
             this.addDeviceName(mesh);
+        }
+    }
+
+    changeNameL2Segment(id, newname) {
+        let mesh = this.findMesh("l2segment", id, this.scene.L3);
+        if(mesh) {
+            mesh.userData.e.name = newname;
+            this.addDeviceName(mesh, .2);
         }
     }
 
