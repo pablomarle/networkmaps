@@ -18,6 +18,9 @@ canvas {
 	z-index: 10;
 }
 
+.box_info_close {
+	float: right;
+}
 .box_info_title {
 	font-weight: bold;
 	font-size: 12px;
@@ -47,6 +50,12 @@ canvas {
 
 .box_info_text2 {
 	margin-left: 16px;
+}
+
+.box_info_link {
+	cursor: pointer;
+	text-decoration: underline;
+	margin-left: 8px;
 }
 
 .box_info {
