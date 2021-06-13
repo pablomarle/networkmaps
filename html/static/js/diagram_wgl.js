@@ -381,8 +381,9 @@ class WGL {
     find_device_neighbors(dev_id, depth) {
         let new_devices = [dev_id];
         let next_devices = [];
-        let all_devices = [dev_id];
+        let all_devices = {};
         depth -= 1;
+        all_devices[dev_id] = depth;
 
         while(depth > 0) {
             depth -= 1;
@@ -393,9 +394,9 @@ class WGL {
                     if(other_id === dev_id)
                         other_id = link.userData.e.devs[1].id;
 
-                    if(all_devices.indexOf(other_id) === -1) {
+                    if(!(other_id in all_devices)) {
                         next_devices.push(other_id);
-                        all_devices.push(other_id);
+                        all_devices[other_id] = depth;
                     }
                 }
             }
@@ -461,10 +462,13 @@ class WGL {
         }
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
-            if(ignoreChildren)
-                neighbors = [id];
-
-            for(let neighbor of neighbors) {
+            if(ignoreChildren) {
+                neighbors = {};
+                neighbors[id] = .5;
+            }
+            console.log("Highlight")
+            console.log(neighbors);
+            for(let neighbor in neighbors) {
                 if(this.highlight_find(view, "device", neighbor, tag) !== -1)
                     continue;
 
@@ -481,7 +485,7 @@ class WGL {
                         this.highlight_color(child.material.uniforms.mycolor.value);
                     }
                 }
-                if(!ignoreChildren) {
+                if((!ignoreChildren) && (neighbors[neighbor] >= 0)) {
                     let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
                     for(let link of listlinks) {
                         this.highlight(view, "link", link.userData.id, tag, true);
@@ -499,6 +503,7 @@ class WGL {
         }
 
         if(["link", "interface", "p2p_interface", "svi_interface"].includes(type)) {
+            console.log("Dehighlight link " + id);
             let index = this.highlight_find(view, type, id, tag);
             if(index === -1) {
                 return;
@@ -536,7 +541,13 @@ class WGL {
         }
         else if(type === "device") {
             let neighbors = this.find_device_neighbors(id, this.global_settings.highlight_depth);
-            for(let neighbor of neighbors) {
+            if(ignoreChildren) {
+                neighbors = {};
+                neighbors[id] = .5;
+            }
+            console.log("Dehighlight")
+            console.log(neighbors);
+            for(let neighbor in neighbors) {
                 let index = this.highlight_find(view, "device", neighbor, tag);
                 if(index === -1) {
                     continue;
@@ -547,9 +558,11 @@ class WGL {
                     this.updateDeviceColor("device", neighbor, view);
                 }
 
-                let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
-                for(let link of listlinks) {
-                    this.dehighlight(view, "link", link.userData.id, tag);
+                if((!ignoreChildren) && (neighbors[neighbor] >= 0)) {
+                    let listlinks = this.findLinksOfDevice(neighbor, this.scene[view]);
+                    for(let link of listlinks) {
+                        this.dehighlight(view, "link", link.userData.id, tag, true);
+                    }
                 }
             }
         }

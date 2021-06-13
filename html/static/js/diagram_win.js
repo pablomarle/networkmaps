@@ -926,7 +926,7 @@ function WIN_showGlobalSettingsWindow(gs, callbacks) {
     });
 
     // On mouse over, highlight levels
-    wdata.d.highlight_depth = WIN_addSlider(w, 20, 190, 100, "On MO, highlight depth", gs.highlight_depth, 1, 4, 1);    
+    wdata.d.highlight_depth = WIN_addSlider(w, 20, 190, 100, "On MO, highlight depth", gs.highlight_depth, 1, 4, .5);    
     wdata.d.highlight_depth.addEventListener("change", () => {
         callbacks.highlight_depth(wdata.d.highlight_depth.value);
     });
