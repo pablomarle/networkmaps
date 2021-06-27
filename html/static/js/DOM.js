@@ -13,6 +13,8 @@ DOM = {
 	},
 
 	esc : (c) => {
+		if(typeof c === "number")
+			c = "" + c;
 		return c.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;").replace(/\//g, "&#x2F;");
 	},
 	

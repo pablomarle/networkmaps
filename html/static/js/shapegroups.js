@@ -141,8 +141,7 @@ function screen_settings() {
             shapegroups_data.dom_category.value = shapegroup.category;
         tr = DOM.ctr(t);
             td = DOM.ctd(tr);
-                DOM.cbutton(td, null, "button", "Update", null, update_shape_group)
-                    .setAttribute("data-key", key);
+                DOM.cbutton(td, null, "button", "Update", {key: key}, update_shape_group);
                 DOM.cbutton(td, null, "button", "Cancel", null, () => {
                     delete_message_box();
                 });
@@ -150,8 +149,8 @@ function screen_settings() {
             td.colSpan = "2";
 }
 
-function update_shape_group() {
-    let key = this.getAttribute("data-key");
+function update_shape_group(ev, data) {
+    let key = data.key;
     let name = shapegroups_data.dom_name.value;
     let description = shapegroups_data.dom_description.value;
     let category = shapegroups_data.dom_category.value;

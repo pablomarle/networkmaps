@@ -2409,6 +2409,7 @@ class WGL {
             let vertex_base_index = 0;
 
             template_geometry.subshapes[g_index].elements.forEach((template_element) => {
+                template_element = shapetools_generate_as_vertexlist(template_element);
                 if(template_element.type === "vertex_list") {
                     for(let i = 0; i < template_element.v.length; i++) {
                         let tv = template_element.v[i];

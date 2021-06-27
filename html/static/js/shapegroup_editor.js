@@ -57,6 +57,8 @@ const DEVICE_FRAGMENT_SHADER = `
     }
 `
 
+const PARAMETERS_ELEMENT_CUBE = ["px", "py", "pz", "rx", "ry", "rz", "sx", "sy", "sz", "u1", "u2", "v1", "v2"];
+
 let data_editor = {
     dom: {},
     unsaved_changes: false,
@@ -249,23 +251,25 @@ function show_shape_wgl(shape_key) {
     data_editor.scene.add(group);
     group.position.y = -shape.base_scale[1]/2;
 
-    // Create vertex
+    // Create meshes used to show what vertex is mouseover
     let vertex_texture = new THREE.MeshPhongMaterial( {color: 0x000000} );
     for(let ss_index = 0; ss_index < shape.subshapes.length; ss_index ++) {
         let ss = shape.subshapes[ss_index];
         for(let element_index = 0; element_index < ss.elements.length; element_index ++) {
             let element = ss.elements[element_index];
 
-            for(let x = 0; x < element.v.length; x++) {
-                let geometry = new THREE.BoxGeometry( .02, .02, .02 );
-                let mesh = new THREE.Mesh(geometry, vertex_texture);
-                mesh.position.x = element.v[x][0] * shape.base_scale[0];
-                mesh.position.y = element.v[x][1] * shape.base_scale[1];
-                mesh.position.z = element.v[x][2] * shape.base_scale[2];
-                group.add(mesh);
-                mesh_addData(mesh, "vertex", shape_key, ss_index, element_index, x);
+            if(element.type === "vertex_list") {
+                for(let x = 0; x < element.v.length; x++) {
+                    let geometry = new THREE.BoxGeometry( .02, .02, .02 );
+                    let mesh = new THREE.Mesh(geometry, vertex_texture);
+                    mesh.position.x = element.v[x][0] * shape.base_scale[0];
+                    mesh.position.y = element.v[x][1] * shape.base_scale[1];
+                    mesh.position.z = element.v[x][2] * shape.base_scale[2];
+                    group.add(mesh);
+                    mesh_addData(mesh, "vertex", shape_key, ss_index, element_index, x);
 
-                mesh.visible = false;
+                    mesh.visible = false;
+                }
             }
         }
     }
@@ -280,16 +284,22 @@ function show_shape_wgl(shape_key) {
         for(let element_index = 0; element_index < ss.elements.length; element_index ++) {
             let element = ss.elements[element_index];
             let g = new THREE.Geometry();
-            for(let x = 0; x < element.v.length; x++) {
-                let v = element.v[x];
-                g.vertices.push($WGL_V3(v[0] * shape.base_scale[0], v[1] * shape.base_scale[1], v[2] * shape.base_scale[2]))
+
+            element = shapetools_generate_as_vertexlist(element);
+            
+            if(element.type === "vertex_list") {
+                for(let x = 0; x < element.v.length; x++) {
+                    let v = element.v[x];
+                    g.vertices.push($WGL_V3(v[0] * shape.base_scale[0], v[1] * shape.base_scale[1], v[2] * shape.base_scale[2]))
+                }
+                for(let x = 0; x < element.f.length; x++) {
+                    let f = element.f[x];
+                    let uv = element.uv[x];
+                    g.faces.push($WGL_F3(f[0], f[1], f[2]))
+                    g.faceVertexUvs[0].push([ $WGL_V2(uv[0][0], uv[0][1]), $WGL_V2(uv[1][0], uv[1][1]), $WGL_V2(uv[2][0], uv[2][1])])
+                }
             }
-            for(let x = 0; x < element.f.length; x++) {
-                let f = element.f[x];
-                let uv = element.uv[x];
-                g.faces.push($WGL_F3(f[0], f[1], f[2]))
-                g.faceVertexUvs[0].push([ $WGL_V2(uv[0][0], uv[0][1]), $WGL_V2(uv[1][0], uv[1][1]), $WGL_V2(uv[2][0], uv[2][1])])
-            }
+
             let mesh = new THREE.Mesh( g, material );
             mesh_addData(mesh, "element", shape_key, ss_index, element_index, null);
 
@@ -597,7 +607,7 @@ function show_shape_vertexlist(shape_key, subshape_index, element_index) {
         div3.addEventListener("mouseover", () => { show_vertex_wgl(shape_key, subshape_index, x, true); });
         div3.addEventListener("mouseout", () => { show_vertex_wgl(shape_key, subshape_index, x, false); });
 
-        let l = DOM.clabel(div3, null, "edit_label_s", x);
+        let l = DOM.clabel(div3, null, "edit_label_s", "" + x);
         let px = DOM.ci_text(div3, null, "edit_input_ss"); px.value = element.v[x][0];
         let py = DOM.ci_text(div3, null, "edit_input_ss"); py.value = element.v[x][1];
         let pz = DOM.ci_text(div3, null, "edit_input_ss"); pz.value = element.v[x][2];
@@ -645,8 +655,110 @@ function show_shape_vertexlist(shape_key, subshape_index, element_index) {
     DOM.cbutton(div, null, "button_mini", "Remove Element", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, (ev, data) => {
         data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements.splice(data.element_index, 1);
         show_shape_edit(shape_key, subshape_index);
+        show_shape_wgl(shape_key);
+        unsaved_changes();
     });
 } 
+
+function show_shape_cube_apply(ev, data) {
+    let dom = data_editor.dom["cube_" + data.subshape_index];
+    let element = data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements[data.element_index];
+
+    // Check if parameters are valid
+    let error = false;
+    for(let parameter of PARAMETERS_ELEMENT_CUBE) {
+        dom[parameter].style.background = null;
+        if(isNaN(dom[parameter].value)) {
+            error = true;
+            dom[parameter].style.background = "#ffc4a8";
+        }
+    }
+    if(error) {
+        DOM.showError("Error", "Invalid parameter(s).");
+        return;
+    }
+
+    // Copy new parameters
+    for(let parameter of PARAMETERS_ELEMENT_CUBE) {
+        element[parameter] = parseFloat(dom[parameter].value);
+    }
+
+    show_shape_wgl(data.shape_key);
+    show_shape_cube(data.shape_key, data.subshape_index, data.element_index);
+    unsaved_changes();
+}
+
+function show_shape_cube(shape_key, subshape_index, element_index) {
+    let div, div2, div3, i;
+    let element = data_editor.definition.shapes[shape_key].subshapes[subshape_index].elements[element_index];
+
+    let dom_element = (subshape_index == 0) ? data_editor.dom.edit : data_editor.dom.edit2;
+    DOM.removeChilds(dom_element, true);
+
+    DOM.cdiv(dom_element, null, "edit_title", "SubShape " + subshape_index + " element " + element_index);
+
+    // Position
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Position (x, y, z)");
+    let px = DOM.ci_text(div, null, "edit_input_ss"); px.value = element.px;
+    let py = DOM.ci_text(div, null, "edit_input_ss"); py.value = element.py;
+    let pz = DOM.ci_text(div, null, "edit_input_ss"); pz.value = element.pz;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Rotation (x, y, z)");
+    let rx = DOM.ci_text(div, null, "edit_input_ss"); rx.value = element.rx;
+    let ry = DOM.ci_text(div, null, "edit_input_ss"); ry.value = element.ry;
+    let rz = DOM.ci_text(div, null, "edit_input_ss"); rz.value = element.rz;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Width");
+    let sx = DOM.ci_text(div, null, "edit_input_ss"); sx.value = element.sx;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Height");
+    let sy = DOM.ci_text(div, null, "edit_input_ss"); sy.value = element.sy;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "Depth");
+    let sz = DOM.ci_text(div, null, "edit_input_ss"); sz.value = element.sz;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "UV1 (x, y)");
+    let u1 = DOM.ci_text(div, null, "edit_input_ss"); u1.value = element.u1;
+    let v1 = DOM.ci_text(div, null, "edit_input_ss"); v1.value = element.v1;
+
+    div = DOM.cdiv(dom_element, null, "edit_section");
+    DOM.clabel(div, null, "edit_label", "UV2 (x, y)");
+    let u2 = DOM.ci_text(div, null, "edit_input_ss"); u2.value = element.u2;
+    let v2 = DOM.ci_text(div, null, "edit_input_ss"); v2.value = element.v2;
+
+    data_editor.dom["cube_" + subshape_index] = {
+        px: px, py: py, pz: pz, rx: rx, ry: ry, rz: rz,
+        sx: sx, sy: sy, sz: sz,
+        u1: u1, v1: v1, u2: u2, v2: v2,
+    };
+
+    // Buttons to apply and cancel
+    div = DOM.cdiv(dom_element, null, "edit_section_end");
+    DOM.cbutton(div, null, "button_mini", "Apply", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, show_shape_cube_apply);
+    DOM.cbutton(div, null, "button_mini", "Cancel", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, () => {
+        show_shape_edit(shape_key, subshape_index);
+    });
+    DOM.cbutton(div, null, "button_mini", "Remove Element", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, (ev, data) => {
+        data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements.splice(data.element_index, 1);
+        show_shape_edit(shape_key, subshape_index);
+        show_shape_wgl(shape_key);
+        unsaved_changes();
+    });
+}
+
+function show_shape_element(shape_key, subshape_index, element_index) {
+    let element = data_editor.definition.shapes[shape_key].subshapes[subshape_index].elements[element_index];
+    if(element.type === "vertex_list")
+        show_shape_vertexlist(shape_key, subshape_index, element_index);
+    else if(element.type === "cube")
+        show_shape_cube(shape_key, subshape_index, element_index);
+}
 
 function show_shape_edit_enable_subshape(ev, data) {
     let shape_key = data.shape_key;
@@ -658,7 +770,107 @@ function show_shape_edit_enable_subshape(ev, data) {
         elements: [],
     });
     show_shape_edit(shape_key, 0);
-    show_shape_edit(shape_key, 1);    
+    show_shape_edit(shape_key, 1);
+}
+
+function show_shape_edit_addcube(ev, data) {
+    let div;
+
+    data_editor.dom.form_container = DOM.cdiv(document.body, "form_container");
+    let form = DOM.cdiv(data_editor.dom.form_container, "form");
+    let close = DOM.cdiv(form, null, "form_close", "x");
+    close.addEventListener("click", () => {DOM.removeElement(data_editor.dom.form_container)});
+    DOM.cdiv(form, null, "form_header", "Add Cube");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Position");
+    data_editor.dom.addcube_px = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_py = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_pz = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Rotation");
+    data_editor.dom.addcube_rx = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_ry = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_rz = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Width");
+    data_editor.dom.addcube_sx = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Height");
+    data_editor.dom.addcube_sy = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Depth");
+    data_editor.dom.addcube_sz = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Texture UV1");
+    data_editor.dom.addcube_u1 = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_v1 = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    DOM.clabel(div, null, "form_label", "Texture UV2");
+    data_editor.dom.addcube_u2 = DOM.ci_text(div, null, "form_input_s");
+    data_editor.dom.addcube_v2 = DOM.ci_text(div, null, "form_input_s");
+
+    div = DOM.cdiv(form, null, "form_section");
+    data_editor.dom.addcube_asvertexlist = DOM.ci_checkbox(div);
+    DOM.clabel(div, null, "form_label", "Add as vertex list");
+
+    data_editor.dom.addcube_px.value = "0";
+    data_editor.dom.addcube_py.value = "0";
+    data_editor.dom.addcube_pz.value = "0";
+    data_editor.dom.addcube_sx.value = "1";
+    data_editor.dom.addcube_sy.value = "1";
+    data_editor.dom.addcube_sz.value = "1";
+    data_editor.dom.addcube_rx.value = "0";
+    data_editor.dom.addcube_ry.value = "0";
+    data_editor.dom.addcube_rz.value = "0";
+    data_editor.dom.addcube_u1.value = "0";
+    data_editor.dom.addcube_v1.value = "0";
+    data_editor.dom.addcube_u2.value = "1";
+    data_editor.dom.addcube_v2.value = "1";
+
+    div = DOM.cdiv(form, null, "form_section");
+    let button = DOM.cbutton(div, null, "button", "Create", 
+                             {shape_key: data.shape_key, subshape_index: data.subshape_index},
+                             (ev, data) => {
+        let error = false;
+
+        for(let parameter of PARAMETERS_ELEMENT_CUBE) {
+            data_editor.dom["addcube_" + parameter].style.background = null;
+            if(isNaN(data_editor.dom["addcube_" + parameter].value)) {
+                error = true;
+                data_editor.dom["addcube_" + parameter].style.background = "#ffc4a8";
+            }
+        }
+        if(error) {
+            DOM.showError("Error", "Invalid parameter(s).");
+            return;
+        }
+
+        let subshape_element = {
+            type: "cube",
+        }
+        for(let parameter of PARAMETERS_ELEMENT_CUBE) {
+            subshape_element[parameter] = parseFloat(data_editor.dom["addcube_" + parameter].value);
+        }
+
+        if(data_editor.dom.addcube_asvertexlist.checked) {
+            subshape_element = shapetools_generate_as_vertexlist(subshape_element);
+        }
+
+        data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements.push(subshape_element);
+
+        show_shape_edit(data.shape_key, data.subshape_index);
+        DOM.removeElement(data_editor.dom.form_container);
+        show_shape_wgl(data.shape_key);
+
+        unsaved_changes();
+    });
 }
 
 function show_shape_edit_addelement(ev, data) {
@@ -670,6 +882,7 @@ function show_shape_edit_addelement(ev, data) {
     });
 
     show_shape_edit(data.shape_key, data.subshape_index);
+    unsaved_changes();
 }
 
 function show_shape_edit_apply(ev, data) {
@@ -762,12 +975,13 @@ function show_shape_edit(shape_key, subshape_index) {
         DOM.clabel(div, null, "edit_label", "Elements");
         for(let x = 0; x < ss.elements.length; x++) {
             DOM.cbutton(div, null, "button_mini", "" + x, {shape_key: shape_key, subshape_index: subshape_index, element_index: x}, (ev, data) => {
-                show_shape_vertexlist(data.shape_key, data.subshape_index, data.element_index);
+                show_shape_element(data.shape_key, data.subshape_index, data.element_index);
             });
         }
         div = DOM.cdiv(dom_element, null, "edit_section");
         DOM.clabel(div, null, "edit_label", "Add Element");
-        DOM.cbutton(div, null, "button_mini", "Add Vertex List", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_addelement);
+        DOM.cbutton(div, null, "button_mini", "Vertex List", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_addelement);
+        DOM.cbutton(div, null, "button_mini", "Cube", {shape_key: shape_key, subshape_index: subshape_index}, show_shape_edit_addcube);
         data_editor.dom["subshape_element_container_" + subshape_index] = DOM.cdiv(div, null, "element_container");
 
     }
@@ -1043,7 +1257,7 @@ function init_screen() {
     let body = document.body;
     let ge, div;
 
-    let grid = DOM.cg(document.body, "grid", "full_screen", ["250px", "1fr", "1fr"], ["45px", "1fr", "1fr"]);
+    let grid = DOM.cg(document.body, "grid", "full_screen", ["250px", "1.05fr", "0.95fr"], ["45px", "1fr", "1fr"]);
 
     // Header
     data_editor.dom.header = DOM.cge(grid, "header", null, 1, 4, 1, 2);
