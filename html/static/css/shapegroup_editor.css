@@ -159,11 +159,16 @@ body {
     width: 40px;
 }
 
+.edit_input_ta {
+    height: 75%;
+}
+
 .edit_section_end {
     width: 100%;
     text-align: center;
     border-bottom: 1px solid #000;
 }
+
 .vertex_list {
     width: 100%;
 }

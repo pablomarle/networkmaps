@@ -1668,7 +1668,7 @@ class WGL {
         }
     }
 
-    settingsMesh_Link(view, type, id, name, description, link_type, order, color, weight, height) {
+    settingsMesh_Link(view, type, id, name, description, link_type, order, color, weight, height, show_direction) {
         let mesh = this.findMesh(type, id, this.scene[view]);
         if(mesh) {
             mesh.userData.e.name = name;
@@ -1678,6 +1678,7 @@ class WGL {
             mesh.userData.e.linedata.color = color;
             mesh.userData.e.linedata.weight = weight;
             mesh.userData.e.linedata.height = height;
+            mesh.userData.e.linedata.show_direction = show_direction;
             this.updateLinkGeometry(type, mesh, view);
         }
     }
@@ -2009,6 +2010,7 @@ class WGL {
         this.global_settings.format.link_color = parseInt(win.color.value);
         this.global_settings.format.link_height = parseFloat(win.height.value);
         this.global_settings.format.link_weight = parseFloat(win.weight.value);
+        this.global_settings.format.link_show_direction = win.show_direction.checked;
     }
 
     alignVectorToGrid(vector, base_y) {
@@ -2584,7 +2586,7 @@ class WGL {
         })
     }
 
-    updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, radius) {
+    updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, radius, show_direction) {
         g.vertices = [];
         g.faces = [];
         g.faceVertexUvs[0] = [];
@@ -2611,6 +2613,16 @@ class WGL {
             uvl.push([ [0,0], [0,length], [w2,length] ]);
             uvl.push([ [0,0], [w2,length], [w2,0] ]);
         }
+        // Add directional arrow
+        if(show_direction) {
+            vl.push([0, 0, length/2+radius*6]);
+            vl.push([radius*8, 0, length/2-radius*6]);
+            vl.push([-radius*8, 0, length/2-radius*6]);
+            fl.push([16,17,18]);
+            uvl.push([ [0,0], [0,0], [0,0] ]);
+        }
+
+        // Create vertex list
         this.addListVertex(g.vertices, vl);
         this.addListFaces(g.faces, g.faceVertexUvs[0], fl, uvl);
 
@@ -2621,7 +2633,7 @@ class WGL {
 
     addLinkSegment(type, id, e, meshgroup, x1, y1, z1, x2, y2, z2, material, index) {
         let g = new THREE.Geometry();
-        this.updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, e.linedata.weight);
+        this.updateLinkSegmentGeometryLine(g, x1, y1, z1, x2, y2, z2, e.linedata.weight, e.linedata.show_direction);
         let m = new THREE.Mesh(g, material);
         m.position.x = x1; m.position.y = y1; m.position.z = z1;
 
@@ -2774,7 +2786,7 @@ class WGL {
         mesh.position.x = e.x1;
         mesh.position.y = e.y1;
         mesh.position.z = e.z1;
-        this.updateLinkSegmentGeometryLine(mesh.geometry, e.x1, e.y1, e.z1, e.x2, e.y2, e.z2, e.radius);
+        this.updateLinkSegmentGeometryLine(mesh.geometry, e.x1, e.y1, e.z1, e.x2, e.y2, e.z2, e.radius, false);
     }
 
     updateLineColor(mesh) {

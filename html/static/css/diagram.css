@@ -19,7 +19,10 @@ canvas {
 }
 
 .box_info_close {
-	float: right;
+	position: absolute;
+	top: 5px; right: 5px;
+	cursor: pointer;
+	border: 1px solid #ccc;
 }
 .box_info_title {
 	font-weight: bold;

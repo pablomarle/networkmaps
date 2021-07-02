@@ -360,7 +360,7 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_Device(data.i, data.name, data.description, data.color1, data.color2, data.ifnaming);
     }
     else if((data.v == "L2") && (data.t == "link")) {
-        d.wgl.settingsMesh_Link("L2", "link", data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height);
+        d.wgl.settingsMesh_Link("L2", "link", data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height, data.show_direction);
     }
     else if((data.v == "L3") && (data.t == "vrf")) {
         d.wgl.settingsMesh_Vrf(data.i, data.color1, data.color2);
@@ -372,7 +372,7 @@ function process_message_settings(data) {
         d.wgl.settingsMesh_BGPPeer(data.i, data.color);
     }
     else if((data.v == "L3") && ((data.t == "l2link") || (data.t == "interface") || (data.t == "svi_interface") || (data.t == "p2p_interface"))) {
-        d.wgl.settingsMesh_Link(data.v, data.t, data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height);
+        d.wgl.settingsMesh_Link(data.v, data.t, data.i, data.name, data.description, data.type, data.order, data.color, data.weight, data.height, data.show_direction);
     }
     else if(data.t == "text") {
         d.wgl.settingsMesh_Text(data.v, data.i, data.text, data.py, data.height, data.color, data.text_align,
@@ -546,6 +546,7 @@ function sendAdd_Link(type, dev1_id, dev2_id) {
             color: d.wgl.global_settings.format.use_standard_link ? 0x888888 : d.wgl.global_settings.format.link_color,
             weight: d.wgl.global_settings.format.use_standard_link ? 0.025 : d.wgl.global_settings.format.link_weight,
             height: d.wgl.global_settings.format.use_standard_link ? .25 : d.wgl.global_settings.format.link_height,
+            show_direction: d.wgl.global_settings.format.use_standard_link ? false : d.wgl.global_settings.format.link_show_direction,
         }
     }
 
@@ -1028,7 +1029,7 @@ function sendConfig_BGPPeer(id, windata) {
         DOM.showError("ERROR", "Error sending update to server.", true);
 }
 
-function sendMessageSettings_Link(view, type, id, name, description, line_type, order, color, weight, height) {
+function sendMessageSettings_Link(view, type, id, name, description, line_type, order, color, weight, height, show_direction) {
     let message = {
         m: "P",
         d: {
@@ -1043,6 +1044,7 @@ function sendMessageSettings_Link(view, type, id, name, description, line_type, 
             color: color,
             weight: weight,
             height: height,
+            show_direction: show_direction,
         }
     }
     if(!d.ws.send(message))
@@ -1057,7 +1059,9 @@ function sendSettings_Link(view, type, id, windata) {
         windata.d.order.value,
         parseInt(windata.d.color.value),
         parseFloat(windata.d.weight.value),
-        parseFloat(windata.d.height.value));
+        parseFloat(windata.d.height.value),
+        windata.d.show_direction.checked
+        );
 }
 
 function sendMessageSettings_Vrf(id, color1, color2) {
@@ -1471,7 +1475,7 @@ function mouseover_show(element) {
         d.dom.mouseoverbox_data.show = true;
         let text = element.userData.type;
         if(element.userData.type === "device") {
-            text = `Device ${element.userData.e.name}`;
+            text = `Element ${element.userData.e.name}`;
         }
 
         if(text !== d.dom.mouseoverbox_data.text) {
@@ -1597,7 +1601,7 @@ function infobox_show_urls(obj, title) {
 
 function infobox_show_device(obj) {
     let infobox_data = {
-        title: (obj.userData.e.name !== "") ? obj.userData.e.name : "Device",
+        title: (obj.userData.e.name !== "") ? obj.userData.e.name : "Element",
         description: (obj.userData.e.description !== "") ? obj.userData.e.description : null,
         content: [],
     };
@@ -2991,6 +2995,7 @@ function mouseclick(x, y, a) {
             d.wgl.global_settings.format.link_color = a.obj.mesh.userData.e.linedata.color;
             d.wgl.global_settings.format.link_height = a.obj.mesh.userData.e.linedata.height;
             d.wgl.global_settings.format.link_weight = a.obj.mesh.userData.e.linedata.weight;
+            d.wgl.global_settings.format.link_show_direction = a.obj.mesh.userData.e.linedata.show_direction;
         }
         else if(a.obj.mesh.userData.type === "text") {
             d.wgl.global_settings.format.text_color = a.obj.mesh.userData.e.color;
@@ -3056,7 +3061,9 @@ function mouseclick(x, y, a) {
                 a.obj.mesh.userData.e.order,
                 d.wgl.global_settings.format.link_color,
                 d.wgl.global_settings.format.link_weight,
-                d.wgl.global_settings.format.link_height);
+                d.wgl.global_settings.format.link_height,
+                d.wgl.global_settings.format.link_show_direction,
+                );
         }
         if(a.obj.mesh.userData.type === "vrf") {
             sendMessageSettings_Vrf(a.obj.mesh.userData.id,

@@ -658,7 +658,110 @@ function show_shape_vertexlist(shape_key, subshape_index, element_index) {
         show_shape_wgl(shape_key);
         unsaved_changes();
     });
+    DOM.cbutton(div, null, "button_mini", "Edit as JSON", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, (ev, data) => {
+        show_shape_element_json(data.shape_key, data.subshape_index, data.element_index);
+    });
 } 
+
+function validate_vertexlist_json(dom_element) {
+    let element;
+    let result_element = {type: "vertex_list", v: [], f: [], uv: []};
+
+    try {
+        element = JSON.parse(dom_element.value)
+    }
+    catch {
+        return null;
+    }
+    if(element.type === "vertex_list") {
+        if(
+            (!Array.isArray(element.v)) ||
+            (!Array.isArray(element.f)) ||
+            (!Array.isArray(element.uv)) ||
+            (element.f.length !== element.uv.length)) {
+            return null;
+        }
+
+        for(let x = 0; x < element.v.length; x++) {
+            if((!Array.isArray(element.v[x])) ||
+                (element.v[x].length !== 3) ||
+                (isNaN(element.v[x][0])) || (isNaN(element.v[x][1])) || (isNaN(element.v[x][2]))) {
+                    return null;
+            }
+            result_element.v.push([parseFloat(element.v[x][0]), parseFloat(element.v[x][1]), parseFloat(element.v[x][2])]);
+        }
+        for(let x = 0; x < element.f.length; x++) {
+            if((!Array.isArray(element.f[x])) ||
+                (element.f[x].length !== 3) ||
+                (!Number.isInteger(element.f[x][0])) ||
+                (!Number.isInteger(element.f[x][1])) ||
+                (!Number.isInteger(element.f[x][2])) ||
+                (element.f[x][0] < 0) || (element.f[x][0] >= element.v.length) ||
+                (element.f[x][1] < 0) || (element.f[x][1] >= element.v.length) ||
+                (element.f[x][2] < 0) || (element.f[x][2] >= element.v.length) ) {
+                    return null;
+            }
+            if((!Array.isArray(element.uv[x])) ||
+                (element.uv[x].length !== 3) ||
+                (!Array.isArray(element.uv[x][0])) ||
+                (element.uv[x][0].length !== 2) || (isNaN(element.uv[x][0][0])) || (isNaN(element.uv[x][0][1])) ||
+                (element.uv[x][1].length !== 2) || (isNaN(element.uv[x][1][0])) || (isNaN(element.uv[x][1][1])) ||
+                (element.uv[x][2].length !== 2) || (isNaN(element.uv[x][2][0])) || (isNaN(element.uv[x][2][1]))) {
+                    return null;
+            }
+            result_element.f.push([element.f[x][0], element.f[x][1], element.f[x][2]]);
+            result_element.uv.push([
+                [element.uv[x][0][0], element.uv[x][0][1]],
+                [element.uv[x][1][0], element.uv[x][1][1]],
+                [element.uv[x][2][0], element.uv[x][2][1]]]);
+        }
+
+    }
+    else
+        return null;
+
+    return result_element;
+}
+
+function show_shape_element_json_apply(ev, data) {
+    let dom_element = data_editor.dom["element_json_" + data.subshape_index];
+    
+    let new_element = validate_vertexlist_json(dom_element);
+    
+    if(!new_element) {
+        DOM.showError("Invalid JSON", "The text provided is not a valid JSON.");
+        return;
+    }
+
+    data_editor.definition.shapes[data.shape_key].subshapes[data.subshape_index].elements[data.element_index] = new_element;
+
+    show_shape_wgl(data.shape_key);
+    unsaved_changes();
+}
+
+function show_shape_element_json(shape_key, subshape_index, element_index) {
+    let div, div2, div3, i;
+    let element = data_editor.definition.shapes[shape_key].subshapes[subshape_index].elements[element_index];
+
+    let dom_element = (subshape_index == 0) ? data_editor.dom.edit : data_editor.dom.edit2;
+    DOM.removeChilds(dom_element, true);
+
+    DOM.cdiv(dom_element, null, "edit_title", "SubShape " + subshape_index + " element " + element_index + " JSON");
+    data_editor.dom["element_json_" + subshape_index] = DOM.ci_ta(dom_element, null, "edit_input_ta");
+    data_editor.dom["element_json_" + subshape_index].value = JSON.stringify(element, null, 2);
+    data_editor.dom["element_json_" + subshape_index].addEventListener("keyup", () => {
+        if(!validate_vertexlist_json(data_editor.dom["element_json_" + subshape_index]))
+            data_editor.dom["element_json_" + subshape_index].style.background = "#ffc4a8";
+        else
+            data_editor.dom["element_json_" + subshape_index].style.background = null;
+    })
+    // Buttons to apply and cancel
+    div = DOM.cdiv(dom_element, null, "edit_section_end");
+    DOM.cbutton(div, null, "button_mini", "Apply", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, show_shape_element_json_apply);
+    DOM.cbutton(div, null, "button_mini", "Cancel", {shape_key: shape_key, subshape_index: subshape_index, element_index: element_index}, () => {
+        show_shape_edit(shape_key, subshape_index);
+    });
+}
 
 function show_shape_cube_apply(ev, data) {
     let dom = data_editor.dom["cube_" + data.subshape_index];

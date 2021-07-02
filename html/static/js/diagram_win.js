@@ -1078,7 +1078,7 @@ function WIN_showDeviceConfigWindow(diagram_type, view, type, id, e, callback) {
 }
 
 function WIN_showLinkWindow(view, type, id, e, callback) {
-    let wdata = WIN_create(view, type, id, "Link", 440, 310);
+    let wdata = WIN_create(view, type, id, "Link", 440, 330);
     if(!wdata)
         return;
     let w = wdata.w;
@@ -1107,8 +1107,11 @@ function WIN_showLinkWindow(view, type, id, e, callback) {
     // Height
     wdata.d.height = WIN_addSlider(w, 230, 230, 100, "Height", e.linedata.height, 0, .5, .05);
 
+    // Show direction
+    wdata.d.show_direction = WIN_addCheckBoxInput(w, 40, 272, 18, 270, "Show Direction", e.linedata.show_direction);
+
     // Button to apply
-    wdata.d.apply = WIN_addButton(w, 190, 280, "Apply", () => {
+    wdata.d.apply = WIN_addButton(w, 190, 300, "Apply", () => {
         callback(wdata);
     }, "Apply changes.");   
 }
@@ -1685,7 +1688,7 @@ function WIN_showFormatSettingsText(settings, callback) {
 }
 
 function WIN_showFormatSettingsLink(settings, callback) {
-    let wdata = WIN_create("global", "format", "link", "Format Link Settings", 440, 140);
+    let wdata = WIN_create("global", "format", "link", "Format Link Settings", 440, 180);
     if(!wdata)
         return;
     let w = wdata.w;    
@@ -1700,6 +1703,9 @@ function WIN_showFormatSettingsLink(settings, callback) {
 
     // Height
     wdata.d.height = WIN_addSlider(w, 240, 100, 100, "Height", settings.link_height, 0, .5, .05);
+
+    // Show direction
+    wdata.d.show_direction = WIN_addCheckBoxInput(w, 40, 142, 18, 140, "Show Direction", settings.link_show_direction);
 
     for(attribute in wdata.d)
         wdata.d[attribute].addEventListener("change", () => { callback(wdata.d) });     
