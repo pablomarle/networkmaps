@@ -119,6 +119,18 @@ function createDefaultSymbolArrow(x, y, z, base) {
     };
 }
 
+function update_url_parameters() {
+    let cam = d.wgl.camera[d.wgl.view][d.wgl.camera.current];
+    let px = Math.round(cam.position.x*100)/100;
+    let py = Math.round(cam.position.y*100)/100;
+    let pz = Math.round(cam.position.z*100)/100;
+    let rx = Math.round(cam.rotation.x*100)/100;
+    let ry = Math.round(cam.rotation.y*100)/100;
+    let view = d.wgl.view;
+    let cur_cam = d.wgl.camera.current;
+    history.pushState({}, "", `?view=${view}&cam=${cur_cam}&px=${px}&py=${py}&pz=${pz}&rx=${rx}&ry=${ry}`);
+}
+
 function check_ifnaming(value) {
     // Function to check if a string is a valid ifnaming representation (eg Ethernet{1-32}/{1-4} )
     if(resolve_ifnaming(value) == null)
@@ -3168,7 +3180,10 @@ function mouseup(x, y, dx, dy, dom_element) {
         }
     }
 
-    if(d.dom.tools.active_t === "ABF") {
+    if(["CM", "CR", "CZ"].indexOf(d.dom.tools.active_t) !== -1) {
+        update_url_parameters();
+    }
+    else if(d.dom.tools.active_t === "ABF") {
         let mesh = d.wgl.getMesh(d.current_view, "base", "CURSOR");
         sendAdd_BaseFloor("F", mesh.position.x, mesh.position.y, mesh.position.z, 
                           mesh.userData.e.sx, mesh.userData.e.sy, mesh.userData.e.sz, 
@@ -3570,13 +3585,15 @@ function init_window() {
     else
         d.dom.tab_l2 = DOM.cdiv(b, "tab_l2", "box tab_s", "Diagram");
     d.dom.tab_l2.addEventListener("click", () => { 
-        set_current_view("L2")
+        set_current_view("L2");
+        update_url_parameters();
     });
 
     if(d.diagram.type === "network") {
         d.dom.tab_l3 = DOM.cdiv(b, "tab_l3", "box tab", "L3 Diagram");
         d.dom.tab_l3.addEventListener("click", () => { 
-            set_current_view("L3")
+            set_current_view("L3");
+            update_url_parameters();
         });
     }
 
@@ -3696,6 +3713,50 @@ function init_window() {
     window.addEventListener("keypress", keypress);
     position_elements();
     set_current_view("L2");
+
+    // Parse parameters and set cam
+    let url_split = window.location.href.split("?")
+    if(url_split.length === 2) {
+        let view = d.wgl.view;
+        let cur_cam = d.wgl.camera.current;
+        for(let param of url_split[1].split("&")) {
+            let key = param.split("=")[0];
+            let value = param.split("=")[1];
+            if(key === "view") view = value;
+            if(key === "cam") cur_cam = value;
+        }
+
+        set_current_view(view);
+        if(d.wgl.camera.current != cur_cam) {
+            d.wgl.toggleCamera();
+        }
+
+        let cam = d.wgl.camera[d.wgl.view][d.wgl.camera.current];
+        let px = cam.position.x;
+        let py = cam.position.y;
+        let pz = cam.position.z;
+        let rx = cam.rotation.x;
+        let ry = cam.rotation.y;
+
+        for(let param of url_split[1].split("&")) {
+            let key = param.split("=")[0];
+            let value = param.split("=")[1];
+
+            if((key === "px") && (!isNaN(value))) px = parseFloat(value);
+            if((key === "py") && (!isNaN(value))) py = parseFloat(value);
+            if((key === "pz") && (!isNaN(value))) pz = parseFloat(value);
+            if((key === "rx") && (!isNaN(value))) rx = parseFloat(value);
+            if((key === "ry") && (!isNaN(value))) ry = parseFloat(value);
+        }
+
+
+        cam.position.x = px;
+        cam.position.y = py;
+        cam.position.z = pz;
+        cam.rotation.x = rx;
+        cam.rotation.y = ry;
+    }
+
 
     animate();
 }

@@ -216,7 +216,8 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(404, "text/html", html.not_found(config), session.sessionid);
                 return;
             }
-            sendresponse(200, "text/html", html.diagram(config, surl[2]), session.sessionid);
+            let diagram_uuid = surl[2].split("?")[0];
+            sendresponse(200, "text/html", html.diagram(config, diagram_uuid), session.sessionid);
             return;
         }
 
