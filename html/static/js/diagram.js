@@ -3742,7 +3742,7 @@ function init_window() {
             obj: null,
             obj_distance: 40,
             obj_ry: 0,
-            obj_rx: - Math.PI / 4,
+            obj_rx: Math.PI / 4,
             obj_type: (d.wgl.view === "L3") ? "vrf" : "device",
         }
 
