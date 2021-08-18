@@ -3738,6 +3738,14 @@ function init_window() {
         let rx = cam.rotation.x;
         let ry = cam.rotation.y;
 
+        let cam2obj = {
+            obj: null,
+            obj_distance: 40,
+            obj_ry: 0,
+            obj_rx: - Math.PI / 4,
+            obj_type: (d.wgl.view === "L3") ? "vrf" : "device",
+        }
+
         for(let param of url_split[1].split("&")) {
             let key = param.split("=")[0];
             let value = param.split("=")[1];
@@ -3747,6 +3755,13 @@ function init_window() {
             if((key === "pz") && (!isNaN(value))) pz = parseFloat(value);
             if((key === "rx") && (!isNaN(value))) rx = parseFloat(value);
             if((key === "ry") && (!isNaN(value))) ry = parseFloat(value);
+
+            if((key === "obj_distance") && (!isNaN(value))) cam2obj.obj_distance = parseFloat(value);
+            if((key === "obj_rx") && (!isNaN(value))) cam2obj.obj_rx = parseFloat(value);
+            if((key === "obj_ry") && (!isNaN(value))) cam2obj.obj_ry = parseFloat(value);
+
+            if(key === "obj") cam2obj.obj = value;
+
         }
 
 
@@ -3755,6 +3770,16 @@ function init_window() {
         cam.position.z = pz;
         cam.rotation.x = rx;
         cam.rotation.y = ry;
+
+        // Position camera relative a object
+        if(cam2obj.obj) {
+            let dev_list = d.wgl.getMeshByName(d.wgl.view, cam2obj.obj_type, cam2obj.obj);
+            for(let element of dev_list) {
+                if(element.userData.e.name === cam2obj.obj) {
+                    d.wgl.positionCameraAroundElement(element, cam2obj.obj_distance, cam2obj.obj_rx, cam2obj.obj_ry);
+                }
+            }
+        }
     }
 
 

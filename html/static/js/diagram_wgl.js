@@ -771,6 +771,26 @@ class WGL {
         this.requestDraw();
     }
 
+    positionCameraAroundElement(e, distance, rx, ry) {
+        let ac = this.camera[this.view][this.camera.current];
+        e.getWorldPosition(this.tempVector);
+        if(this.camera.current === "ortho") {
+            ac.position.x = this.tempVector.x;
+            ac.position.z = this.tempVector.z;
+        }
+        else {
+            ac.position.x = 0;
+            ac.position.y = 0;
+            ac.position.z = distance;
+            let e = new THREE.Euler(-rx, ry, 0, "YXZ");
+            ac.position.applyEuler(e).add(this.tempVector);
+            ac.rotation.y = ry;
+            ac.rotation.x = -rx;
+        }
+
+        this.requestDraw();
+    }
+
     adjustLabelsToCamera() {
         let angle = this.camera[this.view][this.camera.current].rotation.y;
         let view = this.scene[this.view];
