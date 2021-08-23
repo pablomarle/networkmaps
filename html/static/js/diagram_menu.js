@@ -1,4 +1,4 @@
-MENU = {
+MENU = {    
     toolboxes: {
         camera: {
             init_left: -142, left: -142, width: 128,
@@ -83,7 +83,7 @@ MENU = {
             init_left: -190, left: -190, width: 170,
             name: "Add Text",
             components: [
-                {n: "Base",     s: "ATB",    i: "text.png",      f: null},
+                {n: "B.Text",     s: "ATB",    i: "text.png",      f: null},
             ]},
         new_symbol: {
             init_left: -190, left: -190, width: 170,
@@ -94,15 +94,24 @@ MENU = {
                 {n: "V",        s: "ASV",    i: "symbol_v.png",      f: null},
                 {n: "Arrow",    s: "ASA",    i: "symbol_a.png",      f: null},
             ]},
+        frequent_L2: {
+            init_left: -190, left: -142, width: 170,
+            name: "Frequent Elements",
+            components: []},
+        frequent_L3: {
+            init_left: -190, left: -142, width: 170,
+            name: "Frequent Elements",
+            components: []},
+                    
         base_change: {
             init_left: -142, left: -142, width: 128,
             name: "Change Base",
             components: [
-                {n: "Move",     s: "BM",    i: "move.png",      f: null, d: "Move floors/walls\nQuick access key: 'f'", q: "KeyF"},
-                {n: "Rotate",   s: "BR",    i: "rotate.png",    f: null, d: "Rotate floors/walls\nQuick access key: 'g'", q: "KeyG"},
-                {n: "Resize",   s: "BX",    i: "resize.png",    f: null, d: "Resize floors/walls\nQuick access key: 'h'", q: "KeyH"},
-                {n: "Settings", s: "BC",    i: "settings.png",  f: null, d: "View the settings of floors/walls\nQuick access key: 'v'", q: "KeyV"},
-                {n: "Delete",   s: "BD",    i: "delete.png",    f: null, d: "Delete floors/walls\nQuick access key: 'b'", q: "KeyB"},
+                {n: "B.Move",     s: "BM",    i: "move.png",      f: null, d: "Move floors/walls\nQuick access key: 'f'", q: "KeyF"},
+                {n: "B.Rotate",   s: "BR",    i: "rotate.png",    f: null, d: "Rotate floors/walls\nQuick access key: 'g'", q: "KeyG"},
+                {n: "B.Resize",   s: "BX",    i: "resize.png",    f: null, d: "Resize floors/walls\nQuick access key: 'h'", q: "KeyH"},
+                {n: "B.Settings", s: "BC",    i: "settings.png",  f: null, d: "View the settings of floors/walls\nQuick access key: 'v'", q: "KeyV"},
+                {n: "B.Delete",   s: "BD",    i: "delete.png",    f: null, d: "Delete floors/walls\nQuick access key: 'b'", q: "KeyB"},
             ]},
         new_routing: {
             init_left: -190, left: -190, width: 170,

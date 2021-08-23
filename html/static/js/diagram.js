@@ -2036,6 +2036,7 @@ function position_elements(wglneeded=true) {
     if(d.permission !== "RO") {
         setBoxPosition(d.dom.tool_element_b,    10+48*1, 10, 32, 32);
         setBoxPosition(d.dom.tool_new_b,        10+48*2, 10, 32, 32);
+        setBoxPosition(d.dom.tool_frequent_b,        10+48*3, 10, 32, 32);
     }
 
     // Tools
@@ -2064,17 +2065,58 @@ function position_elements(wglneeded=true) {
         d.wgl.resize();
 }
 
+function toolbox_update_frequent() {
+    for(let view of ["L2", "L3"]) {
+        // Short frequenly used
+        let keys_shorted = Object.keys(d.dom.tools.frequency[view]).sort((a, b) => {
+            return d.dom.tools.frequency[view][b].number - d.dom.tools.frequency[view][a].number;
+        });
+        // Keep best 24 ordered by code
+        let best = keys_shorted.slice(0, 24).sort();
+
+        d.dom.tools.frequency.best = best;
+
+        // Erase elements of toolbox 
+        let toolbox = d.dom.tools.toolboxes['frequent_' + view];
+        for(let x = toolbox.dom.children.length -1; x >= 0; x--) {
+            if(toolbox.dom.children[x].className !== "tooltitle") {
+                DOM.removeElement(toolbox.dom.children[x]);
+            }
+        }
+        d.dom.tools.toolboxes['frequent_' + view].components = [];
+
+        for(let code of best) {
+            let tool = init_window_addtool(toolbox.dom, d.dom.tools.frequency[view][code].component, false);
+            d.dom.tools.toolboxes['frequent_' + view].components.push({
+                d: d.dom.tools.frequency[view][code].component.d,
+                dom: tool,
+                f: d.dom.tools.frequency[view][code].component.f,
+                il: d.dom.tools.frequency[view][code].component.il,
+                n: d.dom.tools.frequency[view][code].component.n,
+                s: d.dom.tools.frequency[view][code].component.s,
+            });
+        }
+    }
+}
+
 function toolbox_activatetool(tool) {
-    for(toolboxname in d.dom.tools.toolboxes) {
+    let component = null;
+    let code = tool.getAttribute("data-code");
+    let toolbox_id = tool.parentNode.getAttribute("data-id");
+
+    for(let toolboxname in d.dom.tools.toolboxes) {
         let toolbox = d.dom.tools.toolboxes[toolboxname];
         for(let x = 0; x < toolbox.components.length; x++) {
-            let tool = toolbox.components[x];
-            if(tool.dom.getAttribute("data-newtoolbox") == "")
-                tool.dom.className = "tool";
+            let c = toolbox.components[x];
+            if(c.dom.getAttribute("data-newtoolbox") == "")
+                c.dom.className = "tool";
+
+            if(c.s === code) {
+                component = c;
+            }
         }
     }
 
-    let code = tool.getAttribute("data-code");
     if(code === "FW")
         WIN_showFormatSettingsColor(d.wgl.global_settings.format, (win) => { d.wgl.updateFormatSettingsColor(win) });
     else if(code === "FT")
@@ -2088,6 +2130,23 @@ function toolbox_activatetool(tool) {
     else {
         tool.className += " tool-active";
         d.dom.tools.active_t = code;
+
+        //if(code.startsWith("AD")) {
+            if(code in d.dom.tools.frequency[d.current_view]) {
+                d.dom.tools.frequency[d.current_view][code].number += 1;
+            }
+            else {
+                d.dom.tools.frequency[d.current_view][code] = {
+                    number: 1,
+                    code: code,
+                    component: component, 
+                }
+            }
+
+            if(!toolbox_id.startsWith("frequent_")) {
+                toolbox_update_frequent();
+            }
+        //}
     }
 }
 
@@ -2198,7 +2257,7 @@ async function load_shapegroup(shapegroup_id) {
                     f: null,
                 })
             }
-            init_window_addtoolbox(toolbox_struct);
+            init_window_addtoolbox(toolbox_struct, "new_device_" + shapegroup_id);
             d.dom.tools.toolboxes["new_device_" + shapegroup_id] = toolbox_struct;
 
             // Add shapes to the list of available geometries and update the shapes on the diagram
@@ -2334,9 +2393,10 @@ function init_window_addtool(toolbox, tooldesc, isactive = false) {
     return tool
 }
 
-function init_window_addtoolbox(toolbox) {
+function init_window_addtoolbox(toolbox, toolbox_id) {
     let b = document.body;
     toolbox.dom = DOM.cdiv(b, null, "box toolbox");
+    toolbox.dom.setAttribute("data-id", toolbox_id);
     DOM.cdiv(toolbox.dom, null, "tooltitle", toolbox.name);
     for(let x = 0; x < toolbox.components.length; x++) {
         let tool = toolbox.components[x];
@@ -3207,7 +3267,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         // Add a link
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "device") {
-                let dev2_id = objlist[0].mesh.userData.id;
+                let dev2_id = objlist[x].mesh.userData.id;
                 
                 let type = 0;
                 if(d.dom.tools.active_t[2] === "S")
@@ -3677,6 +3737,15 @@ function init_window() {
             animate();
         });
         WIN_addBasicMouseDescriptionActions(d.dom.tool_new_b, "New Elements. Add new elements, connections and symbols.");
+
+        d.dom.tool_frequent_b = DOM.cimg(b, staticurl + "/static/img/star.png", "tool_frequent_b", "box toolbutton", null, () => {
+            if(d.current_view == "L2")
+                d.dom.tools.active_tb = d.dom.tools.active_tb == "frequent_L2" ? "" : "frequent_L2";
+            else if(d.current_view == "L3")
+                d.dom.tools.active_tb = d.dom.tools.active_tb == "frequent_L3" ? "" : "frequent_L3";
+            animate();
+        });
+        WIN_addBasicMouseDescriptionActions(d.dom.tool_frequent_b, "Quick access to frequently used tools.");
     }
 
     // Info box.
@@ -3692,9 +3761,10 @@ function init_window() {
         active_tb: "",
         active_t: "CM",
         toolboxes: MENU.toolboxes,
+        frequency: {L2: {}, L3: {}},
     }
     for(toolboxname in d.dom.tools.toolboxes) {
-        init_window_addtoolbox(d.dom.tools.toolboxes[toolboxname])
+        init_window_addtoolbox(d.dom.tools.toolboxes[toolboxname], toolboxname)
     }
 
     // Initialize input
@@ -3721,7 +3791,7 @@ function init_window() {
         let cur_cam = d.wgl.camera.current;
         for(let param of url_split[1].split("&")) {
             let key = param.split("=")[0];
-            let value = param.split("=")[1];
+            let value = decodeURIComponent(param.split("=")[1]);
             if(key === "view") view = value;
             if(key === "cam") cur_cam = value;
         }
@@ -3748,7 +3818,7 @@ function init_window() {
 
         for(let param of url_split[1].split("&")) {
             let key = param.split("=")[0];
-            let value = param.split("=")[1];
+            let value = decodeURIComponent(param.split("=")[1]);
 
             if((key === "px") && (!isNaN(value))) px = parseFloat(value);
             if((key === "py") && (!isNaN(value))) py = parseFloat(value);
