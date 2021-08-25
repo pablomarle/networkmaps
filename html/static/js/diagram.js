@@ -3286,7 +3286,7 @@ function mouseup(x, y, dx, dy, dom_element) {
         // Add a bgp peer
         for(let x = 0; x < objlist.length; x++) {
             if (objlist[x].mesh.userData.type === "vrf") {
-                let dev2_id = objlist[0].mesh.userData.id;
+                let dev2_id = objlist[x].mesh.userData.id;
                 
                 if (a.dev1_id != dev2_id) {
                     let data = d.wgl.findBGPPeerData(a.dev1_id, dev2_id);
