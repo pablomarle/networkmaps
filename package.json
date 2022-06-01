@@ -4,7 +4,7 @@
     "ldapjs": "^2.2.0",
     "minimist": "^1.2.5",
     "nodemailer": "^6.6.0",
-    "sharp": "^0.26.3",
+    "sharp": "^0.30.5",
     "utf-8-validate": "^5.0.3",
     "validator": "^13.1.17",
     "ws": "^7.4.0"
