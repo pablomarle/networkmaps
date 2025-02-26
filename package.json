@@ -2,7 +2,7 @@
   "dependencies": {
     "bufferutil": "^4.0.2",
     "ldapjs": "^2.2.0",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "nodemailer": "^6.6.0",
     "sharp": "^0.30.5",
     "utf-8-validate": "^5.0.3",
