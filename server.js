@@ -16,35 +16,19 @@ const usermgt = new UserMGT(
     config.diagrams.path,
 );
 const fs = require('fs');
+const { testDirectories } = require('./lib/utils/filesystem');
+const { multiIndexOf, findLineWith, removeDoubleQuote } = require('./lib/utils/string');
+const { process_multipart_formdata } = require('./lib/utils/formdata');
+const { Logger } = require('./lib/utils/logger');
+
+const serverLogger = new Logger({ prefix: 'Server' });
 
 function sendMail(to, subject, content) {
-    console.log(`Sending email to queue: ${to} : ${subject}`)
+    serverLogger.info(`Sending email to queue: ${to} : ${subject}`)
     sendmail.queue_email(to, subject, content)
         .catch(err => {
-            console.log(`Error sending email: ${to} : ${subject}`)
+            serverLogger.error(`Error sending email: ${to} : ${subject}`)
         });
-}
-
-function multiIndexOf(s, m) {
-    let result = [];
-
-    let i = s.indexOf(m);
-    while(i !== -1) {
-        result.push(i);
-        i = s.indexOf(m, i+1);
-    }
-    return result;
-}
-
-function findLineWith(s, m, i_start, i_end) {
-    let lindex = s.indexOf(m, i_start);
-    if((lindex === -1) || (lindex >= i_end))
-        return null;
-    lindex_end = s.indexOf("\r\n", lindex);
-    if(lindex_end === -1)
-        lindex_end = i_end;
-
-    return s.substring(lindex, lindex_end);
 }
 
 function findContent(s, i_start, i_end) {
@@ -54,71 +38,11 @@ function findContent(s, i_start, i_end) {
     return lindex + 4;
 }
 
-function removeDoubleQuote(s) {
-    if(s.length === 0)
-        return s;
-    if(s[0] === "\"") {
-        if((s.length > 2) && (s[s.length-1] === "\""))
-            return s.substr(1, s.length-2);
-        else
-            return null;
-    }
-
-    return s;
-}
-
-function process_multipart_formdata(content_type, body) {
-    let result = {};
-
-    if(content_type === undefined)
-        return null;
-    
-    let sct = content_type.split(";");
-    if((sct.length < 2) || (sct[0] !== "multipart/form-data"))
-        return null;
-
-    let boundary = null;
-    for(let x = 0; x < sct.length; x++) {
-        let sct_2 = sct[x].trim().split("=");
-        if((sct_2.length === 2) && (sct_2[0] === "boundary"))
-            boundary = sct_2[1];
-    }
-    if(boundary === null) return null;
-
-    let boundary_index = multiIndexOf(body, "--" + boundary);
-    for(let x = 0; x < boundary_index.length-1; x++) {
-        // Find file name and parameter name in content-disposition
-        let filename = null, name = null;
-        let cd = findLineWith(body, "Content-Disposition: form-data", boundary_index[x], boundary_index[x+1]);
-        let scd = cd.split(";");
-        for(let y = 1; y < scd.length; y++) {
-            let scd_2 = scd[y].trim().split("=");
-            if((scd_2.length === 2) && (scd_2[0] === "filename"))
-                filename = removeDoubleQuote(scd_2[1]);
-            if((scd_2.length === 2) && (scd_2[0] === "name"))
-                name = removeDoubleQuote(scd_2[1]);
-        }
-        if(name === null)
-            return null;
-
-        // Find the start and end index of the file contents
-        let cindex = findContent(body, boundary_index[x], boundary_index[x+1])
-
-        result[name] = {
-            filename: filename,
-            content_index_start: cindex,
-            content_index_end: boundary_index[x+1] - 2,
-        }
-    }
-
-    return result;
-}
-
 function HTTP_callback(method, url, sessionid, content_type, body, sendresponse) {
     usermgt.getSession(sessionid, (error, session) => {
         if(error) {
             sendresponse(500, "text/html", html.not_found(config), "");
-            console.log("Error on main: " + error)
+            serverLogger.error("Error on main: " + error)
             return;
         }
 
@@ -160,7 +84,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             usermgt.validateUser(ac_email[1], ac_email[0], (error, email, newpassword) => {
                 if(error) {
                     sendresponse(404, "text/html", html.not_found(config), "");
-                    console.log("Error on user activation: " + error)
+                    serverLogger.error("Error on user activation: " + error)
                     return;
                 }
                 else {
@@ -385,14 +309,14 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                                 body.substring(result["img"].content_index_start, result["img"].content_index_end),
                                 (err, filename) => {
                                     if(err) {
-                                        console.log("Error uploading texture to shapegroup: " + err);
+                                        serverLogger.error("Error uploading texture to shapegroup: " + err);
                                         sendresponse(400, "text/plain", "Upload error: " + err, session.sessionid);
                                         return;
                                     }
                                     else {
-                                        console.log("Uploaded texture file to shapegroup " + key);
-                                        console.log("File name: " + result["img"].filename);
-                                        console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                                        serverLogger.info("Uploaded texture file to shapegroup " + key);
+                                        serverLogger.info("File name: " + result["img"].filename);
+                                        serverLogger.info("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
                                         sendresponse(200, "text/plain", filename, session.sessionid);
                                         return;
                                     }
@@ -429,14 +353,14 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                     body.substring(result["img"].content_index_start, result["img"].content_index_end),
                     (err, filename) => {
                         if(err) {
-                            console.log("Error uploading icon to shapegroup: " + err);
+                            serverLogger.error("Error uploading icon to shapegroup: " + err);
                             sendresponse(400, "text/plain", "Upload error: " + err, session.sessionid);
                             return;
                         }
                         else {
-                            console.log("Uploaded icon file to shapegroup " + shapegroup_key);
-                            console.log("File name: " + filename);
-                            console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                            serverLogger.info("Uploaded icon file to shapegroup " + shapegroup_key);
+                            serverLogger.info("File name: " + filename);
+                            serverLogger.info("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
                             sendresponse(200, "text/plain", filename, session.sessionid);
                             return;
                         }
@@ -473,15 +397,15 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 body.substring(result["img"].content_index_start, result["img"].content_index_end),
                 (err, filename) => {
                     if(err) {
-                        console.log("Error uploading user texture: " + err);
-                        console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                        serverLogger.error("Error uploading user texture: " + err);
+                        serverLogger.error("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
                         sendresponse(400, "application/json", '{"error": "Upload error"}', session.sessionid);
                         return;
                     }
                     else {
-                        console.log("Uploaded user texture ");
-                        console.log("File name: " + filename);
-                        console.log("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
+                        serverLogger.info("Uploaded user texture ");
+                        serverLogger.info("File name: " + filename);
+                        serverLogger.info("File size: " + (result["img"].content_index_end - result["img"].content_index_start)); 
                         sendresponse(200, "application/json", JSON.stringify({filename: filename}), session.sessionid);
                         return;
                     }
@@ -554,51 +478,24 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
     });
 }
 
-function test_directories() {
-    // Function to check if the directories on the configuration files exist and if we have RW access to them
-    try {
-        fs.accessSync(config.diagrams.path, fs.constants.R_OK | fs.constants.W_OK);
-    } catch(e) {
-        throw("I don't have RW access to diagrams directory " + config.diagrams.path);
-    }
-
-    // Create the directory textures on diagrams if it doesn't exist
-    if(!fs.existsSync(config.diagrams.path + "/textures")) {
-        fs.mkdirSync(config.diagrams.path + "/textures");
-    }
-
-    // Check user directory
-    try {
-        fs.accessSync(config.users.path, fs.constants.R_OK | fs.constants.W_OK);
-    } catch(e) {
-        throw("I don't have RW access to users directory " + config.users.path);
-    }
-
-    // Check shapes directory
-    try {
-        fs.accessSync(config.diagrams.shapes, fs.constants.R_OK | fs.constants.W_OK);
-    } catch(e) {
-        throw("I don't have RW access to users directory " + config.diagrams.shapes);
-    }
-
-    // Check sendmail queue directory
-    try {
-        fs.accessSync(config.sendmail.queue, fs.constants.R_OK | fs.constants.W_OK);
-    } catch(e) {
-        throw("I don't have RW access to sendmail queue directory " + config.sendmail.queue);
-    }
-}
-
 function main() {
     console.log("\nIf you like NetworkMaps, consider making a small donation :)\n")
-    test_directories();
+    testDirectories(config);
 
     usermgt.initialize();
     sendmail.initialize(config.sendmail);
     html.initialize(config);
     ws.initialize(config, usermgt, html, sendmail);
 
-    const server = new httpServer(config.use_ssl_socket, config.socket.address, config.socket.port, config.socket.cert, config.socket.key, HTTP_callback, ws.WS_callback);
+    const server = new httpServer(
+        config.use_ssl_socket, 
+        config.socket.address, 
+        config.socket.port, 
+        config.socket.cert, 
+        config.socket.key, 
+        HTTP_callback, 
+        ws.WS_callback
+    );
 }
 
 main()
