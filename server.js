@@ -4,7 +4,7 @@ const config = require('./lib/config');
 const httpServer = require('./lib/httpserver');
 const html = require('./lib/html');
 const UserMGT = require('./lib/usermgt');
-const ws = require('./lib/ws');
+const ws = require('./lib/ws/ws');
 const sendmail = require("./lib/sendmail");
 const staticcontent = require("./lib/staticcontent");
 const usermgt = new UserMGT(
@@ -15,9 +15,7 @@ const usermgt = new UserMGT(
     config.diagrams.shapes,
     config.diagrams.path,
 );
-const fs = require('fs');
 const { testDirectories } = require('./lib/utils/filesystem');
-const { multiIndexOf, findLineWith, removeDoubleQuote } = require('./lib/utils/string');
 const { process_multipart_formdata } = require('./lib/utils/formdata');
 const { Logger } = require('./lib/utils/logger');
 
@@ -485,7 +483,19 @@ function main() {
     usermgt.initialize();
     sendmail.initialize(config.sendmail);
     html.initialize(config);
-    ws.initialize(config, usermgt, html, sendmail);
+    ws.initialize(config, usermgt, html);
+
+    let smtpIntervalId = null;
+
+    // Set up email processing if integrated mode is enabled
+    if (config.sendmail.integrated) {
+        console.log("Email processing integrated with main server");
+        smtpIntervalId = setInterval(() => { 
+            sendmail.empty_queue().catch(err => {
+                serverLogger.error("Error processing email queue: " + err);
+            });
+        }, config.sendmail.interval);
+    }
 
     const server = new httpServer(
         config.use_ssl_socket, 
@@ -494,8 +504,26 @@ function main() {
         config.socket.cert, 
         config.socket.key, 
         HTTP_callback, 
-        ws.WS_callback
+        ws.wsCallback,
     );
+
+    // Cleanup on server exit
+    process.on('SIGINT', () => {
+        serverLogger.info("Shutting down server");
+        
+        // Stop email processing
+        if (smtpIntervalId) clearInterval(smtpIntervalId);
+
+        // Close all connections and save open diagrams
+        ws.close();
+        server.close();
+
+        // Save user data
+        usermgt.saveSync();
+
+        // Exit
+        process.exit();
+    });
 }
 
 main()

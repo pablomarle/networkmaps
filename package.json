@@ -1,4 +1,22 @@
 {
+  "name": "networkmaps",
+  "type": "commonjs",
+  "description": "Network mapping web application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pablomarle/networkmaps.git"
+  },
+  "author": "Pablo Martin Leon <pablo@networkmaps.org>",
+  "license": "MIT",
+  "homepage": "https://networkmaps.org",
+  "funding": {
+    "type": "individual",
+    "url": "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=G4WCUPHDE2HZN&source=url"
+  },
   "dependencies": {
     "bufferutil": "^4.0.2",
     "ldapjs": "^2.2.0",
