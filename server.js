@@ -1,20 +1,13 @@
 #!/usr/bin/node
 
 const config = require('./lib/config');
+const context = require('./lib/context');
 const httpServer = require('./lib/httpserver');
 const html = require('./lib/html');
 const UserMGT = require('./lib/usermgt');
 const ws = require('./lib/ws/ws');
 const sendmail = require("./lib/sendmail");
 const staticcontent = require("./lib/staticcontent");
-const usermgt = new UserMGT(
-    config.timers.usertimeout,
-    config.timers.usersavetimeout,
-    config.timers.ldap_grouprefresh,
-    config.users,
-    config.diagrams.shapes,
-    config.diagrams.path,
-);
 const { testDirectories } = require('./lib/utils/filesystem');
 const { process_multipart_formdata } = require('./lib/utils/formdata');
 const { Logger } = require('./lib/utils/logger');
@@ -29,17 +22,10 @@ function sendMail(to, subject, content) {
         });
 }
 
-function findContent(s, i_start, i_end) {
-    let lindex = s.indexOf("\r\n\r\n");
-    if((lindex === -1) || (lindex >= i_end))
-        return null;
-    return lindex + 4;
-}
-
 function HTTP_callback(method, url, sessionid, content_type, body, sendresponse) {
-    usermgt.getSession(sessionid, (error, session) => {
+    context.usermgt.getSession(sessionid, (error, session) => {
         if(error) {
-            sendresponse(500, "text/html", html.not_found(config), "");
+            sendresponse(500, "text/html", html.notFound(), "");
             serverLogger.error("Error on main: " + error)
             return;
         }
@@ -48,20 +34,20 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
         if ((url == "/") && (method === "GET"))  {
             // If a session is not authenticated and we are doing openid, redirect to the openid provider
             if((config.users.authentication === "openid") && (!session.data.user)) {
-                let [state, redirect_url] = usermgt.init_openid_auth(session.sessionid, html.get_server());
+                let [state, redirect_url] = context.usermgt.init_openid_auth(session.sessionid, html.get_server());
                 sendresponse(302, null, "", session.sessionid, redirect_url);
             }
             else {
-                sendresponse(200, "text/html", html.index(config), session.sessionid);
+                sendresponse(200, "text/html", html.index(), session.sessionid);
             }
             return;
         }
 
         // For openid integration, the page where users are redirected from the openid provider
         if((url.startsWith("/cb?")) && (method === "GET")) {
-            usermgt.auth_openid(sessionid, url.split("?")[1], html.get_server(), (err) => {
+            context.usermgt.auth_openid(sessionid, url.split("?")[1], html.get_server(), (err) => {
                 if(err) {
-                    sendresponse(403, "text/html", html.not_authorized(config, err), "");
+                    sendresponse(403, "text/html", html.notAuthorized(err), "");
                     return;
                 }
                 else {
@@ -75,13 +61,13 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
         else if (url.startsWith("/validate/") && (method === "GET"))  {
             let ac_email = url.split("/")[2].split("?");
             if(ac_email.length != 2) {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
                 return;
             }
             
-            usermgt.validateUser(ac_email[1], ac_email[0], (error, email, newpassword) => {
+            context.usermgt.validateUser(ac_email[1], ac_email[0], (error, email, newpassword) => {
                 if(error) {
-                    sendresponse(404, "text/html", html.not_found(config), "");
+                    sendresponse(404, "text/html", html.notFound(), "");
                     serverLogger.error("Error on user activation: " + error)
                     return;
                 }
@@ -91,7 +77,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                                 A temporary password has been assigned to you:\n
                                 Username: ` + email + `\n
                                 Password: ` + newpassword + `\n\nRegards,\n`)
-                    sendresponse(200, "text/html", html.user_validated(config), session.sessionid);
+                    sendresponse(200, "text/html", html.userValidated(), session.sessionid);
                     return;
                 }
             });
@@ -102,13 +88,13 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
         else if (url.startsWith("/passwordreset/") && (method === "GET"))  {
             let ac_email = url.split("/")[2].split("?");
             if(ac_email.length != 2) {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
                 return;
             }
 
-            usermgt.resetPassword(ac_email[1], ac_email[0], (error, email, password) => {
+            context.usermgt.resetPassword(ac_email[1], ac_email[0], (error, email, password) => {
                 if(error) {
-                    sendresponse(404, "text/html", html.not_found(config), "");
+                    sendresponse(404, "text/html", html.notFound(), "");
                     console.log("Error on user activation: " + error)
                     return;
                 }
@@ -120,7 +106,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                         Password: ` + password + `\n`);
 
 
-                    sendresponse(200, "text/html", html.password_reset(config), session.sessionid);
+                    sendresponse(200, "text/html", html.passwordReset(), session.sessionid);
                     return;
                 }               
             });         
@@ -135,11 +121,11 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             //}
             let surl = url.split("/");
             if(surl.length != 3) {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
                 return;
             }
             let diagram_uuid = surl[2].split("?")[0];
-            sendresponse(200, "text/html", html.diagram(config, diagram_uuid), session.sessionid);
+            sendresponse(200, "text/html", html.diagram(diagram_uuid), session.sessionid);
             return;
         }
 
@@ -174,12 +160,12 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
         }
         // Serving the screen to manage shapegroups
         else if((url === "/shapegroups") && (method === "GET")) {
-            sendresponse(200, "text/html", html.shapegroups(config, usermgt.data.shape_group_data.categories), session.sessionid);
+            sendresponse(200, "text/html", html.shapegroups(context.usermgt.data.shape_group_data.categories), session.sessionid);
             return;
         }
         // Get list of shapes available for this user
         else if((url === "/shapegroups/list") && (method === "GET")) {
-            usermgt.listShapes(session.sessionid, (error, result) => {
+            context.usermgt.listShapes(session.sessionid, (error, result) => {
                 if(error)
                     sendresponse(401, "application/json", JSON.stringify({error: error}), session.sessionid);
                 else
@@ -195,7 +181,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
                 return;
             }
-            usermgt.newShape(session.sessionid, new_data.name, new_data.description, new_data.category, (err, result) => {
+            context.usermgt.newShape(session.sessionid, new_data.name, new_data.description, new_data.category, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -212,7 +198,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
                 return;
             }
-            usermgt.deleteShape(session.sessionid, new_data.id, (err, result) => {
+            context.usermgt.deleteShape(session.sessionid, new_data.id, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -229,7 +215,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
                 return;
             }
-            usermgt.updateShape(session.sessionid, new_data.id, new_data.name, new_data.description, new_data.category, (err, result) => {
+            context.usermgt.updateShape(session.sessionid, new_data.id, new_data.name, new_data.description, new_data.category, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -246,7 +232,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
                 return;
             }
-            usermgt.updateShapeShapes(session.sessionid, new_data.key, new_data.shapes, (err, result) => {
+            context.usermgt.updateShapeShapes(session.sessionid, new_data.key, new_data.shapes, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -259,15 +245,15 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             let surl = url.split("/");
             if(surl.length === 4) {
                 let key = surl[3];
-                if(key in usermgt.data.shape_group_data.shape_group) {
-                    sendresponse(200, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+                if(key in context.usermgt.data.shape_group_data.shape_group) {
+                    sendresponse(200, "text/html", html.shapegroup_editor(key), session.sessionid);
                 }
                 else {
-                    sendresponse(404, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+                    sendresponse(404, "text/html", html.shapegroup_editor(key), session.sessionid);
                 }
             }
             else {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
             }
         }
         // Remove texture from shapegroup
@@ -279,7 +265,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid);
                 return;
             }
-            usermgt.removeShapeTexture(session.sessionid, new_data.key, new_data.filename, (err) => {
+            context.usermgt.removeShapeTexture(session.sessionid, new_data.key, new_data.filename, (err) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -292,7 +278,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             let surl = url.split("/");
             if(surl.length === 4) {
                 let key = surl[3];
-                if(key in usermgt.data.shape_group_data.shape_group) {
+                if(key in context.usermgt.data.shape_group_data.shape_group) {
                     let result = process_multipart_formdata(content_type, body);
                     if(result === null) {
                         sendresponse(400, "text/plain", "Invalid request", session.sessionid);
@@ -300,7 +286,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                     }
                     else {
                         if("img" in result) {
-                            usermgt.uploadShapeTexture(
+                            context.usermgt.uploadShapeTexture(
                                 session.sessionid,
                                 key,
                                 result["img"].filename,
@@ -327,11 +313,11 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                     }
                 }
                 else {
-                    sendresponse(404, "text/html", html.shapegroup_editor(config, key), session.sessionid);
+                    sendresponse(404, "text/html", html.shapegroup_editor(key), session.sessionid);
                 }
             }
             else {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
             }
         }
         // Upload shape icon to shapegroup
@@ -347,7 +333,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                     console.log(result);
                     return;
                 }
-                usermgt.uploadShapeIcon(session.sessionid, shapegroup_key, shape_key,
+                context.usermgt.uploadShapeIcon(session.sessionid, shapegroup_key, shape_key,
                     body.substring(result["img"].content_index_start, result["img"].content_index_end),
                     (err, filename) => {
                         if(err) {
@@ -366,7 +352,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 );
             }
             else {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
             }
         }
 
@@ -378,7 +364,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 staticcontent.get_file(path + "/" + surl[2] + "/" + surl[3], sendresponse, session.sessionid);
             }
             else {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
                 return;
             }
         }
@@ -391,7 +377,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 console.log(result);
                 return;
             }
-            usermgt.uploadUserTexture(session.sessionid, result.img.filename,
+            context.usermgt.uploadUserTexture(session.sessionid, result.img.filename,
                 body.substring(result["img"].content_index_start, result["img"].content_index_end),
                 (err, filename) => {
                     if(err) {
@@ -413,7 +399,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 
         // List user textures
         else if ((url === "/usertextures") && (method === "GET")) {
-            sendresponse(200, "text/html", html.usertextures(config), session.sessionid);
+            sendresponse(200, "text/html", html.usertextures(), session.sessionid);
             return;
         }
 
@@ -422,7 +408,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             let new_data;
             try { new_data = JSON.parse(body) } catch { sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid); return }
 
-            usermgt.deleteUserTexture(session.sessionid, new_data.id, (err, result) => {
+            context.usermgt.deleteUserTexture(session.sessionid, new_data.id, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -436,7 +422,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
             let new_data;
             try { new_data = JSON.parse(body) } catch { sendresponse(400, "application/json", JSON.stringify({error: "Not valid JSON"}), session.sessionid); return }
 
-            usermgt.renameUserTexture(session.sessionid, new_data.id, new_data.name, (err, result) => {
+            context.usermgt.renameUserTexture(session.sessionid, new_data.id, new_data.name, (err, result) => {
                 if(err) {
                     sendresponse(200, "application/json", JSON.stringify({error: err}), session.sessionid);
                     return;
@@ -447,7 +433,7 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
 
         // Rename user texture
         else if ((url === "/usertextures/list") && (method === "GET")) {
-            let userTextures = usermgt.getUserTextures(session.sessionid);
+            let userTextures = context.usermgt.getUserTextures(session.sessionid);
             if(userTextures === null) {
                 sendresponse(200, "application/json", JSON.stringify({error: "Couldn't get user textures"}), session.sessionid);
                 return;
@@ -463,13 +449,13 @@ function HTTP_callback(method, url, sessionid, content_type, body, sendresponse)
                 staticcontent.get_file(path + "/textures/" + surl[2], sendresponse, session.sessionid);
             }
             else {
-                sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+                sendresponse(404, "text/html", html.notFound(), session.sessionid);
                 return;
             }
         }
 
         else {
-            sendresponse(404, "text/html", html.not_found(config), session.sessionid);
+            sendresponse(404, "text/html", html.notFound(), session.sessionid);
             return;
         }
 
@@ -480,10 +466,21 @@ function main() {
     console.log("\nIf you like NetworkMaps, consider making a small donation :)\n")
     testDirectories(config);
 
-    usermgt.initialize();
-    sendmail.initialize(config.sendmail);
+    context.config = config;
+
+    context.usermgt = new UserMGT(
+        config.timers.usertimeout,
+        config.timers.usersavetimeout,
+        config.timers.ldap_grouprefresh,
+        config.users,
+        config.diagrams.shapes,
+        config.diagrams.path,
+    );    
+    context.usermgt.initialize();
+
+    sendmail.initialize();
     html.initialize(config);
-    ws.initialize(config, usermgt, html);
+    ws.initialize(config, context.usermgt, html);
 
     let smtpIntervalId = null;
 
@@ -510,7 +507,7 @@ function main() {
     // Cleanup on server exit
     process.on('SIGINT', () => {
         serverLogger.info("Shutting down server");
-        
+
         // Stop email processing
         if (smtpIntervalId) clearInterval(smtpIntervalId);
 
@@ -519,7 +516,7 @@ function main() {
         server.close();
 
         // Save user data
-        usermgt.saveSync();
+        context.usermgt.saveSync();
 
         // Exit
         process.exit();

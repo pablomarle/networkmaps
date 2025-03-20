@@ -27,8 +27,9 @@
  * will exit immediately as email processing will be handled by the main server.
  */
 
-const sendmail = require("./lib/sendmail");
 const config = require('./lib/config');
+const context = require('./lib/context');
+const sendmail = require("./lib/sendmail");
 const { Logger } = require('./lib/utils/logger');
 
 const smtpLogger = new Logger({ prefix: 'SMTP-Daemon' });
@@ -48,8 +49,9 @@ function main() {
         process.exit(0);
     }
 
+    context.config = config;
     smtpLogger.info("Starting standalone email processing daemon");
-    sendmail.initialize(config.sendmail);
+    sendmail.initialize();
     
     // Process email queue at regular intervals
     setInterval(() => { 
