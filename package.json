@@ -18,13 +18,10 @@
     "url": "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=G4WCUPHDE2HZN&source=url"
   },
   "dependencies": {
-    "bufferutil": "^4.0.2",
     "ldapjs": "^2.2.0",
-    "minimist": "^1.2.5",
     "nodemailer": "^6.6.0",
     "sharp": "^0.32.6",
-    "utf-8-validate": "^5.0.3",
-    "validator": "^13.1.17",
+    "validator": "^13.7.0",
     "ws": "^7.4.0"
   }
 }
